@@ -10,6 +10,9 @@
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/backend/" />
+  <Folder Name="/src/backend/gateways/">
+    <Project Path="src/backend/gateways/ApiGateway/ApiGateway.csproj" />
+  </Folder>
   <Folder Name="/src/backend/shared/">
     <Project Path="src/backend/shared/Eshop.Contracts/Eshop.Contracts.csproj" />
     <Project Path="src/backend/shared/Observability.Shared/Observability.Shared.csproj" />
