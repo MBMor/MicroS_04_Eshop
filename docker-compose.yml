@@ -106,6 +106,21 @@ services:
       - eshop-public
       - eshop-internal
 
+  frontend:
+    build:
+      context: ./src/frontend
+      target: development
+    container_name: eshop-frontend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5080}
+    ports:
+      - "${REACT_FRONTEND_HTTP_PORT:-5173}:5173"
+    volumes:
+      - ./src/frontend:/app
+      - frontend-node-modules:/app/node_modules
+    networks:
+      - eshop-public
+
 networks:
   eshop-public:
     name: eshop-public
@@ -123,3 +138,6 @@ volumes:
 
   rabbitmq-data:
     name: eshop-rabbitmq-data
+
+  frontend-node-modules:
+    name: eshop-frontend-node-modules

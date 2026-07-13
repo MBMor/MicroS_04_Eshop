@@ -1,75 +1,173 @@
-# React + TypeScript + Vite
+# Eshop Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the Eshop capstone microservices project.
 
-Currently, two official plugins are available:
+The frontend is intentionally small and focused.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+It will demonstrate a usable end-to-end flow through the API Gateway.
 
-## React Compiler
+## Technology Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* React
+* TypeScript
+* Vite
+* Docker
+* nginx for production-style static hosting
 
-## Expanding the ESLint configuration
+## Current Status
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+The frontend currently contains only the initial application skeleton.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Implemented:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+* Vite React TypeScript project
+* basic App component
+* API Gateway base URL configuration
+* local development script
+* Docker development target
+* production-style nginx target
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Not implemented yet:
 
+* Keycloak login
+* React Router
+* product catalog page
+* basket page
+* checkout flow
+* order status page
+* API client
+* role-aware UI behavior
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Run the development server:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm run dev
 ```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+## Type Check
+
+```bash
+npm run typecheck
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Preview Production Build
+
+```bash
+npm run preview
+```
+
+## Environment Configuration
+
+The frontend reads the API Gateway base URL from:
+
+```text
+VITE_API_BASE_URL
+```
+
+Local default:
+
+```text
+http://localhost:5080
+```
+
+Example `.env` file:
+
+```env
+VITE_API_BASE_URL=http://localhost:5080
+```
+
+Only variables prefixed with `VITE_` are exposed to the browser.
+
+Do not put secrets into frontend environment variables.
+
+## Docker Development
+
+From the repository root:
+
+```bash
+docker compose build frontend
+docker compose up -d frontend
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+## Docker Production-style Build
+
+The Dockerfile contains a production target that builds static files and serves them with nginx.
+
+Build manually:
+
+```bash
+docker build --target production -t eshop-frontend:local ./src/frontend
+```
+
+Run manually:
+
+```bash
+docker run --rm -p 8080:80 eshop-frontend:local
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+## Frontend Boundary Rules
+
+The frontend must call only the API Gateway.
+
+Allowed:
+
+```text
+React Frontend -> API Gateway
+```
+
+Not allowed:
+
+```text
+React Frontend -> Catalog Service directly
+React Frontend -> Basket Service directly
+React Frontend -> Orders Service directly
+React Frontend -> PostgreSQL
+React Frontend -> Redis
+React Frontend -> RabbitMQ
+```
+
+## Security Notes
+
+Do not store secrets in React.
+
+Do not expose Keycloak admin credentials in frontend code.
+
+Do not log JWT tokens.
+
+Do not log passwords.
+
+UI hiding is not security.
+
+Authorization must be enforced by API Gateway and downstream services.
