@@ -12,12 +12,12 @@ The following infrastructure components are currently configured:
 * Redis
 * RabbitMQ
 * RabbitMQ Management UI
+* Keycloak
 
 ## Planned Infrastructure
 
 The following infrastructure components will be added later:
 
-* Keycloak
 * Aspire Dashboard
 
 ## Docker Compose Networks
@@ -118,6 +118,34 @@ Planned routing keys:
 
 Queues and dead-letter queues will be added later.
 
+## Keycloak
+
+Keycloak is used as the Identity Provider.
+
+Planned responsibilities:
+
+* users
+* roles
+* login
+* JWT issuing
+* identity claims
+
+The application will use a dedicated realm:
+
+`eshop`
+
+Planned roles:
+
+* `customer`
+* `support`
+* `admin`
+
+Keycloak uses PostgreSQL database:
+
+`keycloak_db`
+
+Business services must not implement custom password storage.
+
 ## Local URLs
 
 | Component              | URL                      |
@@ -126,20 +154,24 @@ Queues and dead-letter queues will be added later.
 | Redis                  | `localhost:6379`         |
 | RabbitMQ AMQP          | `localhost:5672`         |
 | RabbitMQ Management UI | `http://localhost:15672` |
+| Keycloak Admin Console | `http://localhost:18080` |
 
 Default RabbitMQ credentials for local development:
 
-```text
-username: eshop
-password: eshop_password
-```
+* username: `eshop`
+* password: `eshop_password`
+
+Default Keycloak admin credentials for local development:
+
+* username: `admin`
+* password: `admin_password`
 
 ## Useful Commands
 
 Start infrastructure:
 
 ```bash
-docker compose up -d postgres redis rabbitmq
+docker compose up -d postgres redis rabbitmq keycloak
 ```
 
 Show containers:
@@ -164,6 +196,12 @@ Show RabbitMQ logs:
 
 ```bash
 docker compose logs -f rabbitmq
+```
+
+Show Keycloak logs:
+
+```bash
+docker compose logs -f keycloak
 ```
 
 Stop containers:
@@ -221,9 +259,43 @@ RabbitMQ is running
 
 Open RabbitMQ Management UI:
 
-```text
-http://localhost:15672
+`http://localhost:15672`
+
+Verify Keycloak:
+
+Open Keycloak Admin Console:
+
+`http://localhost:18080`
+
+Login with local development credentials:
+
+* username: `admin`
+* password: `admin_password`
+
+## Existing Volume Note
+
+PostgreSQL initialization scripts run only when the PostgreSQL data volume is created for the first time.
+
+If `keycloak_db` is missing because the PostgreSQL volume already existed before Keycloak was added, use one of the following options.
+
+### Option A: Remove local volumes
+
+Use this if you do not need to keep local database data:
+
+```bash
+docker compose down -v
+docker compose up -d postgres redis rabbitmq keycloak
 ```
+
+### Option B: Create the Keycloak database manually
+
+Use this if you want to keep existing local volumes:
+
+```bash
+docker exec -it eshop-postgres createdb -U eshop keycloak_db
+```
+
+If the database already exists, the command may fail with a `database already exists` message. In that case, no action is needed.
 
 ## Scope
 

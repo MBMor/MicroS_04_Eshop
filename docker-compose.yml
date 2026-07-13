@@ -68,6 +68,31 @@ services:
       - eshop-public
       - eshop-internal
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.0
+    container_name: eshop-keycloak
+    command: ["start-dev"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_password}
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: ${KEYCLOAK_DB:-keycloak_db}
+      KC_DB_USERNAME: ${POSTGRES_USER:-eshop}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-eshop_password}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+    ports:
+      - "${KEYCLOAK_HTTP_PORT:-18080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - eshop-public
+      - eshop-internal
+
 networks:
   eshop-public:
     name: eshop-public
