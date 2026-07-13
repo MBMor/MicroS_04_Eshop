@@ -13,12 +13,13 @@ The following infrastructure components are currently configured:
 * RabbitMQ
 * RabbitMQ Management UI
 * Keycloak
+* Aspire Dashboard
 
 ## Planned Infrastructure
 
-The following infrastructure components will be added later:
+No additional infrastructure components are planned for the current infrastructure phase.
 
-* Aspire Dashboard
+Application services will be added in later steps.
 
 ## Docker Compose Networks
 
@@ -46,6 +47,7 @@ Typical services on this network:
 * PostgreSQL
 * Redis
 * RabbitMQ
+* Aspire Dashboard OTLP endpoints
 
 ## PostgreSQL
 
@@ -94,7 +96,9 @@ Redis must not be used as the source of truth for:
 * inventory
 * catalog data
 
-The basket is temporary state. After checkout, the durable order must be stored in Orders Service.
+The basket is temporary state.
+
+After checkout, the durable order must be stored in Orders Service.
 
 ## RabbitMQ
 
@@ -132,7 +136,7 @@ Planned responsibilities:
 
 The application will use a dedicated realm:
 
-`eshop`
+* `eshop`
 
 Planned roles:
 
@@ -142,9 +146,42 @@ Planned roles:
 
 Keycloak uses PostgreSQL database:
 
-`keycloak_db`
+* `keycloak_db`
 
 Business services must not implement custom password storage.
+
+## Aspire Dashboard
+
+Aspire Dashboard is used as a local observability dashboard.
+
+It will later display:
+
+* structured logs
+* distributed traces
+* metrics
+* service telemetry
+
+Current local dashboard URL:
+
+* `http://localhost:18888`
+
+Host OTLP endpoints:
+
+| Protocol  | Endpoint                |
+| --------- | ----------------------- |
+| OTLP/gRPC | `http://localhost:4317` |
+| OTLP/HTTP | `http://localhost:4318` |
+
+Docker Compose service OTLP endpoints:
+
+| Protocol  | Endpoint                        |
+| --------- | ------------------------------- |
+| OTLP/gRPC | `http://aspire-dashboard:18889` |
+| OTLP/HTTP | `http://aspire-dashboard:18890` |
+
+For local development, anonymous access is enabled.
+
+Do not expose the dashboard publicly without authentication.
 
 ## Local URLs
 
@@ -155,6 +192,7 @@ Business services must not implement custom password storage.
 | RabbitMQ AMQP          | `localhost:5672`         |
 | RabbitMQ Management UI | `http://localhost:15672` |
 | Keycloak Admin Console | `http://localhost:18080` |
+| Aspire Dashboard       | `http://localhost:18888` |
 
 Default RabbitMQ credentials for local development:
 
@@ -171,7 +209,7 @@ Default Keycloak admin credentials for local development:
 Start infrastructure:
 
 ```bash
-docker compose up -d postgres redis rabbitmq keycloak
+docker compose up -d postgres redis rabbitmq keycloak aspire-dashboard
 ```
 
 Show containers:
@@ -202,6 +240,12 @@ Show Keycloak logs:
 
 ```bash
 docker compose logs -f keycloak
+```
+
+Show Aspire Dashboard logs:
+
+```bash
+docker compose logs -f aspire-dashboard
 ```
 
 Stop containers:
@@ -259,18 +303,29 @@ RabbitMQ is running
 
 Open RabbitMQ Management UI:
 
-`http://localhost:15672`
+* `http://localhost:15672`
 
 Verify Keycloak:
 
 Open Keycloak Admin Console:
 
-`http://localhost:18080`
+* `http://localhost:18080`
 
 Login with local development credentials:
 
 * username: `admin`
 * password: `admin_password`
+
+Verify Aspire Dashboard:
+
+Open Aspire Dashboard:
+
+* `http://localhost:18888`
+
+Expected result:
+
+* Aspire Dashboard opens without requiring a login token.
+* No application traces or metrics are visible yet because backend services are not exporting telemetry yet.
 
 ## Existing Volume Note
 
@@ -284,7 +339,7 @@ Use this if you do not need to keep local database data:
 
 ```bash
 docker compose down -v
-docker compose up -d postgres redis rabbitmq keycloak
+docker compose up -d postgres redis rabbitmq keycloak aspire-dashboard
 ```
 
 ### Option B: Create the Keycloak database manually
@@ -295,7 +350,9 @@ Use this if you want to keep existing local volumes:
 docker exec -it eshop-postgres createdb -U eshop keycloak_db
 ```
 
-If the database already exists, the command may fail with a `database already exists` message. In that case, no action is needed.
+If the database already exists, the command may fail with a `database already exists` message.
+
+In that case, no action is needed.
 
 ## Scope
 
