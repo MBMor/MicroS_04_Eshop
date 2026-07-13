@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Observability.Shared</RootNamespace>
+    <AssemblyName>Observability.Shared</AssemblyName>
+  </PropertyGroup>
+
+</Project>

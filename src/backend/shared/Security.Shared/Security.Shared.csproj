@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Security.Shared</RootNamespace>
+    <AssemblyName>Security.Shared</AssemblyName>
+  </PropertyGroup>
+
+</Project>

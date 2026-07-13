@@ -1,0 +1,13 @@
+name: eshop
+
+services: {}
+
+networks:
+  eshop-public:
+    name: eshop-public
+
+  eshop-internal:
+    name: eshop-internal
+    internal: true
+
+volumes: {}

@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Eshop.Contracts</RootNamespace>
+    <AssemblyName>Eshop.Contracts</AssemblyName>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".env.example" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="global.json" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/" />
+  <Folder Name="/src/backend/shared/">
+    <Project Path="src/backend/shared/Eshop.Contracts/Eshop.Contracts.csproj" />
+    <Project Path="src/backend/shared/Observability.Shared/Observability.Shared.csproj" />
+    <Project Path="src/backend/shared/Security.Shared/Security.Shared.csproj" />
+  </Folder>
+</Solution>
