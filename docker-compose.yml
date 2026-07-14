@@ -34,7 +34,7 @@ services:
     container_name: eshop-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -44,6 +44,7 @@ services:
       retries: 10
       start_period: 10s
     networks:
+      - eshop-public
       - eshop-internal
 
   rabbitmq:
@@ -111,9 +112,14 @@ services:
       context: ./src/frontend
       target: development
     container_name: eshop-frontend
+    command:
+      - sh
+      - -c
+      - npm ci --no-audit --no-fund && npm run dev
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
       VITE_DEV_PROXY_TARGET: ${VITE_DEV_PROXY_TARGET:-http://host.docker.internal:5080}
+      VITE_DEVELOPMENT_CUSTOMER_ID: ${VITE_DEVELOPMENT_CUSTOMER_ID:-local-development-user}
     ports:
       - "${REACT_FRONTEND_HTTP_PORT:-5173}:5173"
     volumes:

@@ -1,25 +1,72 @@
+.site-header {
+    min-height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 0 2rem;
+    border-bottom: 1px solid #d0d7de;
+    background: #ffffff;
+}
+
+    .site-header nav {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+.brand {
+    color: #24292f;
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.nav-link {
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    color: #57606a;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+    .nav-link:hover,
+    .active-nav-link {
+        background: #f6f8fa;
+        color: #24292f;
+    }
+
 .app-shell {
-    min-height: 100vh;
+    min-height: calc(100vh - 4rem);
     padding: 2rem;
 }
 
-.catalog-header {
+.page-header {
     width: min(100%, 72rem);
     margin: 0 auto 2rem;
     padding: 2rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
     border: 1px solid #d0d7de;
     border-radius: 1rem;
     background: #ffffff;
     box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 8%);
 }
 
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 .eyebrow {
     margin: 0 0 0.75rem;
+    color: #57606a;
     font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #57606a;
 }
 
 h1 {
@@ -30,48 +77,84 @@ h1 {
 
 .description {
     max-width: 42rem;
-    margin: 1rem 0 1.5rem;
+    margin: 1rem 0 0;
     color: #57606a;
     font-size: 1.125rem;
     line-height: 1.7;
 }
 
-.secondary-button {
-    border: 1px solid #8c959f;
+.primary-button,
+.secondary-button,
+.danger-button {
     border-radius: 0.5rem;
     padding: 0.7rem 1rem;
-    background: #ffffff;
-    color: #24292f;
     font: inherit;
     font-weight: 700;
     cursor: pointer;
 }
 
-    .secondary-button:hover {
-        background: #f6f8fa;
+.primary-button {
+    border: 1px solid #1f883d;
+    background: #1f883d;
+    color: #ffffff;
+}
+
+.secondary-button {
+    border: 1px solid #8c959f;
+    background: #ffffff;
+    color: #24292f;
+}
+
+.danger-button {
+    border: 1px solid #cf222e;
+    background: #ffffff;
+    color: #cf222e;
+}
+
+    .primary-button:disabled,
+    .secondary-button:disabled,
+    .danger-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
     }
+
+.link-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.full-width-button {
+    width: 100%;
+}
 
 .state-card {
     width: min(100%, 72rem);
-    margin: 0 auto;
+    margin: 0 auto 1rem;
     padding: 1.5rem;
     border: 1px solid #d0d7de;
     border-radius: 1rem;
     background: #ffffff;
 }
 
+    .state-card h1,
     .state-card h2 {
-        margin: 0 0 0.5rem;
+        margin-top: 0;
     }
 
     .state-card p {
-        margin: 0.25rem 0;
         color: #57606a;
     }
 
 .error-card {
-    border-color: #ffebe9;
+    border-color: #ff8182;
     background: #fff5f5;
+}
+
+.success-card {
+    border-color: #4ac26b;
+    background: #f0fff4;
 }
 
 .product-grid {
@@ -100,7 +183,8 @@ h1 {
     gap: 1rem;
 }
 
-.product-card h2 {
+.product-card h2,
+.basket-item h2 {
     margin: 0.25rem 0 0;
     font-size: 1.25rem;
 }
@@ -117,7 +201,7 @@ h1 {
     border-radius: 999px;
     background: #f6f8fa;
     color: #57606a;
-    font-family: ui-monospace, SFMono-Regular, SF Mono, Consolas, Liberation Mono, Menlo, monospace;
+    font-family: monospace;
     font-size: 0.75rem;
     white-space: nowrap;
 }
@@ -136,20 +220,90 @@ h1 {
     gap: 1rem;
 }
 
-.status-active,
-.status-inactive {
-    border-radius: 999px;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    font-weight: 700;
+.basket-layout {
+    width: min(100%, 72rem);
+    margin: 0 auto;
+    display: grid;
+    align-items: start;
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
 }
 
-.status-active {
-    background: #dafbe1;
-    color: #116329;
+.basket-items {
+    display: grid;
+    gap: 1rem;
 }
 
-.status-inactive {
-    background: #ffebe9;
-    color: #82071e;
+.basket-item {
+    display: grid;
+    align-items: center;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    padding: 1.25rem;
+    border: 1px solid #d0d7de;
+    border-radius: 1rem;
+    background: #ffffff;
+}
+
+.basket-unit-price,
+.basket-expiration {
+    color: #57606a;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+    .quantity-controls button {
+        width: 2rem;
+        height: 2rem;
+        border: 1px solid #8c959f;
+        border-radius: 0.4rem;
+        background: #ffffff;
+        cursor: pointer;
+    }
+
+        .quantity-controls button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+.basket-summary {
+    padding: 1.5rem;
+    border: 1px solid #d0d7de;
+    border-radius: 1rem;
+    background: #ffffff;
+}
+
+    .basket-summary h2 {
+        margin-top: 0;
+    }
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+@media (max-width: 48rem) {
+    .site-header,
+    .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .site-header {
+        padding: 1rem;
+    }
+
+    .basket-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .basket-item {
+        grid-template-columns: 1fr;
+    }
 }

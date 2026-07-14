@@ -6,6 +6,8 @@ const normalizedBaseUrl = configuredBaseUrl
 
 export const apiConfig = {
     baseUrl: normalizedBaseUrl,
+    developmentCustomerId:
+        import.meta.env.VITE_DEVELOPMENT_CUSTOMER_ID?.trim() ?? '',
 } as const;
 
 export function buildApiUrl(path: string): string {
