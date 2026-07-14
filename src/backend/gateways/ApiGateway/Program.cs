@@ -1,5 +1,7 @@
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHealthChecks();
+
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
@@ -11,6 +13,8 @@ app.MapGet("/", () => Results.Ok(new
     Service = "ApiGateway",
     Status = "Running"
 }));
+
+app.MapHealthChecks("/health");
 
 app.MapReverseProxy();
 
