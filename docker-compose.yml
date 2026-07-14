@@ -112,7 +112,8 @@ services:
       target: development
     container_name: eshop-frontend
     environment:
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5080}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+      VITE_DEV_PROXY_TARGET: ${VITE_DEV_PROXY_TARGET:-http://host.docker.internal:5080}
     ports:
       - "${REACT_FRONTEND_HTTP_PORT:-5173}:5173"
     volumes:

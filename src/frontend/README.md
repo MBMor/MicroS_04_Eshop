@@ -4,7 +4,7 @@ React frontend for the Eshop capstone microservices project.
 
 The frontend is intentionally small and focused.
 
-It will demonstrate a usable end-to-end flow through the API Gateway.
+It demonstrates a usable end-to-end flow through the API Gateway.
 
 ## Technology Stack
 
@@ -17,13 +17,16 @@ It will demonstrate a usable end-to-end flow through the API Gateway.
 
 ## Current Status
 
-The frontend currently contains the initial application skeleton.
+The frontend currently contains the first working Catalog integration.
 
 Implemented:
 
 * Vite React TypeScript project
-* basic App component
+* basic React application
+* Product Catalog page
+* Catalog API client
 * API Gateway base URL configuration
+* Vite development proxy for `/api`
 * local development script
 * Docker development target
 * production-style nginx target
@@ -33,11 +36,10 @@ Not implemented yet:
 
 * Keycloak login
 * React Router
-* product catalog page
+* product detail page
 * basket page
 * checkout flow
 * order status page
-* API client
 * role-aware UI behavior
 
 ## Visual Studio Integration
@@ -120,21 +122,64 @@ The frontend reads the API Gateway base URL from:
 VITE_API_BASE_URL
 ```
 
-Local default:
-
-```text
-http://localhost:5080
-```
-
-Example `.env` file:
+Recommended local development value:
 
 ```env
-VITE_API_BASE_URL=http://localhost:5080
+VITE_API_BASE_URL=
+```
+
+An empty value means that browser requests use same-origin relative URLs.
+
+Example request:
+
+```text
+/api/v1/products
+```
+
+In Vite development mode, `/api` is proxied to the API Gateway.
+
+The proxy target is configured through:
+
+```text
+VITE_DEV_PROXY_TARGET
+```
+
+Recommended value when running frontend directly on the host machine:
+
+```env
+VITE_DEV_PROXY_TARGET=http://localhost:5080
+```
+
+Recommended value when running frontend inside Docker Desktop:
+
+```env
+VITE_DEV_PROXY_TARGET=http://host.docker.internal:5080
 ```
 
 Only variables prefixed with `VITE_` are exposed to the browser.
 
 Do not put secrets into frontend environment variables.
+
+## Catalog Page
+
+The current frontend page loads products from:
+
+```text
+GET /api/v1/products
+```
+
+The request goes through:
+
+```text
+React Frontend -> Vite dev proxy -> API Gateway -> Catalog Service
+```
+
+Required local services for the catalog page:
+
+* PostgreSQL
+* CatalogService
+* ApiGateway
+* React frontend
 
 ## Docker Development
 
