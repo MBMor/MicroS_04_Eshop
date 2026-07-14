@@ -13,6 +13,14 @@
   <Folder Name="/src/backend/gateways/">
     <Project Path="src/backend/gateways/ApiGateway/ApiGateway.csproj" />
   </Folder>
+  <Folder Name="/src/backend/services/">
+    <Project Path="src/backend/services/BasketService/BasketService.csproj" />
+    <Project Path="src/backend/services/CatalogService/CatalogService.csproj" />
+    <Project Path="src/backend/services/InventoryService/InventoryService.csproj" />
+    <Project Path="src/backend/services/NotificationsService/NotificationsService.csproj" />
+    <Project Path="src/backend/services/OrdersService/OrdersService.csproj" />
+    <Project Path="src/backend/services/PaymentsService/PaymentsService.csproj" />
+  </Folder>
   <Folder Name="/src/backend/shared/">
     <Project Path="src/backend/shared/Eshop.Contracts/Eshop.Contracts.csproj" />
     <Project Path="src/backend/shared/Observability.Shared/Observability.Shared.csproj" />
