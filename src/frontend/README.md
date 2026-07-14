@@ -13,10 +13,11 @@ It will demonstrate a usable end-to-end flow through the API Gateway.
 * Vite
 * Docker
 * nginx for production-style static hosting
+* Visual Studio JavaScript Project System
 
 ## Current Status
 
-The frontend currently contains only the initial application skeleton.
+The frontend currently contains the initial application skeleton.
 
 Implemented:
 
@@ -26,6 +27,7 @@ Implemented:
 * local development script
 * Docker development target
 * production-style nginx target
+* Visual Studio `.esproj` project file
 
 Not implemented yet:
 
@@ -37,6 +39,40 @@ Not implemented yet:
 * order status page
 * API client
 * role-aware UI behavior
+
+## Visual Studio Integration
+
+The frontend is included in the solution through:
+
+* `Eshop.Frontend.esproj`
+
+This file allows Visual Studio to show the React frontend as a project inside:
+
+* `Eshop.slnx`
+
+The project uses:
+
+* `Microsoft.VisualStudio.JavaScript.SDK`
+
+Startup command:
+
+```text
+npm run dev
+```
+
+The frontend build is intentionally not executed automatically during normal solution build.
+
+This is controlled by:
+
+```xml
+<ShouldRunBuildScript>false</ShouldRunBuildScript>
+```
+
+Reason:
+
+* backend build should stay fast
+* frontend build should be explicit
+* CI should run backend and frontend jobs separately
 
 ## Local Development
 

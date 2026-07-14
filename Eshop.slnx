@@ -18,4 +18,10 @@
     <Project Path="src/backend/shared/Observability.Shared/Observability.Shared.csproj" />
     <Project Path="src/backend/shared/Security.Shared/Security.Shared.csproj" />
   </Folder>
+  <Folder Name="/src/frontend/">
+    <Project Path="src/frontend/Eshop.Frontend.esproj">
+      <Build />
+      <Deploy />
+    </Project>
+  </Folder>
 </Solution>
