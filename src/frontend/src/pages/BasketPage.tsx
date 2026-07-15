@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import {
     clearBasket,
@@ -229,7 +229,12 @@ export function BasketPage() {
                             Basket expires at{' '}
                             {new Date(basket.expiresAtUtc).toLocaleString('cs-CZ')}.
                         </p>
-
+                        <Link
+                            className="primary-button link-button full-width-button"
+                            to="/checkout"
+                        >
+                            Continue to checkout
+                        </Link>
                         <button
                             className="danger-button full-width-button"
                             type="button"

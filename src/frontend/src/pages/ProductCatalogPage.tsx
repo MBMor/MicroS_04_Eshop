@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 import { addBasketItem } from '../api/basketApi';
 import { getProducts } from '../api/productsApi';
