@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <RootNamespace>OrdersService</RootNamespace>
@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\shared\ErrorHandling.Shared\ErrorHandling.Shared.csproj" />
+    <ProjectReference Include="..\..\shared\Messaging.Shared\Messaging.Shared.csproj" />
     <ProjectReference Include="..\..\shared\OpenApi.Shared\OpenApi.Shared.csproj" />
     <ProjectReference Include="..\..\shared\Eshop.Contracts\Eshop.Contracts.csproj" />
   </ItemGroup>

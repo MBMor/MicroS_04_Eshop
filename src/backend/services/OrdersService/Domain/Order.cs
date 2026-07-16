@@ -123,18 +123,28 @@ public sealed class Order
 
     public void MarkStockReserved(DateTimeOffset updatedAtUtc)
     {
-        Transition(
-            OrderStatus.PendingStockReservation,
-            OrderStatus.PendingPayment,
-            updatedAtUtc);
+        if (Status != OrderStatus.PendingStockReservation)
+        {
+            throw new InvalidOperationException(
+                $"Order in status '{Status}' cannot accept a stock reservation.");
+        }
+
+        Status = OrderStatus.PendingPayment;
+        UpdatedAtUtc = updatedAtUtc;
     }
 
-    public void MarkStockReservationFailed(DateTimeOffset updatedAtUtc)
+    public void MarkStockReservationFailed(string reason, DateTimeOffset updatedAtUtc)
     {
-        Transition(
-            OrderStatus.PendingStockReservation,
-            OrderStatus.StockReservationFailed,
-            updatedAtUtc);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        if (Status != OrderStatus.PendingStockReservation)
+        {
+            throw new InvalidOperationException(
+                $"Order in status '{Status}' cannot accept a failed stock reservation.");
+        }
+
+        Status = OrderStatus.StockReservationFailed;
+        UpdatedAtUtc = updatedAtUtc;
     }
 
     public void MarkPaymentAuthorized(DateTimeOffset updatedAtUtc)

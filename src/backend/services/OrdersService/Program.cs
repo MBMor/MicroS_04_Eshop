@@ -7,6 +7,9 @@ using OrdersService.Data;
 using OrdersService.Identity;
 using OrdersService.Integration;
 using OrdersService.Options;
+using OrdersService.Outbox;
+using Messaging.Shared;
+using OrdersService.Messaging;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +72,16 @@ builder.Services.AddHttpClient<IBasketClient, BasketClient>(httpClient =>
 
 builder.Services.AddScoped<OrderApplicationService>();
 builder.Services.AddSingleton<IOrderOwnerProvider, OrderOwnerProvider>();
+
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddEshopMessagingCore(builder.Configuration);
+
+builder.Services.AddSingleton<OrdersOutboxWriter>();
+builder.Services.AddScoped<OrderStockResultService>();
+
+builder.Services.AddHostedService<OrdersOutboxPublisherWorker>();
+builder.Services.AddHostedService<StockReservedConsumerWorker>();
+builder.Services.AddHostedService<StockReservationFailedConsumerWorker>();
 
 WebApplication app = builder.Build();
 

@@ -14,6 +14,5 @@ public sealed record OrderCreatedV1(
 public sealed record OrderCreatedItemV1(
     Guid ProductId,
     string ProductName,
-    string Sku,
     int Quantity,
     decimal UnitPrice);

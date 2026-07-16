@@ -4,6 +4,9 @@ using InventoryService.Application;
 using InventoryService.Data;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
+using InventoryService.Messaging;
+using InventoryService.Outbox;
+using Messaging.Shared;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -48,6 +51,13 @@ builder.Services.AddDbContext<InventoryDbContext>(
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<InventoryApplicationService>();
+builder.Services.AddEshopMessagingCore(builder.Configuration);
+
+builder.Services.AddSingleton<InventoryOutboxWriter>();
+builder.Services.AddScoped<OrderStockReservationService>();
+
+builder.Services.AddHostedService<OrderCreatedConsumerWorker>();
+builder.Services.AddHostedService<InventoryOutboxPublisherWorker>();
 
 WebApplication app = builder.Build();
 

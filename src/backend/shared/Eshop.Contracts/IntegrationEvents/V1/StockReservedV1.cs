@@ -11,5 +11,4 @@ public sealed record StockReservedV1(
 
 public sealed record ReservedStockItemV1(
     Guid ProductId,
-    string Sku,
     int Quantity);

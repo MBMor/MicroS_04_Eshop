@@ -2,12 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using OrdersService.Data;
 using OrdersService.Domain;
 using OrdersService.Integration;
+using OrdersService.Outbox;
+using Eshop.Contracts.IntegrationEvents.V1;
+using Messaging.Shared.RabbitMq;
 
 namespace OrdersService.Application;
 
 public sealed class OrderApplicationService(
     OrdersDbContext dbContext,
     IBasketClient basketClient,
+    OrdersOutboxWriter outboxWriter,
+    TimeProvider timeProvider,
     ILogger<OrderApplicationService> logger)
 {
     public async Task<CreateOrderResult> CreateAsync(
@@ -56,7 +61,31 @@ public sealed class OrderApplicationService(
             orderItems,
             DateTimeOffset.UtcNow);
 
+        Guid correlationId = Guid.NewGuid();
+        DateTimeOffset occurredAtUtc = timeProvider.GetUtcNow();
+
+        OrderCreatedV1 orderCreated = new(
+            EventId: Guid.NewGuid(),
+            OccurredAtUtc: occurredAtUtc,
+            CorrelationId: correlationId,
+            OrderId: order.Id,
+            CustomerId: order.CustomerId,
+            TotalAmount: order.TotalAmount,
+            Currency: order.Currency,
+            Items: order.Items
+                .Select(item => new OrderCreatedItemV1(
+                    item.ProductId,
+                    item.ProductName,
+                    item.Quantity,
+                    item.UnitPrice))
+                .ToArray());
+
+        OutboxMessage outboxMessage = outboxWriter.Create(
+            orderCreated,
+            RabbitMqRoutingKeys.OrderCreatedV1);
+
         dbContext.Orders.Add(order);
+        dbContext.OutboxMessages.Add(outboxMessage);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

@@ -2,6 +2,7 @@ using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Messaging.Shared.Abstractions;
 
 namespace Messaging.Shared;
 
@@ -42,9 +43,9 @@ public static class MessagingServiceCollectionExtensions
                 "RabbitMQ virtual host must be configured.")
             .ValidateOnStart();
 
-        services.AddSingleton<
-            IMessageSerializer,
-            SystemTextJsonMessageSerializer>();
+        services.AddSingleton<IMessageSerializer, SystemTextJsonMessageSerializer>();
+        services.AddSingleton<IRabbitMqConnectionProvider, RabbitMqConnectionProvider>();
+        services.AddSingleton<IIntegrationEventPublisher, RabbitMqIntegrationEventPublisher>();
 
         return services;
     }
