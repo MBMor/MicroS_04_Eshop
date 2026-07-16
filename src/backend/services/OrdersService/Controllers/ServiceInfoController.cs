@@ -1,7 +1,9 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 
 namespace OrdersService.Controllers;
 
+[ApiVersionNeutral]
 [ApiController]
 [Route("")]
 public sealed class ServiceInfoController : ControllerBase

@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using BasketService.Application;
 using BasketService.Contracts;
 using BasketService.Domain;
@@ -8,8 +9,9 @@ using Microsoft.Extensions.Options;
 
 namespace BasketService.Controllers;
 
+[ApiVersion("1.0")]
 [ApiController]
-[Route("api/v1/basket")]
+[Route("api/v{version:apiVersion}/basket")]
 public sealed class BasketController(
     BasketApplicationService basketService,
     IBasketOwnerProvider basketOwnerProvider,

@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using InventoryService.Application;
 using InventoryService.Contracts;
 using InventoryService.Domain;
@@ -5,8 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryService.Controllers;
 
+[ApiVersion("1.0")]
 [ApiController]
-[Route("api/v1/inventory-items")]
+[Route("api/v{version:apiVersion}/inventory-items")]
 public sealed class InventoryItemsController(
     InventoryApplicationService inventoryService)
     : ControllerBase
@@ -107,7 +109,11 @@ public sealed class InventoryItemsController(
 
             return CreatedAtAction(
                 nameof(GetInventoryItemById),
-                new { id = result.Item.Id },
+                new
+                {
+                    version = RouteData.Values["version"],
+                    id = result.Item.Id
+                },
                 response);
         }
 

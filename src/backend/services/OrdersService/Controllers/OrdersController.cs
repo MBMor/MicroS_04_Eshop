@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OrdersService.Application;
 using OrdersService.Contracts;
@@ -6,8 +7,9 @@ using OrdersService.Identity;
 
 namespace OrdersService.Controllers;
 
+[ApiVersion("1.0")]
 [ApiController]
-[Route("api/v1/orders")]
+[Route("api/v{version:apiVersion}/orders")]
 public sealed class OrdersController(
     OrderApplicationService orderService,
     IOrderOwnerProvider orderOwnerProvider) : ControllerBase
@@ -43,7 +45,11 @@ public sealed class OrdersController(
                     when result.Order is not null
                     => CreatedAtAction(
                         nameof(GetOrderById),
-                        new { id = result.Order.Id },
+                        new
+                        {
+                            version = RouteData.Values["version"],
+                            id = result.Order.Id
+                        },
                         OrderResponse.FromOrder(result.Order)),
 
                 CreateOrderStatus.EmptyBasket

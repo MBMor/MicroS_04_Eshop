@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using NotificationsService.Application;
 using NotificationsService.Contracts;
@@ -7,8 +8,9 @@ using NotificationsService.Identity;
 
 namespace NotificationsService.Controllers;
 
+[ApiVersion("1.0")]
 [ApiController]
-[Route("api/v1/notifications")]
+[Route("api/v{version:apiVersion}/notifications")]
 public sealed class NotificationsController(
     NotificationApplicationService notificationService,
     INotificationOwnerProvider notificationOwnerProvider)

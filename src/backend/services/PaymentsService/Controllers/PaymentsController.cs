@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using PaymentsService.Application;
 using PaymentsService.Contracts;
@@ -5,8 +6,9 @@ using PaymentsService.Domain;
 
 namespace PaymentsService.Controllers;
 
+[ApiVersion("1.0")]
 [ApiController]
-[Route("api/v1/payments")]
+[Route("api/v{version:apiVersion}/payments")]
 public sealed class PaymentsController(
     PaymentApplicationService paymentService)
     : ControllerBase
@@ -103,7 +105,11 @@ public sealed class PaymentsController(
 
             return CreatedAtAction(
                 nameof(GetPaymentById),
-                new { id = result.Payment.Id },
+                new
+                {
+                    version = RouteData.Values["version"],
+                    id = result.Payment.Id
+                },
                 response);
         }
 
