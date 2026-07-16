@@ -4,6 +4,7 @@ using BasketService.Data;
 using BasketService.Identity;
 using BasketService.Integration;
 using BasketService.Options;
+using ErrorHandling.Shared;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ builder.Services
     .AddMvc();
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopErrorHandling();
 
 builder.Services
     .AddOptions<BasketOptions>()
@@ -63,6 +66,8 @@ builder.Services.AddScoped<BasketApplicationService>();
 builder.Services.AddSingleton<IBasketOwnerProvider, BasketOwnerProvider>();
 
 WebApplication app = builder.Build();
+
+app.UseEshopErrorHandling();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

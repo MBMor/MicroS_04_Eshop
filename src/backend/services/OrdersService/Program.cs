@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using ErrorHandling.Shared;
 using Microsoft.EntityFrameworkCore;
 using OrdersService.Application;
 using OrdersService.Data;
@@ -21,6 +22,8 @@ builder.Services
     .AddMvc();
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopErrorHandling();
 
 builder.Services
     .AddOptions<OrdersOptions>()
@@ -56,6 +59,8 @@ builder.Services.AddScoped<OrderApplicationService>();
 builder.Services.AddSingleton<IOrderOwnerProvider, OrderOwnerProvider>();
 
 WebApplication app = builder.Build();
+
+app.UseEshopErrorHandling();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using ErrorHandling.Shared;
 using Microsoft.EntityFrameworkCore;
 using PaymentsService.Application;
 using PaymentsService.Data;
@@ -20,6 +21,8 @@ builder.Services
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddEshopErrorHandling();
+
 string paymentsConnectionString =
     builder.Configuration.GetConnectionString("PaymentsDb")
     ?? throw new InvalidOperationException(
@@ -36,6 +39,8 @@ builder.Services.AddSingleton<FakePaymentProcessor>();
 builder.Services.AddScoped<PaymentApplicationService>();
 
 WebApplication app = builder.Build();
+
+app.UseEshopErrorHandling();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

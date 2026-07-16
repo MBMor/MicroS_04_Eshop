@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using ErrorHandling.Shared;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Application;
 using NotificationsService.Data;
@@ -21,6 +22,8 @@ builder.Services
     .AddMvc();
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopErrorHandling();
 
 builder.Services
     .AddOptions<NotificationsOptions>()
@@ -49,6 +52,8 @@ builder.Services.AddSingleton<
     NotificationOwnerProvider>();
 
 WebApplication app = builder.Build();
+
+app.UseEshopErrorHandling();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

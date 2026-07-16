@@ -22,6 +22,7 @@
     <Project Path="src/backend/services/PaymentsService/PaymentsService.csproj" />
   </Folder>
   <Folder Name="/src/backend/shared/">
+    <Project Path="src/backend/shared/ErrorHandling.Shared/ErrorHandling.Shared.csproj" />
     <Project Path="src/backend/shared/Eshop.Contracts/Eshop.Contracts.csproj" />
     <Project Path="src/backend/shared/Observability.Shared/Observability.Shared.csproj" />
     <Project Path="src/backend/shared/Security.Shared/Security.Shared.csproj" />

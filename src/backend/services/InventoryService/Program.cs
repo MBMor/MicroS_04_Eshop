@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using ErrorHandling.Shared;
 using InventoryService.Application;
 using InventoryService.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ builder.Services
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddEshopErrorHandling();
+
 string inventoryConnectionString =
     builder.Configuration.GetConnectionString("InventoryDb")
     ?? throw new InvalidOperationException(
@@ -35,6 +38,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<InventoryApplicationService>();
 
 WebApplication app = builder.Build();
+
+app.UseEshopErrorHandling();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
