@@ -8,12 +8,15 @@ namespace PaymentsService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/payments")]
 public sealed class PaymentsController(
     PaymentApplicationService paymentService)
     : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<PaymentResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<PaymentResponse>>>
         GetPayments(
             CancellationToken cancellationToken)
@@ -30,6 +33,9 @@ public sealed class PaymentsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<PaymentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResponse>>
         GetPaymentById(
             Guid id,
@@ -52,6 +58,9 @@ public sealed class PaymentsController(
     }
 
     [HttpGet("by-order/{orderId:guid}")]
+    [ProducesResponseType<PaymentResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResponse>>
         GetPaymentByOrderId(
             Guid orderId,
@@ -74,6 +83,11 @@ public sealed class PaymentsController(
     }
 
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType<PaymentResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentResponse>>
         CreatePayment(
             CreatePaymentRequest request,

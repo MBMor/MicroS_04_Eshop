@@ -9,12 +9,19 @@ namespace OrdersService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/orders")]
 public sealed class OrdersController(
     OrderApplicationService orderService,
     IOrderOwnerProvider orderOwnerProvider) : ControllerBase
 {
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType<OrderResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderResponse>> CreateOrder(
         CreateOrderRequest request,
         CancellationToken cancellationToken)
@@ -90,6 +97,10 @@ public sealed class OrdersController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderResponse>> GetOrderById(
         Guid id,
         CancellationToken cancellationToken)
@@ -122,6 +133,9 @@ public sealed class OrdersController(
     }
 
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<OrderSummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<OrderSummaryResponse>>> GetOrders(
         CancellationToken cancellationToken)
     {

@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
 using Microsoft.EntityFrameworkCore;
+using OpenApi.Shared;
 using PaymentsService.Application;
 using PaymentsService.Data;
 
@@ -17,11 +18,22 @@ builder.Services
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
-    .AddMvc();
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
+
+builder.Services.AddEshopOpenApi(
+    title: "Eshop Payments API",
+    description:
+        "Fake payment processing and payment query API.");
 
 string paymentsConnectionString =
     builder.Configuration.GetConnectionString("PaymentsDb")
@@ -41,6 +53,7 @@ builder.Services.AddScoped<PaymentApplicationService>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+app.UseEshopOpenApi();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

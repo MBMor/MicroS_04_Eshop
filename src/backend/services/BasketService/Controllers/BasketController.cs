@@ -11,6 +11,7 @@ namespace BasketService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/basket")]
 public sealed class BasketController(
     BasketApplicationService basketService,
@@ -20,6 +21,9 @@ public sealed class BasketController(
     private readonly BasketOptions _basketOptions = basketOptions.Value;
 
     [HttpGet]
+    [ProducesResponseType<BasketResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BasketResponse>> GetBasket(
         CancellationToken cancellationToken)
     {
@@ -41,6 +45,13 @@ public sealed class BasketController(
     }
 
     [HttpPost("items")]
+    [Consumes("application/json")]
+    [ProducesResponseType<BasketResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BasketResponse>> AddItem(
         AddBasketItemRequest request,
         CancellationToken cancellationToken)
@@ -86,6 +97,12 @@ public sealed class BasketController(
     }
 
     [HttpPut("items/{productId:guid}")]
+    [Consumes("application/json")]
+    [ProducesResponseType<BasketResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BasketResponse>> UpdateItem(
         Guid productId,
         UpdateBasketItemRequest request,
@@ -112,6 +129,10 @@ public sealed class BasketController(
     }
 
     [HttpDelete("items/{productId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RemoveItem(
         Guid productId,
         CancellationToken cancellationToken)
@@ -140,6 +161,9 @@ public sealed class BasketController(
     }
 
     [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ClearBasket(
         CancellationToken cancellationToken)
     {

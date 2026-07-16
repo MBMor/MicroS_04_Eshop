@@ -5,6 +5,7 @@ using NotificationsService.Application;
 using NotificationsService.Data;
 using NotificationsService.Identity;
 using NotificationsService.Options;
+using OpenApi.Shared;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -19,11 +20,22 @@ builder.Services
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
-    .AddMvc();
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
+
+builder.Services.AddEshopOpenApi(
+    title: "Eshop Notifications API",
+    description:
+        "Customer notification read model API.");
 
 builder.Services
     .AddOptions<NotificationsOptions>()
@@ -54,6 +66,7 @@ builder.Services.AddSingleton<
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+app.UseEshopOpenApi();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

@@ -8,12 +8,15 @@ namespace InventoryService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/inventory-items")]
 public sealed class InventoryItemsController(
     InventoryApplicationService inventoryService)
     : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<InventoryItemResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<InventoryItemResponse>>>
         GetInventoryItems(
             [FromQuery] bool includeInactive = false,
@@ -32,6 +35,9 @@ public sealed class InventoryItemsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         GetInventoryItemById(
             Guid id,
@@ -55,6 +61,9 @@ public sealed class InventoryItemsController(
     }
 
     [HttpGet("by-product/{productId:guid}")]
+    [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         GetInventoryItemByProductId(
             Guid productId,
@@ -78,6 +87,11 @@ public sealed class InventoryItemsController(
     }
 
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         CreateInventoryItem(
             CreateInventoryItemRequest request,
@@ -121,6 +135,12 @@ public sealed class InventoryItemsController(
     }
 
     [HttpPut("{id:guid}")]
+    [Consumes("application/json")]
+    [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         UpdateInventoryItem(
             Guid id,
@@ -147,6 +167,11 @@ public sealed class InventoryItemsController(
     }
 
     [HttpPost("{id:guid}/stock-adjustments")]
+    [Consumes("application/json")]
+    [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         AdjustInventoryStock(
             Guid id,

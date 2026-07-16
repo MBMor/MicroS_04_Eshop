@@ -3,6 +3,7 @@ using ErrorHandling.Shared;
 using InventoryService.Application;
 using InventoryService.Data;
 using Microsoft.EntityFrameworkCore;
+using OpenApi.Shared;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -17,11 +18,22 @@ builder.Services
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
-    .AddMvc();
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
+
+builder.Services.AddEshopOpenApi(
+    title: "Eshop Inventory API",
+    description:
+        "Inventory item and stock management API.");
 
 string inventoryConnectionString =
     builder.Configuration.GetConnectionString("InventoryDb")
@@ -40,6 +52,7 @@ builder.Services.AddScoped<InventoryApplicationService>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+app.UseEshopOpenApi();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

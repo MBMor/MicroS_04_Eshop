@@ -10,12 +10,15 @@ namespace CatalogService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/products")]
 public sealed class ProductsController(
     CatalogDbContext dbContext)
     : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<ProductResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<ProductResponse>>>
         GetProducts(
             [FromQuery] bool includeInactive = false,
@@ -48,6 +51,9 @@ public sealed class ProductsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProductResponse>>
         GetProductById(
             Guid id,
@@ -71,6 +77,11 @@ public sealed class ProductsController(
     }
 
     [HttpPost]
+    [Consumes("application/json")]
+    [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProductResponse>>
         CreateProduct(
             CreateProductRequest request,
@@ -144,6 +155,12 @@ public sealed class ProductsController(
     }
 
     [HttpPut("{id:guid}")]
+    [Consumes("application/json")]
+    [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProductResponse>>
         UpdateProduct(
             Guid id,
@@ -218,6 +235,9 @@ public sealed class ProductsController(
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteProduct(
         Guid id,
         CancellationToken cancellationToken)

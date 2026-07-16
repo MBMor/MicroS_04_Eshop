@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
 using Microsoft.EntityFrameworkCore;
+using OpenApi.Shared;
 using OrdersService.Application;
 using OrdersService.Data;
 using OrdersService.Identity;
@@ -19,11 +20,22 @@ builder.Services
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
-    .AddMvc();
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
+
+builder.Services.AddEshopOpenApi(
+    title: "Eshop Orders API",
+    description:
+        "Customer checkout and order query API.");
 
 builder.Services
     .AddOptions<OrdersOptions>()
@@ -61,6 +73,7 @@ builder.Services.AddSingleton<IOrderOwnerProvider, OrderOwnerProvider>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+app.UseEshopOpenApi();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

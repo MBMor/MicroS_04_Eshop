@@ -5,6 +5,7 @@ using BasketService.Identity;
 using BasketService.Integration;
 using BasketService.Options;
 using ErrorHandling.Shared;
+using OpenApi.Shared;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -18,11 +19,22 @@ builder.Services
         options.ReportApiVersions = true;
         options.ApiVersionReader = new UrlSegmentApiVersionReader();
     })
-    .AddMvc();
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'V";
+
+        options.SubstituteApiVersionInUrl = true;
+    });
 
 builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
+
+builder.Services.AddEshopOpenApi(
+    title: "Eshop Basket API",
+    description:
+        "Customer shopping basket management API.");
 
 builder.Services
     .AddOptions<BasketOptions>()
@@ -68,6 +80,7 @@ builder.Services.AddSingleton<IBasketOwnerProvider, BasketOwnerProvider>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+app.UseEshopOpenApi();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

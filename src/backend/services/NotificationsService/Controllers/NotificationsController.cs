@@ -10,6 +10,7 @@ namespace NotificationsService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Produces("application/json")]
 [Route("api/v{version:apiVersion}/notifications")]
 public sealed class NotificationsController(
     NotificationApplicationService notificationService,
@@ -17,6 +18,10 @@ public sealed class NotificationsController(
     : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType<IReadOnlyList<NotificationResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<
         IReadOnlyList<NotificationResponse>>> GetNotifications(
         [FromQuery] bool unreadOnly = false,
@@ -58,6 +63,9 @@ public sealed class NotificationsController(
     }
 
     [HttpGet("unread-count")]
+    [ProducesResponseType<UnreadNotificationCountResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<
         UnreadNotificationCountResponse>>
         GetUnreadNotificationCount(
@@ -80,6 +88,10 @@ public sealed class NotificationsController(
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType<NotificationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<NotificationResponse>>
         GetNotificationById(
             Guid id,
