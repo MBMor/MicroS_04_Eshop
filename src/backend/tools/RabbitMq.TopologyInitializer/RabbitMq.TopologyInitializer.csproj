@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RabbitMq.TopologyInitializer</RootNamespace>
+    <AssemblyName>RabbitMq.TopologyInitializer</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../shared/Messaging.Shared/Messaging.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
