@@ -83,6 +83,12 @@ builder.Services.AddHostedService<OrdersOutboxPublisherWorker>();
 builder.Services.AddHostedService<StockReservedConsumerWorker>();
 builder.Services.AddHostedService<StockReservationFailedConsumerWorker>();
 
+builder.Services.AddScoped<OrderPaymentResultService>();
+
+builder.Services.AddHostedService<PaymentAuthorizedConsumerWorker>();
+builder.Services.AddHostedService<PaymentFailedConsumerWorker>();
+builder.Services.AddHostedService<StockReleasedConsumerWorker>();
+
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();

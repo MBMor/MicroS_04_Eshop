@@ -12,5 +12,4 @@ public sealed record StockReleaseRequestedV1(
 
 public sealed record StockReleaseItemV1(
     Guid ProductId,
-    string Sku,
     int Quantity);

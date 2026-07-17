@@ -1,36 +1,37 @@
 using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
+using InventoryService.Application;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
-using OrdersService.Application;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace OrdersService.Messaging;
+namespace InventoryService.Messaging;
 
-public sealed class StockReservedConsumerWorker(
+public sealed class StockReleaseRequestedConsumerWorker(
     IServiceScopeFactory scopeFactory,
     IRabbitMqConnectionProvider connectionProvider,
     IMessageSerializer serializer,
-    ILogger<StockReservedConsumerWorker> logger)
+    ILogger<StockReleaseRequestedConsumerWorker> logger)
     : BackgroundService
 {
     private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
         LoggerMessage.Define<ulong>(
             LogLevel.Error,
-            new EventId(2200, nameof(LogInvalidJson)),
-            "StockReserved message {DeliveryTag} contains invalid JSON.");
+            new EventId(3400, nameof(LogInvalidJson)),
+            "StockReleaseRequested message {DeliveryTag} contains invalid JSON.");
 
     private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
         LoggerMessage.Define<ulong>(
             LogLevel.Error,
-            new EventId(2201, nameof(LogProcessingFailed)),
-            "StockReserved message {DeliveryTag} processing failed.");
+            new EventId(3401, nameof(LogProcessingFailed)),
+            "StockReleaseRequested message {DeliveryTag} processing failed.");
 
     private IChannel? _channel;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
         IConnection connection =
             await connectionProvider.GetConnectionAsync(stoppingToken);
@@ -38,20 +39,16 @@ public sealed class StockReservedConsumerWorker(
         _channel = await connection.CreateChannelAsync(
             cancellationToken: stoppingToken);
 
-        await _channel.BasicQosAsync(
-            prefetchSize: 0,
-            prefetchCount: 8,
-            global: false,
-            cancellationToken: stoppingToken);
+        await _channel.BasicQosAsync(0, 8, false, stoppingToken);
 
         AsyncEventingBasicConsumer consumer = new(_channel);
         consumer.ReceivedAsync += HandleDeliveryAsync;
 
         await _channel.BasicConsumeAsync(
-            queue: RabbitMqQueues.OrdersStockReservedV1,
+            RabbitMqQueues.InventoryStockReleaseRequestedV1,
             autoAck: false,
-            consumer: consumer,
-            cancellationToken: stoppingToken);
+            consumer,
+            stoppingToken);
 
         await Task.Delay(
             Timeout.InfiniteTimeSpan,
@@ -69,49 +66,34 @@ public sealed class StockReservedConsumerWorker(
 
         try
         {
-            MessageEnvelope<StockReservedV1> envelope =
-                serializer.Deserialize<MessageEnvelope<StockReservedV1>>(
+            MessageEnvelope<StockReleaseRequestedV1> envelope =
+                serializer.Deserialize<MessageEnvelope<StockReleaseRequestedV1>>(
                     delivery.Body.Span);
 
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();
 
-            OrderStockResultService service =
+            OrderStockReleaseService service =
                 scope.ServiceProvider
-                    .GetRequiredService<OrderStockResultService>();
+                    .GetRequiredService<OrderStockReleaseService>();
 
-            await service.ApplyStockReservedAsync(
-                envelope.Payload.OrderId,
-                envelope.CorrelationId,
+            await service.ReleaseAsync(
+                envelope.Payload,
                 CancellationToken.None);
 
             await _channel.BasicAckAsync(
                 delivery.DeliveryTag,
-                multiple: false);
+                false);
         }
         catch (JsonException exception)
         {
-            LogInvalidJson(
-                logger,
-                delivery.DeliveryTag,
-                exception);
-
-            await _channel.BasicNackAsync(
-                delivery.DeliveryTag,
-                multiple: false,
-                requeue: false);
+            LogInvalidJson(logger, delivery.DeliveryTag, exception);
+            await _channel.BasicNackAsync(delivery.DeliveryTag, false, false);
         }
         catch (Exception exception)
         {
-            LogProcessingFailed(
-                logger,
-                delivery.DeliveryTag,
-                exception);
-
-            await _channel.BasicNackAsync(
-                delivery.DeliveryTag,
-                multiple: false,
-                requeue: false);
+            LogProcessingFailed(logger, delivery.DeliveryTag, exception);
+            await _channel.BasicNackAsync(delivery.DeliveryTag, false, false);
         }
     }
 

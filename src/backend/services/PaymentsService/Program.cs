@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
 using PaymentsService.Application;
 using PaymentsService.Data;
+using Messaging.Shared;
+using PaymentsService.Messaging;
+using PaymentsService.Outbox;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -49,6 +52,14 @@ builder.Services.AddDbContext<PaymentsDbContext>(
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<FakePaymentProcessor>();
 builder.Services.AddScoped<PaymentApplicationService>();
+
+builder.Services.AddEshopMessagingCore(builder.Configuration);
+
+builder.Services.AddSingleton<PaymentsOutboxWriter>();
+builder.Services.AddScoped<PaymentRequestedProcessingService>();
+
+builder.Services.AddHostedService<PaymentRequestedConsumerWorker>();
+builder.Services.AddHostedService<PaymentsOutboxPublisherWorker>();
 
 WebApplication app = builder.Build();
 

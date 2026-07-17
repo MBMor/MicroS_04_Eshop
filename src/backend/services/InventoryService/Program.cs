@@ -59,6 +59,9 @@ builder.Services.AddScoped<OrderStockReservationService>();
 builder.Services.AddHostedService<OrderCreatedConsumerWorker>();
 builder.Services.AddHostedService<InventoryOutboxPublisherWorker>();
 
+builder.Services.AddScoped<OrderStockReleaseService>();
+builder.Services.AddHostedService<StockReleaseRequestedConsumerWorker>();
+
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();

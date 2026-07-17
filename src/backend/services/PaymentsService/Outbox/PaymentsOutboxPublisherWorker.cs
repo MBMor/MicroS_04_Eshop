@@ -1,55 +1,62 @@
 using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
-using InventoryService.Data;
 using Messaging.Shared.Abstractions;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Microsoft.EntityFrameworkCore;
+using PaymentsService.Data;
 
-namespace InventoryService.Outbox;
+namespace PaymentsService.Outbox;
 
-public sealed class InventoryOutboxPublisherWorker(
+public sealed class PaymentsOutboxPublisherWorker(
     IServiceScopeFactory scopeFactory,
     IIntegrationEventPublisher eventPublisher,
     TimeProvider timeProvider,
-    ILogger<InventoryOutboxPublisherWorker> logger)
+    ILogger<PaymentsOutboxPublisherWorker> logger)
     : BackgroundService
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JsonSerializerOptions SerializerOptions =
+        new(JsonSerializerDefaults.Web)
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
-    private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan PollingInterval =
+        TimeSpan.FromSeconds(2);
 
     private static readonly Action<ILogger, Exception?> LogBatchFailed =
         LoggerMessage.Define(
             LogLevel.Error,
-            new EventId(2100, nameof(LogBatchFailed)),
-            "Inventory outbox publishing batch failed.");
+            new EventId(3100, nameof(LogBatchFailed)),
+            "Payments outbox publishing batch failed.");
 
     private static readonly Action<ILogger, Guid, Guid, Exception?> LogMessageFailed =
         LoggerMessage.Define<Guid, Guid>(
             LogLevel.Error,
-            new EventId(2101, nameof(LogMessageFailed)),
-            "Inventory outbox message {MessageId} with event {EventId} failed.");
+            new EventId(3101, nameof(LogMessageFailed)),
+            "Payments outbox message {MessageId} with event {EventId} failed.");
 
     private const int BatchSize = 20;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                int count = await PublishBatchAsync(stoppingToken);
+                int processedCount =
+                    await PublishBatchAsync(stoppingToken);
 
-                if (count == 0)
+                if (processedCount == 0)
                 {
-                    await Task.Delay(PollingInterval, stoppingToken);
+                    await Task.Delay(
+                        PollingInterval,
+                        stoppingToken);
                 }
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
             {
                 break;
             }
@@ -57,20 +64,26 @@ public sealed class InventoryOutboxPublisherWorker(
             {
                 LogBatchFailed(logger, exception);
 
-                await Task.Delay(PollingInterval, stoppingToken);
+                await Task.Delay(
+                    PollingInterval,
+                    stoppingToken);
             }
         }
     }
 
-    private async Task<int> PublishBatchAsync(CancellationToken cancellationToken)
+    private async Task<int> PublishBatchAsync(
+        CancellationToken cancellationToken)
     {
-        await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+        await using AsyncServiceScope scope =
+            scopeFactory.CreateAsyncScope();
 
-        InventoryDbContext dbContext =
-            scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        PaymentsDbContext dbContext =
+            scope.ServiceProvider
+                .GetRequiredService<PaymentsDbContext>();
 
         List<OutboxMessage> messages = await dbContext.OutboxMessages
-            .Where(message => message.Status != OutboxMessageStatus.Published)
+            .Where(message =>
+                message.Status != OutboxMessageStatus.Published)
             .OrderBy(message => message.OccurredAtUtc)
             .Take(BatchSize)
             .ToListAsync(cancellationToken);
@@ -79,9 +92,12 @@ public sealed class InventoryOutboxPublisherWorker(
         {
             try
             {
-                await PublishMessageAsync(message, cancellationToken);
+                await PublishMessageAsync(
+                    message,
+                    cancellationToken);
 
-                message.MarkPublished(timeProvider.GetUtcNow());
+                message.MarkPublished(
+                    timeProvider.GetUtcNow());
             }
             catch (Exception exception)
             {
@@ -110,33 +126,29 @@ public sealed class InventoryOutboxPublisherWorker(
 
         return message.RoutingKey switch
         {
-            RabbitMqRoutingKeys.StockReservedV1 =>
+            RabbitMqRoutingKeys.PaymentAuthorizedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<StockReservedV1>(message.Payload),
+                    Deserialize<PaymentAuthorizedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
-            RabbitMqRoutingKeys.StockReservationFailedV1 =>
+            RabbitMqRoutingKeys.PaymentFailedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<StockReservationFailedV1>(message.Payload),
-                    message.RoutingKey,
-                    context,
-                    cancellationToken),
-
-            RabbitMqRoutingKeys.StockReleasedV1 =>
-                eventPublisher.PublishAsync(
-                    Deserialize<StockReleasedV1>(message.Payload),
+                    Deserialize<PaymentFailedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             _ => throw new InvalidOperationException(
-                $"Unsupported inventory outbox routing key '{message.RoutingKey}'.")
+                $"Unsupported payments outbox routing key '{message.RoutingKey}'.")
         };
     }
 
-    private static TEvent Deserialize<TEvent>(string payload)
+    private static TEvent Deserialize<TEvent>(
+        string payload)
     {
         return JsonSerializer.Deserialize<TEvent>(
                    payload,

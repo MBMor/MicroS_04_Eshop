@@ -3,34 +3,35 @@ using Eshop.Contracts.IntegrationEvents.V1;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
-using OrdersService.Application;
+using PaymentsService.Application;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace OrdersService.Messaging;
+namespace PaymentsService.Messaging;
 
-public sealed class StockReservedConsumerWorker(
+public sealed class PaymentRequestedConsumerWorker(
     IServiceScopeFactory scopeFactory,
     IRabbitMqConnectionProvider connectionProvider,
     IMessageSerializer serializer,
-    ILogger<StockReservedConsumerWorker> logger)
+    ILogger<PaymentRequestedConsumerWorker> logger)
     : BackgroundService
 {
     private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
         LoggerMessage.Define<ulong>(
             LogLevel.Error,
-            new EventId(2200, nameof(LogInvalidJson)),
-            "StockReserved message {DeliveryTag} contains invalid JSON.");
+            new EventId(3000, nameof(LogInvalidJson)),
+            "PaymentRequested message {DeliveryTag} contains invalid JSON.");
 
     private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
         LoggerMessage.Define<ulong>(
             LogLevel.Error,
-            new EventId(2201, nameof(LogProcessingFailed)),
-            "StockReserved message {DeliveryTag} processing failed.");
+            new EventId(3001, nameof(LogProcessingFailed)),
+            "PaymentRequested message {DeliveryTag} processing failed.");
 
     private IChannel? _channel;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
         IConnection connection =
             await connectionProvider.GetConnectionAsync(stoppingToken);
@@ -48,7 +49,7 @@ public sealed class StockReservedConsumerWorker(
         consumer.ReceivedAsync += HandleDeliveryAsync;
 
         await _channel.BasicConsumeAsync(
-            queue: RabbitMqQueues.OrdersStockReservedV1,
+            queue: RabbitMqQueues.PaymentsPaymentRequestedV1,
             autoAck: false,
             consumer: consumer,
             cancellationToken: stoppingToken);
@@ -69,20 +70,19 @@ public sealed class StockReservedConsumerWorker(
 
         try
         {
-            MessageEnvelope<StockReservedV1> envelope =
-                serializer.Deserialize<MessageEnvelope<StockReservedV1>>(
+            MessageEnvelope<PaymentRequestedV1> envelope =
+                serializer.Deserialize<MessageEnvelope<PaymentRequestedV1>>(
                     delivery.Body.Span);
 
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();
 
-            OrderStockResultService service =
+            PaymentRequestedProcessingService service =
                 scope.ServiceProvider
-                    .GetRequiredService<OrderStockResultService>();
+                    .GetRequiredService<PaymentRequestedProcessingService>();
 
-            await service.ApplyStockReservedAsync(
-                envelope.Payload.OrderId,
-                envelope.CorrelationId,
+            await service.ProcessAsync(
+                envelope.Payload,
                 CancellationToken.None);
 
             await _channel.BasicAckAsync(

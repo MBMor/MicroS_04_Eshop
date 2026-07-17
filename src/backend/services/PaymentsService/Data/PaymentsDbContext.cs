@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PaymentsService.Domain;
+using PaymentsService.Outbox;
 
 namespace PaymentsService.Data;
 
@@ -9,6 +10,7 @@ public sealed class PaymentsDbContext(
     : DbContext(options)
 {
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
@@ -16,6 +18,7 @@ public sealed class PaymentsDbContext(
         base.OnModelCreating(modelBuilder);
 
         ConfigurePayment(modelBuilder.Entity<Payment>());
+        ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
     }
 
     private static void ConfigurePayment(
@@ -113,5 +116,30 @@ public sealed class PaymentsDbContext(
 
         payment.Property(entity => entity.ProcessedAtUtc)
             .HasColumnName("processed_at_utc");
+    }
+
+    private static void ConfigureOutboxMessage(
+    EntityTypeBuilder<OutboxMessage> message)
+    {
+        message.ToTable("outbox_messages");
+
+        message.HasKey(entity => entity.Id);
+
+        message.Property(entity => entity.Id).HasColumnName("id").ValueGeneratedNever();
+        message.Property(entity => entity.EventId).HasColumnName("event_id").IsRequired();
+        message.Property(entity => entity.EventType).HasColumnName("event_type").HasMaxLength(256).IsRequired();
+        message.Property(entity => entity.RoutingKey).HasColumnName("routing_key").HasMaxLength(256).IsRequired();
+        message.Property(entity => entity.Payload).HasColumnName("payload").HasColumnType("jsonb").IsRequired();
+        message.Property(entity => entity.OccurredAtUtc).HasColumnName("occurred_at_utc").IsRequired();
+        message.Property(entity => entity.CorrelationId).HasColumnName("correlation_id").IsRequired();
+        message.Property(entity => entity.TraceParent).HasColumnName("trace_parent").HasMaxLength(512);
+        message.Property(entity => entity.TraceState).HasColumnName("trace_state").HasMaxLength(512);
+        message.Property(entity => entity.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(32).IsRequired();
+        message.Property(entity => entity.RetryCount).HasColumnName("retry_count").IsRequired();
+        message.Property(entity => entity.LastError).HasColumnName("last_error").HasMaxLength(4_000);
+        message.Property(entity => entity.PublishedAtUtc).HasColumnName("published_at_utc");
+
+        message.HasIndex(entity => entity.EventId).IsUnique();
+        message.HasIndex(entity => new { entity.Status, entity.OccurredAtUtc });
     }
 }

@@ -124,8 +124,35 @@ public sealed class OrdersOutboxPublisherWorker(
         {
             RabbitMqRoutingKeys.OrderCreatedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<OrderCreatedV1>(
-                        message.Payload),
+                    Deserialize<OrderCreatedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
+
+            RabbitMqRoutingKeys.PaymentRequestedV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<PaymentRequestedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
+
+            RabbitMqRoutingKeys.StockReleaseRequestedV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<StockReleaseRequestedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
+
+            RabbitMqRoutingKeys.OrderConfirmedV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<OrderConfirmedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
+
+            RabbitMqRoutingKeys.OrderCancelledV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<OrderCancelledV1>(message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
