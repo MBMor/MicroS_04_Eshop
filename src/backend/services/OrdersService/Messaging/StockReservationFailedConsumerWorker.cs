@@ -87,8 +87,7 @@ public sealed class StockReservationFailedConsumerWorker(
                     .GetRequiredService<OrderStockResultService>();
 
             await service.ApplyStockReservationFailedAsync(
-                envelope.Payload.OrderId,
-                envelope.Payload.Reason,
+                envelope.Payload,
                 CancellationToken.None);
 
             LogReservationFailed(
@@ -123,7 +122,7 @@ public sealed class StockReservationFailedConsumerWorker(
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
-                requeue: false);
+                requeue: true);
         }
     }
 

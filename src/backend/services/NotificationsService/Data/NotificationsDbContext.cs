@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NotificationsService.Domain;
+using NotificationsService.Inbox;
 
 namespace NotificationsService.Data;
 
@@ -8,16 +9,16 @@ public sealed class NotificationsDbContext(
     DbContextOptions<NotificationsDbContext> options)
     : DbContext(options)
 {
-    public DbSet<Notification> Notifications =>
-        Set<Notification>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        ConfigureNotification(
-            modelBuilder.Entity<Notification>());
+        ConfigureNotification(modelBuilder.Entity<Notification>());
+        ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
     }
 
     private static void ConfigureNotification(
@@ -115,5 +116,32 @@ public sealed class NotificationsDbContext(
         notification.HasIndex(entity => entity.SourceEventId)
             .HasDatabaseName(
                 "ix_notifications_source_event_id");
+    }
+
+    private static void ConfigureProcessedMessage(
+    EntityTypeBuilder<ProcessedMessage> processedMessage)
+    {
+        processedMessage.ToTable("processed_messages");
+
+        processedMessage.HasKey(entity => new
+        {
+            entity.EventId,
+            entity.ConsumerName
+        });
+
+        processedMessage.Property(entity => entity.EventId)
+            .HasColumnName("event_id")
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ConsumerName)
+            .HasColumnName("consumer_name")
+            .HasMaxLength(256)
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ProcessedAtUtc)
+            .HasColumnName("processed_at_utc")
+            .IsRequired();
+
+        processedMessage.HasIndex(entity => entity.ProcessedAtUtc);
     }
 }

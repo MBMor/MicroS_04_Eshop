@@ -41,6 +41,10 @@ public static class MessagingServiceCollectionExtensions
                     !string.IsNullOrWhiteSpace(
                         options.VirtualHost),
                 "RabbitMQ virtual host must be configured.")
+            .Validate(
+                options =>
+                    options.ConsumerDeliveryLimit is >= 1 and <= 20,
+                "RabbitMQ consumer delivery limit must be between 1 and 20.")
             .ValidateOnStart();
 
         services.AddSingleton<IMessageSerializer, SystemTextJsonMessageSerializer>();

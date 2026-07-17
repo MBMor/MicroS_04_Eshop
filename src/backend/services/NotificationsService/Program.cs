@@ -6,6 +6,8 @@ using NotificationsService.Data;
 using NotificationsService.Identity;
 using NotificationsService.Options;
 using OpenApi.Shared;
+using Messaging.Shared;
+using NotificationsService.Messaging;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -57,7 +59,13 @@ builder.Services.AddDbContext<NotificationsDbContext>(
         options.UseNpgsql(notificationsConnectionString);
     });
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddEshopMessagingCore(builder.Configuration);
+
 builder.Services.AddScoped<NotificationApplicationService>();
+builder.Services.AddScoped<NotificationEventProcessingService>();
+
+builder.Services.AddHostedService<NotificationEventsConsumerWorker>();
 
 builder.Services.AddSingleton<
     INotificationOwnerProvider,

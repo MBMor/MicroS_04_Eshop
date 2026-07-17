@@ -95,6 +95,28 @@ namespace PaymentsService.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PaymentsService.Inbox.ProcessedMessage", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("ConsumerName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("consumer_name");
+
+                    b.Property<DateTimeOffset>("ProcessedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at_utc");
+
+                    b.HasKey("EventId", "ConsumerName");
+
+                    b.HasIndex("ProcessedAtUtc");
+
+                    b.ToTable("processed_messages", (string)null);
+                });
+
             modelBuilder.Entity("PaymentsService.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")

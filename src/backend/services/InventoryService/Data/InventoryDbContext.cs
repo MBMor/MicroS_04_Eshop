@@ -1,7 +1,8 @@
 using InventoryService.Domain;
+using InventoryService.Inbox;
+using InventoryService.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using InventoryService.Outbox;
 
 namespace InventoryService.Data;
 
@@ -11,6 +12,7 @@ public sealed class InventoryDbContext(
 {
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
@@ -19,6 +21,7 @@ public sealed class InventoryDbContext(
 
         ConfigureInventoryItem(modelBuilder.Entity<InventoryItem>());
         ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
+        ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
     }
 
     private static void ConfigureInventoryItem(
@@ -106,5 +109,32 @@ public sealed class InventoryDbContext(
 
         message.HasIndex(entity => entity.EventId).IsUnique();
         message.HasIndex(entity => new { entity.Status, entity.OccurredAtUtc });
+    }
+
+    private static void ConfigureProcessedMessage(
+    EntityTypeBuilder<ProcessedMessage> processedMessage)
+    {
+        processedMessage.ToTable("processed_messages");
+
+        processedMessage.HasKey(entity => new
+        {
+            entity.EventId,
+            entity.ConsumerName
+        });
+
+        processedMessage.Property(entity => entity.EventId)
+            .HasColumnName("event_id")
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ConsumerName)
+            .HasColumnName("consumer_name")
+            .HasMaxLength(256)
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ProcessedAtUtc)
+            .HasColumnName("processed_at_utc")
+            .IsRequired();
+
+        processedMessage.HasIndex(entity => entity.ProcessedAtUtc);
     }
 }

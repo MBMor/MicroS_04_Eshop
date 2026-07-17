@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OrdersService.Domain;
+using OrdersService.Inbox;
 using OrdersService.Outbox;
 
 namespace OrdersService.Data;
@@ -13,12 +14,14 @@ public sealed class OrdersDbContext(
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureOrder(modelBuilder.Entity<Order>());
         ConfigureOrderItem(modelBuilder.Entity<OrderItem>());
         ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
+        ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
     }
 
     private static void ConfigureOrder(
@@ -150,5 +153,32 @@ public sealed class OrdersDbContext(
 
         message.HasIndex(entity => entity.EventId).IsUnique();
         message.HasIndex(entity => new { entity.Status, entity.OccurredAtUtc });
+    }
+
+    private static void ConfigureProcessedMessage(
+    EntityTypeBuilder<ProcessedMessage> processedMessage)
+    {
+        processedMessage.ToTable("processed_messages");
+
+        processedMessage.HasKey(entity => new
+        {
+            entity.EventId,
+            entity.ConsumerName
+        });
+
+        processedMessage.Property(entity => entity.EventId)
+            .HasColumnName("event_id")
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ConsumerName)
+            .HasColumnName("consumer_name")
+            .HasMaxLength(256)
+            .IsRequired();
+
+        processedMessage.Property(entity => entity.ProcessedAtUtc)
+            .HasColumnName("processed_at_utc")
+            .IsRequired();
+
+        processedMessage.HasIndex(entity => entity.ProcessedAtUtc);
     }
 }

@@ -3,6 +3,7 @@ using Messaging.Shared.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using OrdersService.Data;
 using OrdersService.Domain;
+using OrdersService.Inbox;
 using OrdersService.Outbox;
 
 namespace OrdersService.Application;
@@ -13,16 +14,29 @@ public sealed class OrderStockResultService(
     TimeProvider timeProvider)
 {
     public async Task ApplyStockReservedAsync(
-        Guid orderId,
-        Guid correlationId,
+        StockReservedV1 integrationEvent,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        bool alreadyProcessed = await dbContext.ProcessedMessages
+            .AnyAsync(
+                message =>
+                    message.EventId == integrationEvent.EventId
+                    && message.ConsumerName == ConsumerNames.StockReserved,
+                cancellationToken);
+
+        if (alreadyProcessed)
+        {
+            return;
+        }
+
         Order order = await dbContext.Orders
             .FirstOrDefaultAsync(
-                candidate => candidate.Id == orderId,
+                candidate => candidate.Id == integrationEvent.OrderId,
                 cancellationToken)
             ?? throw new InvalidOperationException(
-                $"Order '{orderId}' does not exist.");
+                $"Order '{integrationEvent.OrderId}' does not exist.");
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
@@ -31,7 +45,7 @@ public sealed class OrderStockResultService(
         PaymentRequestedV1 paymentRequested = new(
             EventId: Guid.NewGuid(),
             OccurredAtUtc: now,
-            CorrelationId: correlationId,
+            CorrelationId: integrationEvent.CorrelationId,
             OrderId: order.Id,
             CustomerId: order.CustomerId,
             Amount: order.TotalAmount,
@@ -43,24 +57,51 @@ public sealed class OrderStockResultService(
                 paymentRequested,
                 RabbitMqRoutingKeys.PaymentRequestedV1));
 
+        dbContext.ProcessedMessages.Add(
+            ProcessedMessage.Create(
+                integrationEvent.EventId,
+                ConsumerNames.StockReserved,
+                now));
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ApplyStockReservationFailedAsync(
-        Guid orderId,
-        string reason,
+        StockReservationFailedV1 integrationEvent,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        bool alreadyProcessed = await dbContext.ProcessedMessages
+            .AnyAsync(
+                message =>
+                    message.EventId == integrationEvent.EventId
+                    && message.ConsumerName == ConsumerNames.StockReservationFailed,
+                cancellationToken);
+
+        if (alreadyProcessed)
+        {
+            return;
+        }
+
         Order order = await dbContext.Orders
             .FirstOrDefaultAsync(
-                candidate => candidate.Id == orderId,
+                candidate => candidate.Id == integrationEvent.OrderId,
                 cancellationToken)
             ?? throw new InvalidOperationException(
-                $"Order '{orderId}' does not exist.");
+                $"Order '{integrationEvent.OrderId}' does not exist.");
+
+        DateTimeOffset now = timeProvider.GetUtcNow();
 
         order.MarkStockReservationFailed(
-            reason,
-            timeProvider.GetUtcNow());
+            integrationEvent.Reason,
+            now);
+
+        dbContext.ProcessedMessages.Add(
+            ProcessedMessage.Create(
+                integrationEvent.EventId,
+                ConsumerNames.StockReservationFailed,
+                now));
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

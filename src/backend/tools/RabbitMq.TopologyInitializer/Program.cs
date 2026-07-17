@@ -49,11 +49,15 @@ foreach (RabbitMqBindingDefinition binding
 
     Dictionary<string, object?> queueArguments = new()
     {
-        ["x-dead-letter-exchange"] =
-            RabbitMqExchanges.DeadLetter,
+        ["x-queue-type"] = RabbitMqTopologySettings.QueueType,
+        ["x-delivery-limit"] = RabbitMqTopologySettings.DeliveryLimit,
+        ["x-dead-letter-exchange"] = RabbitMqExchanges.DeadLetter,
+        ["x-dead-letter-routing-key"] = deadLetterQueueName
+    };
 
-        ["x-dead-letter-routing-key"] =
-            deadLetterQueueName
+    Dictionary<string, object?> deadLetterQueueArguments = new()
+    {
+        ["x-queue-type"] = RabbitMqTopologySettings.QueueType
     };
 
     await channel.QueueDeclareAsync(
@@ -74,7 +78,7 @@ foreach (RabbitMqBindingDefinition binding
         durable: true,
         exclusive: false,
         autoDelete: false,
-        arguments: null);
+        arguments: deadLetterQueueArguments);
 
     await channel.QueueBindAsync(
         queue: deadLetterQueueName,

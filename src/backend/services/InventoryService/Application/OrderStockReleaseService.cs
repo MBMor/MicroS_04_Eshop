@@ -1,6 +1,7 @@
 using Eshop.Contracts.IntegrationEvents.V1;
 using InventoryService.Data;
 using InventoryService.Domain;
+using InventoryService.Inbox;
 using InventoryService.Outbox;
 using Messaging.Shared.RabbitMq;
 using Microsoft.EntityFrameworkCore;
@@ -16,25 +17,35 @@ public sealed class OrderStockReleaseService(
         StockReleaseRequestedV1 integrationEvent,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        bool alreadyProcessed = await dbContext.ProcessedMessages
+            .AnyAsync(
+                message =>
+                    message.EventId == integrationEvent.EventId
+                    && message.ConsumerName == ConsumerNames.StockReleaseRequested,
+                cancellationToken);
+
+        if (alreadyProcessed)
+        {
+            return;
+        }
+
         Guid[] productIds = integrationEvent.Items
             .Select(item => item.ProductId)
             .Distinct()
             .ToArray();
 
-        List<InventoryItem> inventoryItems =
-            await dbContext.InventoryItems
-                .Where(item =>
-                    productIds.Contains(item.ProductId))
-                .ToListAsync(cancellationToken);
+        List<InventoryItem> inventoryItems = await dbContext.InventoryItems
+            .Where(item => productIds.Contains(item.ProductId))
+            .ToListAsync(cancellationToken);
 
         Dictionary<Guid, InventoryItem> inventoryByProductId =
-            inventoryItems.ToDictionary(
-                item => item.ProductId);
+            inventoryItems.ToDictionary(item => item.ProductId);
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
-        foreach (StockReleaseItemV1 requestedItem
-                 in integrationEvent.Items)
+        foreach (StockReleaseItemV1 requestedItem in integrationEvent.Items)
         {
             if (!inventoryByProductId.TryGetValue(
                     requestedItem.ProductId,
@@ -65,6 +76,12 @@ public sealed class OrderStockReleaseService(
             outboxWriter.Create(
                 stockReleased,
                 RabbitMqRoutingKeys.StockReleasedV1));
+
+        dbContext.ProcessedMessages.Add(
+            ProcessedMessage.Create(
+                integrationEvent.EventId,
+                ConsumerNames.StockReleaseRequested,
+                now));
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

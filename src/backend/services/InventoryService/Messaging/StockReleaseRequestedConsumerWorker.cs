@@ -93,7 +93,7 @@ public sealed class StockReleaseRequestedConsumerWorker(
         catch (Exception exception)
         {
             LogProcessingFailed(logger, delivery.DeliveryTag, exception);
-            await _channel.BasicNackAsync(delivery.DeliveryTag, false, false);
+            await _channel.BasicNackAsync(delivery.DeliveryTag, false, true);
         }
     }
 

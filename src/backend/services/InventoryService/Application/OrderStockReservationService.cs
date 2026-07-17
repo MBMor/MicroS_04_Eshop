@@ -1,6 +1,7 @@
 using Eshop.Contracts.IntegrationEvents.V1;
 using InventoryService.Data;
 using InventoryService.Domain;
+using InventoryService.Inbox;
 using InventoryService.Outbox;
 using Messaging.Shared.RabbitMq;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,22 @@ public sealed class OrderStockReservationService(
         OrderCreatedV1 integrationEvent,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        bool alreadyProcessed = await dbContext.ProcessedMessages
+            .AnyAsync(
+                message =>
+                    message.EventId == integrationEvent.EventId
+                    && message.ConsumerName == ConsumerNames.OrderCreated,
+                cancellationToken);
+
+        if (alreadyProcessed)
+        {
+            return new ReserveOrderStockResult(
+                ReserveOrderStockStatus.Reserved,
+                null);
+        }
+
         Guid[] productIds = integrationEvent.Items
             .Select(item => item.ProductId)
             .Distinct()
@@ -25,42 +42,47 @@ public sealed class OrderStockReservationService(
             .Where(item => productIds.Contains(item.ProductId))
             .ToListAsync(cancellationToken);
 
-        Dictionary<Guid, InventoryItem> inventoryByProductId = inventoryItems
-            .ToDictionary(item => item.ProductId);
+        Dictionary<Guid, InventoryItem> inventoryByProductId =
+            inventoryItems.ToDictionary(item => item.ProductId);
 
         List<StockReservationFailureItemV1> failures = [];
 
         foreach (OrderCreatedItemV1 requestedItem in integrationEvent.Items)
         {
-            if (!inventoryByProductId.TryGetValue(requestedItem.ProductId, out InventoryItem? inventoryItem))
-            {
-                failures.Add(new StockReservationFailureItemV1(
+            if (!inventoryByProductId.TryGetValue(
                     requestedItem.ProductId,
-                    requestedItem.Quantity,
-                    0,
-                    "Inventory item does not exist."));
+                    out InventoryItem? inventoryItem))
+            {
+                failures.Add(
+                    new StockReservationFailureItemV1(
+                        ProductId: requestedItem.ProductId,
+                        RequestedQuantity: requestedItem.Quantity,
+                        AvailableQuantity: 0,
+                        Reason: "Inventory item does not exist."));
 
                 continue;
             }
 
             if (!inventoryItem.IsActive)
             {
-                failures.Add(new StockReservationFailureItemV1(
-                    requestedItem.ProductId,
-                    requestedItem.Quantity,
-                    inventoryItem.AvailableQuantity,
-                    "Inventory item is inactive."));
+                failures.Add(
+                    new StockReservationFailureItemV1(
+                        ProductId: requestedItem.ProductId,
+                        RequestedQuantity: requestedItem.Quantity,
+                        AvailableQuantity: inventoryItem.AvailableQuantity,
+                        Reason: "Inventory item is inactive."));
 
                 continue;
             }
 
             if (inventoryItem.AvailableQuantity < requestedItem.Quantity)
             {
-                failures.Add(new StockReservationFailureItemV1(
-                    requestedItem.ProductId,
-                    requestedItem.Quantity,
-                    inventoryItem.AvailableQuantity,
-                    "Insufficient available stock."));
+                failures.Add(
+                    new StockReservationFailureItemV1(
+                        ProductId: requestedItem.ProductId,
+                        RequestedQuantity: requestedItem.Quantity,
+                        AvailableQuantity: inventoryItem.AvailableQuantity,
+                        Reason: "Insufficient available stock."));
             }
         }
 
@@ -68,30 +90,37 @@ public sealed class OrderStockReservationService(
 
         if (failures.Count > 0)
         {
-            StockReservationFailedV1 failedEvent = new(
-                Guid.NewGuid(),
-                now,
-                integrationEvent.CorrelationId,
-                integrationEvent.OrderId,
-                integrationEvent.CustomerId,
-                "One or more order items could not be reserved.",
-                failures);
+            StockReservationFailedV1 stockReservationFailed = new(
+                EventId: Guid.NewGuid(),
+                OccurredAtUtc: now,
+                CorrelationId: integrationEvent.CorrelationId,
+                OrderId: integrationEvent.OrderId,
+                CustomerId: integrationEvent.CustomerId,
+                Reason: "One or more order items could not be reserved.",
+                FailedItems: failures);
 
             dbContext.OutboxMessages.Add(
                 outboxWriter.Create(
-                    failedEvent,
+                    stockReservationFailed,
                     RabbitMqRoutingKeys.StockReservationFailedV1));
+
+            dbContext.ProcessedMessages.Add(
+                ProcessedMessage.Create(
+                    integrationEvent.EventId,
+                    ConsumerNames.OrderCreated,
+                    now));
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return new ReserveOrderStockResult(
                 ReserveOrderStockStatus.Failed,
-                failedEvent.Reason);
+                stockReservationFailed.Reason);
         }
 
         foreach (OrderCreatedItemV1 requestedItem in integrationEvent.Items)
         {
-            InventoryItem inventoryItem = inventoryByProductId[requestedItem.ProductId];
+            InventoryItem inventoryItem =
+                inventoryByProductId[requestedItem.ProductId];
 
             bool reserved = inventoryItem.TryReserve(
                 requestedItem.Quantity,
@@ -104,20 +133,28 @@ public sealed class OrderStockReservationService(
             }
         }
 
-        StockReservedV1 reservedEvent = new(
-            Guid.NewGuid(),
-            now,
-            integrationEvent.CorrelationId,
-            integrationEvent.OrderId,
-            integrationEvent.CustomerId,
-            integrationEvent.Items
-                .Select(item => new ReservedStockItemV1(item.ProductId, item.Quantity))
+        StockReservedV1 stockReserved = new(
+            EventId: Guid.NewGuid(),
+            OccurredAtUtc: now,
+            CorrelationId: integrationEvent.CorrelationId,
+            OrderId: integrationEvent.OrderId,
+            CustomerId: integrationEvent.CustomerId,
+            Items: integrationEvent.Items
+                .Select(item => new ReservedStockItemV1(
+                    item.ProductId,
+                    item.Quantity))
                 .ToArray());
 
         dbContext.OutboxMessages.Add(
             outboxWriter.Create(
-                reservedEvent,
+                stockReserved,
                 RabbitMqRoutingKeys.StockReservedV1));
+
+        dbContext.ProcessedMessages.Add(
+            ProcessedMessage.Create(
+                integrationEvent.EventId,
+                ConsumerNames.OrderCreated,
+                now));
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

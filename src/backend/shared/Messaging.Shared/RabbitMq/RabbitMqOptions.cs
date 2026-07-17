@@ -21,4 +21,6 @@ public sealed class RabbitMqOptions
     public bool AutomaticRecoveryEnabled { get; set; } = true;
 
     public bool TopologyRecoveryEnabled { get; set; } = true;
+
+    public int ConsumerDeliveryLimit { get; set; } = 3;
 }

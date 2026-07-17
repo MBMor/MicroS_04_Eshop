@@ -81,8 +81,7 @@ public sealed class StockReservedConsumerWorker(
                     .GetRequiredService<OrderStockResultService>();
 
             await service.ApplyStockReservedAsync(
-                envelope.Payload.OrderId,
-                envelope.CorrelationId,
+                envelope.Payload,
                 CancellationToken.None);
 
             await _channel.BasicAckAsync(
@@ -111,7 +110,7 @@ public sealed class StockReservedConsumerWorker(
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
-                requeue: false);
+                requeue: true);
         }
     }
 

@@ -111,7 +111,7 @@ public sealed class OrderCreatedConsumerWorker(
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
-                requeue: false);
+                requeue: true);
         }
     }
 
