@@ -16,28 +16,51 @@ public sealed class StockReservedConsumerWorker(
     ILogger<StockReservedConsumerWorker> logger)
     : BackgroundService
 {
+    private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2200, nameof(LogInvalidJson)),
+            "StockReserved message {DeliveryTag} contains invalid JSON.");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2201, nameof(LogProcessingFailed)),
+            "StockReserved message {DeliveryTag} processing failed.");
+
     private IChannel? _channel;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        IConnection connection = await connectionProvider.GetConnectionAsync(stoppingToken);
-        _channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        IConnection connection =
+            await connectionProvider.GetConnectionAsync(stoppingToken);
 
-        await _channel.BasicQosAsync(0, 8, false, stoppingToken);
+        _channel = await connection.CreateChannelAsync(
+            cancellationToken: stoppingToken);
+
+        await _channel.BasicQosAsync(
+            prefetchSize: 0,
+            prefetchCount: 8,
+            global: false,
+            cancellationToken: stoppingToken);
 
         AsyncEventingBasicConsumer consumer = new(_channel);
         consumer.ReceivedAsync += HandleDeliveryAsync;
 
         await _channel.BasicConsumeAsync(
-            RabbitMqQueues.OrdersStockReservedV1,
+            queue: RabbitMqQueues.OrdersStockReservedV1,
             autoAck: false,
-            consumer,
-            stoppingToken);
+            consumer: consumer,
+            cancellationToken: stoppingToken);
 
-        await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+        await Task.Delay(
+            Timeout.InfiniteTimeSpan,
+            stoppingToken);
     }
 
-    private async Task HandleDeliveryAsync(object sender, BasicDeliverEventArgs delivery)
+    private async Task HandleDeliveryAsync(
+        object sender,
+        BasicDeliverEventArgs delivery)
     {
         if (_channel is null)
         {
@@ -47,28 +70,59 @@ public sealed class StockReservedConsumerWorker(
         try
         {
             MessageEnvelope<StockReservedV1> envelope =
-                serializer.Deserialize<MessageEnvelope<StockReservedV1>>(delivery.Body.Span);
+                serializer.Deserialize<MessageEnvelope<StockReservedV1>>(
+                    delivery.Body.Span);
 
-            await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+            await using AsyncServiceScope scope =
+                scopeFactory.CreateAsyncScope();
 
             OrderStockResultService service =
-                scope.ServiceProvider.GetRequiredService<OrderStockResultService>();
+                scope.ServiceProvider
+                    .GetRequiredService<OrderStockResultService>();
 
             await service.ApplyStockReservedAsync(
                 envelope.Payload.OrderId,
                 CancellationToken.None);
 
-            await _channel.BasicAckAsync(delivery.DeliveryTag, false);
+            await _channel.BasicAckAsync(
+                delivery.DeliveryTag,
+                multiple: false);
         }
         catch (JsonException exception)
         {
-            logger.LogError(exception, "StockReserved message contains invalid JSON.");
-            await _channel.BasicNackAsync(delivery.DeliveryTag, false, false);
+            LogInvalidJson(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "StockReserved message processing failed.");
-            await _channel.BasicNackAsync(delivery.DeliveryTag, false, false);
+            LogProcessingFailed(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
         }
+    }
+
+    public override async Task StopAsync(
+        CancellationToken cancellationToken)
+    {
+        if (_channel is not null)
+        {
+            await _channel.DisposeAsync();
+            _channel = null;
+        }
+
+        await base.StopAsync(cancellationToken);
     }
 }

@@ -16,12 +16,28 @@ public sealed class OrderCreatedConsumerWorker(
     ILogger<OrderCreatedConsumerWorker> logger)
     : BackgroundService
 {
+    private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2000, nameof(LogInvalidJson)),
+            "OrderCreated message {DeliveryTag} contains invalid JSON.");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2001, nameof(LogProcessingFailed)),
+            "OrderCreated message {DeliveryTag} processing failed.");
+
     private IChannel? _channel;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
-        IConnection connection = await connectionProvider.GetConnectionAsync(stoppingToken);
-        _channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        IConnection connection =
+            await connectionProvider.GetConnectionAsync(stoppingToken);
+
+        _channel = await connection.CreateChannelAsync(
+            cancellationToken: stoppingToken);
 
         await _channel.BasicQosAsync(
             prefetchSize: 0,
@@ -38,10 +54,14 @@ public sealed class OrderCreatedConsumerWorker(
             consumer: consumer,
             cancellationToken: stoppingToken);
 
-        await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+        await Task.Delay(
+            Timeout.InfiniteTimeSpan,
+            stoppingToken);
     }
 
-    private async Task HandleDeliveryAsync(object sender, BasicDeliverEventArgs delivery)
+    private async Task HandleDeliveryAsync(
+        object sender,
+        BasicDeliverEventArgs delivery)
     {
         if (_channel is null)
         {
@@ -51,12 +71,15 @@ public sealed class OrderCreatedConsumerWorker(
         try
         {
             MessageEnvelope<OrderCreatedV1> envelope =
-                serializer.Deserialize<MessageEnvelope<OrderCreatedV1>>(delivery.Body.Span);
+                serializer.Deserialize<MessageEnvelope<OrderCreatedV1>>(
+                    delivery.Body.Span);
 
-            await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+            await using AsyncServiceScope scope =
+                scopeFactory.CreateAsyncScope();
 
             OrderStockReservationService reservationService =
-                scope.ServiceProvider.GetRequiredService<OrderStockReservationService>();
+                scope.ServiceProvider
+                    .GetRequiredService<OrderStockReservationService>();
 
             await reservationService.ReserveAsync(
                 envelope.Payload,
@@ -68,7 +91,10 @@ public sealed class OrderCreatedConsumerWorker(
         }
         catch (JsonException exception)
         {
-            logger.LogError(exception, "OrderCreated message {DeliveryTag} contains invalid JSON.", delivery.DeliveryTag);
+            LogInvalidJson(
+                logger,
+                delivery.DeliveryTag,
+                exception);
 
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
@@ -77,7 +103,10 @@ public sealed class OrderCreatedConsumerWorker(
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "OrderCreated message {DeliveryTag} processing failed.", delivery.DeliveryTag);
+            LogProcessingFailed(
+                logger,
+                delivery.DeliveryTag,
+                exception);
 
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
@@ -86,11 +115,13 @@ public sealed class OrderCreatedConsumerWorker(
         }
     }
 
-    public override async Task StopAsync(CancellationToken cancellationToken)
+    public override async Task StopAsync(
+        CancellationToken cancellationToken)
     {
         if (_channel is not null)
         {
             await _channel.DisposeAsync();
+            _channel = null;
         }
 
         await base.StopAsync(cancellationToken);

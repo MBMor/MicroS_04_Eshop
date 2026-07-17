@@ -11,6 +11,18 @@ public sealed class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService)
     : IExceptionHandler
 {
+    private static readonly Action<ILogger, string, string, string, Exception?> LogUnhandledException =
+        LoggerMessage.Define<string, string, string>(
+            LogLevel.Error,
+            new EventId(1000, nameof(LogUnhandledException)),
+            "Unhandled exception while processing {Method} {Path}. TraceId: {TraceId}");
+
+    private static readonly Action<ILogger, int, string, string, string, string, Exception?> LogRequestFailure =
+        LoggerMessage.Define<int, string, string, string, string>(
+            LogLevel.Warning,
+            new EventId(1001, nameof(LogRequestFailure)),
+            "Request failed with status {StatusCode} while processing {Method} {Path}. ErrorCode: {ErrorCode}. TraceId: {TraceId}");
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -52,29 +64,30 @@ public sealed class GlobalExceptionHandler(
         ExceptionMapping mapping,
         HttpContext httpContext)
     {
-        if (mapping.StatusCode >=
-            StatusCodes.Status500InternalServerError)
+        string method = httpContext.Request.Method;
+        string path = httpContext.Request.Path.Value ?? "/";
+        string traceId = httpContext.TraceIdentifier;
+
+        if (mapping.StatusCode >= StatusCodes.Status500InternalServerError)
         {
-            logger.LogError(
-                exception,
-                "Unhandled exception while processing {Method} {Path}. " +
-                "TraceId: {TraceId}",
-                httpContext.Request.Method,
-                httpContext.Request.Path,
-                httpContext.TraceIdentifier);
+            LogUnhandledException(
+                logger,
+                method,
+                path,
+                traceId,
+                exception);
 
             return;
         }
 
-        logger.LogWarning(
-            exception,
-            "Request failed with status {StatusCode} while processing " +
-            "{Method} {Path}. ErrorCode: {ErrorCode}. TraceId: {TraceId}",
+        LogRequestFailure(
+            logger,
             mapping.StatusCode,
-            httpContext.Request.Method,
-            httpContext.Request.Path,
+            method,
+            path,
             mapping.ErrorCode,
-            httpContext.TraceIdentifier);
+            traceId,
+            exception);
     }
 
     private static ExceptionMapping MapException(
@@ -82,53 +95,54 @@ public sealed class GlobalExceptionHandler(
     {
         return exception switch
         {
-            RequestValidationException validationException
-                => new ExceptionMapping(
+            RequestValidationException validationException =>
+                new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Request validation failed.",
                     validationException.Message,
                     validationException.ErrorCode),
 
-            ResourceNotFoundException notFoundException
-                => new ExceptionMapping(
+            ResourceNotFoundException notFoundException =>
+                new ExceptionMapping(
                     StatusCodes.Status404NotFound,
                     "Resource was not found.",
                     notFoundException.Message,
                     notFoundException.ErrorCode),
 
-            ResourceConflictException conflictException
-                => new ExceptionMapping(
+            ResourceConflictException conflictException =>
+                new ExceptionMapping(
                     StatusCodes.Status409Conflict,
                     "Resource conflict.",
                     conflictException.Message,
                     conflictException.ErrorCode),
 
-            BadHttpRequestException badRequestException
-                => new ExceptionMapping(
+            BadHttpRequestException badRequestException =>
+                new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Invalid HTTP request.",
                     badRequestException.Message,
                     "invalid_http_request"),
 
-            TimeoutException
-                => new ExceptionMapping(
+            TimeoutException =>
+                new ExceptionMapping(
                     StatusCodes.Status503ServiceUnavailable,
                     "Service temporarily unavailable.",
                     "The operation timed out. Try the request again later.",
                     "operation_timeout"),
 
-            HttpRequestException
-                => new ExceptionMapping(
+            HttpRequestException =>
+                new ExceptionMapping(
                     StatusCodes.Status502BadGateway,
                     "Upstream service request failed.",
                     "A dependent service could not complete the request.",
                     "upstream_service_error"),
 
-            _ => new ExceptionMapping(
-                StatusCodes.Status500InternalServerError,
-                "An unexpected error occurred.",
-                "The server could not process the request.",
-                "unexpected_error")
+            _ =>
+                new ExceptionMapping(
+                    StatusCodes.Status500InternalServerError,
+                    "An unexpected error occurred.",
+                    "The server could not process the request.",
+                    "unexpected_error")
         };
     }
 

@@ -16,11 +16,30 @@ public sealed class StockReservationFailedConsumerWorker(
     ILogger<StockReservationFailedConsumerWorker> logger)
     : BackgroundService
 {
+    private static readonly Action<ILogger, Guid, string, Exception?> LogReservationFailed =
+        LoggerMessage.Define<Guid, string>(
+            LogLevel.Warning,
+            new EventId(2300, nameof(LogReservationFailed)),
+            "Stock reservation failed for order {OrderId}: {Reason}");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2301, nameof(LogInvalidJson)),
+            "StockReservationFailed message {DeliveryTag} contains invalid JSON.");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(2302, nameof(LogProcessingFailed)),
+            "StockReservationFailed message {DeliveryTag} processing failed.");
+
     private IChannel? _channel;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        IConnection connection = await connectionProvider.GetConnectionAsync(stoppingToken);
+        IConnection connection =
+            await connectionProvider.GetConnectionAsync(stoppingToken);
 
         _channel = await connection.CreateChannelAsync(
             cancellationToken: stoppingToken);
@@ -72,10 +91,11 @@ public sealed class StockReservationFailedConsumerWorker(
                 envelope.Payload.Reason,
                 CancellationToken.None);
 
-            logger.LogWarning(
-                "Stock reservation failed for order {OrderId}: {Reason}",
+            LogReservationFailed(
+                logger,
                 envelope.Payload.OrderId,
-                envelope.Payload.Reason);
+                envelope.Payload.Reason,
+                null);
 
             await _channel.BasicAckAsync(
                 delivery.DeliveryTag,
@@ -83,10 +103,10 @@ public sealed class StockReservationFailedConsumerWorker(
         }
         catch (JsonException exception)
         {
-            logger.LogError(
-                exception,
-                "StockReservationFailed message {DeliveryTag} contains invalid JSON.",
-                delivery.DeliveryTag);
+            LogInvalidJson(
+                logger,
+                delivery.DeliveryTag,
+                exception);
 
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,
@@ -95,10 +115,10 @@ public sealed class StockReservationFailedConsumerWorker(
         }
         catch (Exception exception)
         {
-            logger.LogError(
-                exception,
-                "StockReservationFailed message {DeliveryTag} processing failed.",
-                delivery.DeliveryTag);
+            LogProcessingFailed(
+                logger,
+                delivery.DeliveryTag,
+                exception);
 
             await _channel.BasicNackAsync(
                 delivery.DeliveryTag,

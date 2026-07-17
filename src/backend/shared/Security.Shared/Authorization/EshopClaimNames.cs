@@ -1,4 +1,4 @@
-namespace Security.Shared.Authorization;
+namespace Eshop.Security.Authorization;
 
 public static class EshopClaimNames
 {

@@ -1,4 +1,4 @@
-namespace Observability.Shared.Correlation;
+namespace Eshop.Observability.Correlation;
 
 public static class CorrelationIdConstants
 {

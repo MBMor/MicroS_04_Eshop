@@ -15,6 +15,18 @@ public sealed class OrderApplicationService(
     TimeProvider timeProvider,
     ILogger<OrderApplicationService> logger)
 {
+    private static readonly Action<ILogger, Guid, Exception?> LogBasketClearFailed =
+    LoggerMessage.Define<Guid>(
+        LogLevel.Warning,
+        new EventId(2500, nameof(LogBasketClearFailed)),
+        "Order {OrderId} was created, but the basket could not be cleared.");
+
+    private static readonly Action<ILogger, Guid, Exception?> LogBasketClearTimedOut =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Warning,
+            new EventId(2501, nameof(LogBasketClearTimedOut)),
+            "Order {OrderId} was created, but clearing the basket timed out.");
+
     public async Task<CreateOrderResult> CreateAsync(
         string customerId,
         string customerEmail,
@@ -137,18 +149,18 @@ public sealed class OrderApplicationService(
         }
         catch (HttpRequestException exception)
         {
-            logger.LogWarning(
-                exception,
-                "Order {OrderId} was created, but the basket could not be cleared.",
-                orderId);
+            LogBasketClearFailed(
+                logger,
+                orderId,
+                exception);
         }
         catch (TaskCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogWarning(
-                exception,
-                "Order {OrderId} was created, but clearing the basket timed out.",
-                orderId);
+            LogBasketClearTimedOut(
+                logger,
+                orderId,
+                exception);
         }
     }
 }

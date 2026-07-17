@@ -3,17 +3,12 @@ using RabbitMQ.Client;
 
 namespace Messaging.Shared.RabbitMq;
 
-public sealed class RabbitMqConnectionProvider : IRabbitMqConnectionProvider
+public sealed class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options) : IRabbitMqConnectionProvider
 {
-    private readonly RabbitMqOptions _options;
+    private readonly RabbitMqOptions _options = options.Value;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private IConnection? _connection;
     private bool _disposed;
-
-    public RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options)
-    {
-        _options = options.Value;
-    }
 
     public async Task<IConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
     {

@@ -21,6 +21,19 @@ public sealed class InventoryOutboxPublisherWorker(
     };
 
     private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(2);
+
+    private static readonly Action<ILogger, Exception?> LogBatchFailed =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(2100, nameof(LogBatchFailed)),
+            "Inventory outbox publishing batch failed.");
+
+    private static readonly Action<ILogger, Guid, Guid, Exception?> LogMessageFailed =
+        LoggerMessage.Define<Guid, Guid>(
+            LogLevel.Error,
+            new EventId(2101, nameof(LogMessageFailed)),
+            "Inventory outbox message {MessageId} with event {EventId} failed.");
+
     private const int BatchSize = 20;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -42,7 +55,8 @@ public sealed class InventoryOutboxPublisherWorker(
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Inventory outbox publishing batch failed.");
+                LogBatchFailed(logger, exception);
+
                 await Task.Delay(PollingInterval, stoppingToken);
             }
         }
@@ -52,7 +66,8 @@ public sealed class InventoryOutboxPublisherWorker(
     {
         await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
 
-        InventoryDbContext dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        InventoryDbContext dbContext =
+            scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
 
         List<OutboxMessage> messages = await dbContext.OutboxMessages
             .Where(message => message.Status != OutboxMessageStatus.Published)
@@ -65,12 +80,18 @@ public sealed class InventoryOutboxPublisherWorker(
             try
             {
                 await PublishMessageAsync(message, cancellationToken);
+
                 message.MarkPublished(timeProvider.GetUtcNow());
             }
             catch (Exception exception)
             {
                 message.MarkFailed(exception.Message);
-                logger.LogError(exception, "Inventory outbox message {MessageId} failed.", message.Id);
+
+                LogMessageFailed(
+                    logger,
+                    message.Id,
+                    message.EventId,
+                    exception);
             }
 
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -79,23 +100,29 @@ public sealed class InventoryOutboxPublisherWorker(
         return messages.Count;
     }
 
-    private Task PublishMessageAsync(OutboxMessage message, CancellationToken cancellationToken)
+    private Task PublishMessageAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken)
     {
-        MessagePublishContext context = new(message.TraceParent, message.TraceState);
+        MessagePublishContext context = new(
+            message.TraceParent,
+            message.TraceState);
 
         return message.RoutingKey switch
         {
-            RabbitMqRoutingKeys.StockReservedV1 => eventPublisher.PublishAsync(
-                Deserialize<StockReservedV1>(message.Payload),
-                message.RoutingKey,
-                context,
-                cancellationToken),
+            RabbitMqRoutingKeys.StockReservedV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<StockReservedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
 
-            RabbitMqRoutingKeys.StockReservationFailedV1 => eventPublisher.PublishAsync(
-                Deserialize<StockReservationFailedV1>(message.Payload),
-                message.RoutingKey,
-                context,
-                cancellationToken),
+            RabbitMqRoutingKeys.StockReservationFailedV1 =>
+                eventPublisher.PublishAsync(
+                    Deserialize<StockReservationFailedV1>(message.Payload),
+                    message.RoutingKey,
+                    context,
+                    cancellationToken),
 
             _ => throw new InvalidOperationException(
                 $"Unsupported inventory outbox routing key '{message.RoutingKey}'.")
@@ -104,7 +131,10 @@ public sealed class InventoryOutboxPublisherWorker(
 
     private static TEvent Deserialize<TEvent>(string payload)
     {
-        return JsonSerializer.Deserialize<TEvent>(payload, SerializerOptions)
-            ?? throw new JsonException($"Outbox payload could not be deserialized as '{typeof(TEvent).Name}'.");
+        return JsonSerializer.Deserialize<TEvent>(
+                   payload,
+                   SerializerOptions)
+               ?? throw new JsonException(
+                   $"Outbox payload could not be deserialized as '{typeof(TEvent).Name}'.");
     }
 }
