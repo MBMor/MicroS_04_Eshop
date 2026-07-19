@@ -1,10 +1,11 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
+using Eshop.Observability;
+using Messaging.Shared;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
 using PaymentsService.Application;
 using PaymentsService.Data;
-using Messaging.Shared;
 using PaymentsService.Messaging;
 using PaymentsService.Outbox;
 
@@ -30,6 +31,10 @@ builder.Services
     });
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "payments-service");
 
 builder.Services.AddEshopErrorHandling();
 

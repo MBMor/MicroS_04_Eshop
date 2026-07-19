@@ -1,12 +1,13 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
+using Eshop.Observability;
 using InventoryService.Application;
 using InventoryService.Data;
-using Microsoft.EntityFrameworkCore;
-using OpenApi.Shared;
 using InventoryService.Messaging;
 using InventoryService.Outbox;
 using Messaging.Shared;
+using Microsoft.EntityFrameworkCore;
+using OpenApi.Shared;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -30,6 +31,10 @@ builder.Services
     });
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "inventory-service");
 
 builder.Services.AddEshopErrorHandling();
 

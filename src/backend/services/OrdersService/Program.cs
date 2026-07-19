@@ -1,15 +1,16 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
+using Eshop.Observability;
+using Messaging.Shared;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
 using OrdersService.Application;
 using OrdersService.Data;
 using OrdersService.Identity;
 using OrdersService.Integration;
+using OrdersService.Messaging;
 using OrdersService.Options;
 using OrdersService.Outbox;
-using Messaging.Shared;
-using OrdersService.Messaging;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,10 @@ builder.Services
     });
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "orders-service");
 
 builder.Services.AddEshopErrorHandling();
 

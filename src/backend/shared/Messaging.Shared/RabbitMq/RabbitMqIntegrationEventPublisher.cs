@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Text;
 using Eshop.Contracts.IntegrationEvents;
 using Messaging.Shared.Abstractions;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.Serialization;
+using Messaging.Shared.Telemetry;
 using RabbitMQ.Client;
 
 namespace Messaging.Shared.RabbitMq;
@@ -20,55 +23,154 @@ public sealed class RabbitMqIntegrationEventPublisher(
         where TEvent : IIntegrationEvent
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
+        ArgumentNullException.ThrowIfNull(publishContext);
         ArgumentException.ThrowIfNullOrWhiteSpace(routingKey);
 
-        IConnection connection = await connectionProvider.GetConnectionAsync(cancellationToken);
+        long startedTimestamp = Stopwatch.GetTimestamp();
 
-        CreateChannelOptions channelOptions = new(
-            publisherConfirmationsEnabled: true,
-            publisherConfirmationTrackingEnabled: true);
+        using Activity? activity =
+            MessagingActivity.StartPublish(
+                exchange: RabbitMqExchanges.Events,
+                routingKey: routingKey,
+                eventType: typeof(TEvent).Name,
+                eventId: integrationEvent.EventId,
+                context: publishContext);
 
-        await using IChannel channel = await connection.CreateChannelAsync(
-            channelOptions,
-            cancellationToken);
-
-        MessageEnvelope<TEvent> envelope = new(
-            integrationEvent.EventId,
-            routingKey,
-            integrationEvent.OccurredAtUtc,
-            integrationEvent.CorrelationId,
-            publishContext.TraceParent,
-            publishContext.TraceState,
-            integrationEvent);
-
-        byte[] body = serializer.Serialize(envelope);
-
-        BasicProperties properties = new()
+        TagList metricTags = new()
         {
-            Persistent = true,
-            ContentType = "application/json",
-            ContentEncoding = Encoding.UTF8.WebName,
-            MessageId = integrationEvent.EventId.ToString(),
-            CorrelationId = integrationEvent.CorrelationId.ToString(),
-            Type = routingKey,
-            Timestamp = new AmqpTimestamp(integrationEvent.OccurredAtUtc.ToUnixTimeSeconds()),
-            Headers = new Dictionary<string, object?>
             {
-                [RabbitMqHeaders.MessageId] = integrationEvent.EventId.ToString(),
-                [RabbitMqHeaders.MessageType] = routingKey,
-                [RabbitMqHeaders.CorrelationId] = integrationEvent.CorrelationId.ToString(),
-                [RabbitMqHeaders.OccurredAtUtc] = integrationEvent.OccurredAtUtc.ToString("O"),
-                [RabbitMqHeaders.TraceParent] = publishContext.TraceParent,
-                [RabbitMqHeaders.TraceState] = publishContext.TraceState
+                "messaging.destination.name",
+                RabbitMqExchanges.Events
+            },
+            {
+                "messaging.rabbitmq.routing_key",
+                routingKey
+            },
+            {
+                "messaging.message.type",
+                typeof(TEvent).Name
             }
         };
 
-        await channel.BasicPublishAsync(
-            exchange: RabbitMqExchanges.Events,
-            routingKey: routingKey,
-            mandatory: true,
-            basicProperties: properties,
-            body: body,
-            cancellationToken: cancellationToken);
+        try
+        {
+            IConnection connection =
+                await connectionProvider.GetConnectionAsync(
+                    cancellationToken);
+
+            CreateChannelOptions channelOptions = new(
+                publisherConfirmationsEnabled: true,
+                publisherConfirmationTrackingEnabled: true);
+
+            await using IChannel channel =
+                await connection.CreateChannelAsync(
+                    channelOptions,
+                    cancellationToken);
+
+            MessageEnvelope<TEvent> envelope = new(
+                integrationEvent.EventId,
+                routingKey,
+                integrationEvent.OccurredAtUtc,
+                integrationEvent.CorrelationId,
+                activity?.Id ?? publishContext.TraceParent,
+                activity?.TraceStateString ?? publishContext.TraceState,
+                integrationEvent);
+
+            byte[] body = serializer.Serialize(envelope);
+
+            BasicProperties properties = new()
+            {
+                Persistent = true,
+                ContentType = "application/json",
+                ContentEncoding = Encoding.UTF8.WebName,
+                MessageId = integrationEvent.EventId.ToString("D"),
+                CorrelationId =
+                    integrationEvent.CorrelationId.ToString("D"),
+                Type = routingKey,
+                Timestamp = new AmqpTimestamp(
+                    integrationEvent.OccurredAtUtc
+                        .ToUnixTimeSeconds())
+            };
+
+            RabbitMqTraceContext.Inject(
+                properties,
+                publishContext,
+                activity);
+
+            properties.Headers ??=
+                new Dictionary<string, object?>(
+                    StringComparer.OrdinalIgnoreCase);
+
+            properties.Headers[RabbitMqHeaders.MessageId] =
+                integrationEvent.EventId.ToString("D");
+
+            properties.Headers[RabbitMqHeaders.MessageType] =
+                routingKey;
+
+            properties.Headers[RabbitMqHeaders.OccurredAtUtc] =
+                integrationEvent.OccurredAtUtc.ToString("O");
+
+            await channel.BasicPublishAsync(
+                exchange: RabbitMqExchanges.Events,
+                routingKey: routingKey,
+                mandatory: true,
+                basicProperties: properties,
+                body: body,
+                cancellationToken: cancellationToken);
+
+            MessagingTelemetry.PublishedMessages.Add(
+                1,
+                metricTags);
+
+            MessagingTelemetry.PublishDuration.Record(
+                Stopwatch
+                    .GetElapsedTime(startedTimestamp)
+                    .TotalMilliseconds,
+                metricTags);
+
+            activity?.SetStatus(ActivityStatusCode.Ok);
+        }
+        catch (Exception exception)
+        {
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
+            TagList failureTags = new()
+            {
+                {
+                    "messaging.operation.type",
+                    "publish"
+                },
+                {
+                    "messaging.destination.name",
+                    RabbitMqExchanges.Events
+                },
+                {
+                    "messaging.rabbitmq.routing_key",
+                    routingKey
+                },
+                {
+                    "messaging.message.type",
+                    typeof(TEvent).Name
+                },
+                {
+                    "error.type",
+                    exception.GetType().Name
+                }
+            };
+
+            MessagingTelemetry.FailedMessages.Add(
+                1,
+                failureTags);
+
+            MessagingTelemetry.PublishDuration.Record(
+                Stopwatch
+                    .GetElapsedTime(startedTimestamp)
+                    .TotalMilliseconds,
+                failureTags);
+
+            throw;
+        }
     }
 }

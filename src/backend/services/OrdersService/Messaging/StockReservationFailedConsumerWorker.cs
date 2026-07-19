@@ -1,14 +1,16 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
-using OrdersService.Application;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+using Messaging.Shared.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using OrdersService.Application;
 using OrdersService.Inbox;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace OrdersService.Messaging;
 
@@ -19,50 +21,58 @@ public sealed class StockReservationFailedConsumerWorker(
     ILogger<StockReservationFailedConsumerWorker> logger)
     : BackgroundService
 {
-    private static readonly Action<ILogger, Guid, string, Exception?> LogReservationFailed =
-        LoggerMessage.Define<Guid, string>(
-            LogLevel.Warning,
-            new EventId(2300, nameof(LogReservationFailed)),
-            "Stock reservation failed for order {OrderId}: {Reason}");
+    private const string QueueName =
+        RabbitMqQueues.OrdersStockReservationFailedV1;
 
-    private static readonly Action<ILogger, ulong, Exception?> LogInvalidJson =
-        LoggerMessage.Define<ulong>(
-            LogLevel.Error,
-            new EventId(2301, nameof(LogInvalidJson)),
-            "StockReservationFailed message {DeliveryTag} contains invalid JSON.");
+    private const string EventType =
+        nameof(StockReservationFailedV1);
 
-    private static readonly Action<ILogger, ulong, Exception?> LogProcessingFailed =
-        LoggerMessage.Define<ulong>(
-            LogLevel.Error,
-            new EventId(2302, nameof(LogProcessingFailed)),
-            "StockReservationFailed message {DeliveryTag} processing failed.");
+    private static readonly Action<ILogger, ulong, Exception?>
+        LogInvalidJson =
+            LoggerMessage.Define<ulong>(
+                LogLevel.Error,
+                new EventId(2300, nameof(LogInvalidJson)),
+                "StockReservationFailed message {DeliveryTag} contains invalid JSON.");
 
-    private static readonly Action<ILogger, ulong, Exception?> LogPermanentFailure =
-    LoggerMessage.Define<ulong>(
-        LogLevel.Error,
-        new EventId(9000, nameof(LogPermanentFailure)),
-        "Message {DeliveryTag} failed with a permanent processing error and will be dead-lettered.");
+    private static readonly Action<ILogger, ulong, Exception?>
+        LogProcessingFailed =
+            LoggerMessage.Define<ulong>(
+                LogLevel.Error,
+                new EventId(2301, nameof(LogProcessingFailed)),
+                "StockReservationFailed message {DeliveryTag} processing failed.");
 
-    private static readonly Action<ILogger, ulong, Exception?> LogTransientFailure =
-        LoggerMessage.Define<ulong>(
-            LogLevel.Warning,
-            new EventId(9001, nameof(LogTransientFailure)),
-            "Message {DeliveryTag} failed with a transient processing error and will be retried.");
+    private static readonly Action<ILogger, ulong, Exception?>
+        LogPermanentFailure =
+            LoggerMessage.Define<ulong>(
+                LogLevel.Error,
+                new EventId(2302, nameof(LogPermanentFailure)),
+                "StockReservationFailed message {DeliveryTag} failed with a permanent processing error and will be dead-lettered.");
 
-    private static readonly Action<ILogger, ulong, Exception?> LogDuplicateMessage =
-        LoggerMessage.Define<ulong>(
-            LogLevel.Information,
-            new EventId(9002, nameof(LogDuplicateMessage)),
-            "Message {DeliveryTag} was already processed by another consumer instance.");
+    private static readonly Action<ILogger, ulong, Exception?>
+        LogTransientFailure =
+            LoggerMessage.Define<ulong>(
+                LogLevel.Warning,
+                new EventId(2303, nameof(LogTransientFailure)),
+                "StockReservationFailed message {DeliveryTag} failed with a transient processing error and will be retried.");
+
+    private static readonly Action<ILogger, ulong, Exception?>
+        LogDuplicateMessage =
+            LoggerMessage.Define<ulong>(
+                LogLevel.Information,
+                new EventId(2304, nameof(LogDuplicateMessage)),
+                "StockReservationFailed message {DeliveryTag} was already processed by another consumer instance.");
 
     private IChannel? _channel;
     private CancellationToken _stoppingToken;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
-        IConnection connection =
-            await connectionProvider.GetConnectionAsync(stoppingToken);
         _stoppingToken = stoppingToken;
+
+        IConnection connection =
+            await connectionProvider.GetConnectionAsync(
+                stoppingToken);
 
         _channel = await connection.CreateChannelAsync(
             cancellationToken: stoppingToken);
@@ -73,11 +83,13 @@ public sealed class StockReservationFailedConsumerWorker(
             global: false,
             cancellationToken: stoppingToken);
 
-        AsyncEventingBasicConsumer consumer = new(_channel);
+        AsyncEventingBasicConsumer consumer =
+            new(_channel);
+
         consumer.ReceivedAsync += HandleDeliveryAsync;
 
         await _channel.BasicConsumeAsync(
-            queue: RabbitMqQueues.OrdersStockReservationFailedV1,
+            queue: QueueName,
             autoAck: false,
             consumer: consumer,
             cancellationToken: stoppingToken);
@@ -91,51 +103,146 @@ public sealed class StockReservationFailedConsumerWorker(
         object sender,
         BasicDeliverEventArgs delivery)
     {
-        if (_channel is null)
+        IChannel? channel = _channel;
+
+        if (channel is null)
         {
             return;
         }
 
+        long startedTimestamp =
+            Stopwatch.GetTimestamp();
+
+        string outcome = "unknown";
+        Exception? processingException = null;
+
+        Dictionary<string, object?>? headers =
+            CreateHeadersSnapshot(
+                delivery.BasicProperties.Headers);
+
+        Guid eventId =
+            ParseGuid(
+                delivery.BasicProperties.MessageId);
+
+        Guid correlationId =
+            RabbitMqTraceContext.ExtractCorrelationId(
+                headers)
+            ?? ParseGuid(
+                delivery.BasicProperties.CorrelationId);
+
+        using Activity? activity =
+            MessagingActivity.StartConsume(
+                queueName: QueueName,
+                routingKey: delivery.RoutingKey,
+                eventType: EventType,
+                eventId: eventId,
+                correlationId: correlationId,
+                headers: headers);
+
+        Dictionary<string, object?> logScopeState = new()
+        {
+            ["CorrelationId"] =
+                correlationId == Guid.Empty
+                    ? null
+                    : correlationId,
+
+            ["EventId"] =
+                eventId == Guid.Empty
+                    ? null
+                    : eventId,
+
+            ["EventType"] = EventType,
+            ["QueueName"] = QueueName,
+            ["RoutingKey"] = delivery.RoutingKey,
+            ["DeliveryTag"] = delivery.DeliveryTag
+        };
+
+        using IDisposable? logScope =
+            logger.BeginScope(logScopeState);
+
         try
         {
             MessageEnvelope<StockReservationFailedV1> envelope =
-                serializer.Deserialize<MessageEnvelope<StockReservationFailedV1>>(
+                serializer.Deserialize<
+                    MessageEnvelope<StockReservationFailedV1>>(
                     delivery.Body.Span);
+
+            eventId = envelope.Payload.EventId;
+
+            correlationId =
+                correlationId != Guid.Empty
+                    ? correlationId
+                    : envelope.Payload.CorrelationId;
+
+            logScopeState["EventId"] = eventId;
+            logScopeState["CorrelationId"] = correlationId;
+
+            activity?.SetTag(
+                "messaging.message.id",
+                eventId.ToString("D"));
+
+            activity?.SetTag(
+                "eshop.correlation_id",
+                correlationId.ToString("D"));
 
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();
 
             OrderStockResultService service =
                 scope.ServiceProvider
-                    .GetRequiredService<OrderStockResultService>();
+                    .GetRequiredService<
+                        OrderStockResultService>();
 
             await service.ApplyStockReservationFailedAsync(
                 envelope.Payload,
                 _stoppingToken);
 
-            LogReservationFailed(
-                logger,
-                envelope.Payload.OrderId,
-                envelope.Payload.Reason,
-                null);
-
-            await _channel.BasicAckAsync(
+            await channel.BasicAckAsync(
                 delivery.DeliveryTag,
                 multiple: false);
+
+            outcome = "success";
+
+            activity?.SetStatus(
+                ActivityStatusCode.Ok);
+
+            MessagingTelemetry.ConsumedMessages.Add(
+                1,
+                CreateMetricTags(
+                    delivery.RoutingKey,
+                    outcome));
         }
         catch (OperationCanceledException)
             when (_stoppingToken.IsCancellationRequested)
         {
-            return;
+            outcome = "cancelled";
+
+            activity?.SetTag(
+                "messaging.operation.cancelled",
+                true);
+
+            // Zpráva zůstane bez ACK/NACK.
+            // RabbitMQ ji po uzavření channelu znovu doručí.
         }
         catch (JsonException exception)
         {
+            outcome = "dead_letter";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogInvalidJson(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordDeadLetter(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: false);
@@ -143,48 +250,103 @@ public sealed class StockReservationFailedConsumerWorker(
         catch (DbUpdateException exception)
             when (InboxDuplicateDetector.IsDuplicate(exception))
         {
+            outcome = "duplicate";
+
+            activity?.SetTag(
+                "messaging.message.duplicate",
+                true);
+
+            activity?.SetStatus(
+                ActivityStatusCode.Ok);
+
             LogDuplicateMessage(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicAckAsync(
+            TagList tags =
+                CreateMetricTags(
+                    delivery.RoutingKey,
+                    outcome);
+
+            MessagingTelemetry.ConsumedMessages.Add(
+                1,
+                tags);
+
+            MessagingTelemetry.DuplicateMessages.Add(
+                1,
+                tags);
+
+            await channel.BasicAckAsync(
                 delivery.DeliveryTag,
                 multiple: false);
         }
         catch (DbUpdateException exception)
             when (InboxDuplicateDetector.IsTransient(exception))
         {
+            outcome = "retry";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogTransientFailure(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordRetry(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: true);
         }
         catch (ArgumentException exception)
         {
+            outcome = "dead_letter";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogPermanentFailure(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordDeadLetter(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: false);
         }
         catch (InvalidOperationException exception)
         {
+            outcome = "dead_letter";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogPermanentFailure(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordDeadLetter(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: false);
@@ -192,40 +354,188 @@ public sealed class StockReservationFailedConsumerWorker(
         catch (NpgsqlException exception)
             when (exception.IsTransient)
         {
+            outcome = "retry";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogTransientFailure(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordRetry(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: true);
         }
         catch (TimeoutException exception)
         {
+            outcome = "retry";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogTransientFailure(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordRetry(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: true);
         }
         catch (Exception exception)
         {
+            outcome = "retry";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
             LogProcessingFailed(
                 logger,
                 delivery.DeliveryTag,
                 exception);
 
-            await _channel.BasicNackAsync(
+            RecordRetry(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: true);
         }
+        finally
+        {
+            MessagingTelemetry.ConsumeDuration.Record(
+                Stopwatch
+                    .GetElapsedTime(startedTimestamp)
+                    .TotalMilliseconds,
+                CreateMetricTags(
+                    delivery.RoutingKey,
+                    outcome,
+                    processingException));
+        }
+    }
+
+    private static void RecordRetry(
+        string routingKey,
+        Exception exception)
+    {
+        TagList tags =
+            CreateMetricTags(
+                routingKey,
+                "retry",
+                exception);
+
+        MessagingTelemetry.RetriedMessages.Add(
+            1,
+            tags);
+
+        MessagingTelemetry.FailedMessages.Add(
+            1,
+            tags);
+    }
+
+    private static void RecordDeadLetter(
+        string routingKey,
+        Exception exception)
+    {
+        TagList tags =
+            CreateMetricTags(
+                routingKey,
+                "dead_letter",
+                exception);
+
+        MessagingTelemetry.DeadLetteredMessages.Add(
+            1,
+            tags);
+
+        MessagingTelemetry.FailedMessages.Add(
+            1,
+            tags);
+    }
+
+    private static TagList CreateMetricTags(
+        string routingKey,
+        string outcome,
+        Exception? exception = null)
+    {
+        TagList tags = new()
+        {
+            {
+                "messaging.system",
+                "rabbitmq"
+            },
+            {
+                "messaging.destination.name",
+                QueueName
+            },
+            {
+                "messaging.rabbitmq.routing_key",
+                routingKey
+            },
+            {
+                "messaging.message.type",
+                EventType
+            },
+            {
+                "messaging.operation.type",
+                "process"
+            },
+            {
+                "messaging.operation.outcome",
+                outcome
+            }
+        };
+
+        if (exception is not null)
+        {
+            tags.Add(
+                "error.type",
+                exception.GetType().Name);
+        }
+
+        return tags;
+    }
+
+    private static Dictionary<string, object?>?
+        CreateHeadersSnapshot(
+            IDictionary<string, object?>? headers)
+    {
+        if (headers is null)
+        {
+            return null;
+        }
+
+        return new Dictionary<string, object?>(
+            headers,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static Guid ParseGuid(string? value)
+    {
+        return Guid.TryParse(
+            value,
+            out Guid parsedValue)
+                ? parsedValue
+                : Guid.Empty;
     }
 
     public override async Task StopAsync(
@@ -233,7 +543,8 @@ public sealed class StockReservationFailedConsumerWorker(
     {
         try
         {
-            await base.StopAsync(cancellationToken);
+            await base.StopAsync(
+                cancellationToken);
         }
         finally
         {

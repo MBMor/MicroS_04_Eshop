@@ -117,6 +117,7 @@ public sealed class OrdersOutboxPublisherWorker(
         CancellationToken cancellationToken)
     {
         MessagePublishContext context = new(
+            message.CorrelationId,
             message.TraceParent,
             message.TraceState);
 

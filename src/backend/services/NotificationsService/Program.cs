@@ -1,13 +1,14 @@
 using Asp.Versioning;
 using ErrorHandling.Shared;
+using Eshop.Observability;
+using Messaging.Shared;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Application;
 using NotificationsService.Data;
 using NotificationsService.Identity;
+using NotificationsService.Messaging;
 using NotificationsService.Options;
 using OpenApi.Shared;
-using Messaging.Shared;
-using NotificationsService.Messaging;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -31,6 +32,10 @@ builder.Services
     });
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "notifications-service");
 
 builder.Services.AddEshopErrorHandling();
 
