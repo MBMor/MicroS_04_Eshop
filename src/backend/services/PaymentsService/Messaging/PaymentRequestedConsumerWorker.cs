@@ -3,7 +3,10 @@ using Eshop.Contracts.IntegrationEvents.V1;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PaymentsService.Application;
+using PaymentsService.Inbox;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -28,11 +31,32 @@ public sealed class PaymentRequestedConsumerWorker(
             new EventId(3001, nameof(LogProcessingFailed)),
             "PaymentRequested message {DeliveryTag} processing failed.");
 
+    private static readonly Action<ILogger, ulong, Exception?> LogPermanentFailure =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Error,
+            new EventId(3002, nameof(LogPermanentFailure)),
+            "PaymentRequested message {DeliveryTag} failed permanently and will be dead-lettered.");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogTransientFailure =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Warning,
+            new EventId(3003, nameof(LogTransientFailure)),
+            "PaymentRequested message {DeliveryTag} failed transiently and will be retried.");
+
+    private static readonly Action<ILogger, ulong, Exception?> LogDuplicateMessage =
+        LoggerMessage.Define<ulong>(
+            LogLevel.Information,
+            new EventId(3004, nameof(LogDuplicateMessage)),
+            "PaymentRequested message {DeliveryTag} was already processed by another consumer instance.");
+
     private IChannel? _channel;
+    private CancellationToken _stoppingToken;
 
     protected override async Task ExecuteAsync(
         CancellationToken stoppingToken)
     {
+        _stoppingToken = stoppingToken;
+
         IConnection connection =
             await connectionProvider.GetConnectionAsync(stoppingToken);
 
@@ -83,11 +107,16 @@ public sealed class PaymentRequestedConsumerWorker(
 
             await service.ProcessAsync(
                 envelope.Payload,
-                CancellationToken.None);
+                _stoppingToken);
 
             await _channel.BasicAckAsync(
                 delivery.DeliveryTag,
                 multiple: false);
+        }
+        catch (OperationCanceledException)
+            when (_stoppingToken.IsCancellationRequested)
+        {
+            return;
         }
         catch (JsonException exception)
         {
@@ -100,6 +129,80 @@ public sealed class PaymentRequestedConsumerWorker(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: false);
+        }
+        catch (DbUpdateException exception)
+            when (InboxDuplicateDetector.IsDuplicate(exception))
+        {
+            LogDuplicateMessage(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicAckAsync(
+                delivery.DeliveryTag,
+                multiple: false);
+        }
+        catch (DbUpdateException exception)
+            when (InboxDuplicateDetector.IsTransient(exception))
+        {
+            LogTransientFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
+        }
+        catch (ArgumentException exception)
+        {
+            LogPermanentFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
+        }
+        catch (InvalidOperationException exception)
+        {
+            LogPermanentFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
+        }
+        catch (NpgsqlException exception)
+            when (exception.IsTransient)
+        {
+            LogTransientFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
+        }
+        catch (TimeoutException exception)
+        {
+            LogTransientFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
         }
         catch (Exception exception)
         {
@@ -118,12 +221,17 @@ public sealed class PaymentRequestedConsumerWorker(
     public override async Task StopAsync(
         CancellationToken cancellationToken)
     {
-        if (_channel is not null)
+        try
         {
-            await _channel.DisposeAsync();
-            _channel = null;
+            await base.StopAsync(cancellationToken);
         }
-
-        await base.StopAsync(cancellationToken);
+        finally
+        {
+            if (_channel is not null)
+            {
+                await _channel.DisposeAsync();
+                _channel = null;
+            }
+        }
     }
 }

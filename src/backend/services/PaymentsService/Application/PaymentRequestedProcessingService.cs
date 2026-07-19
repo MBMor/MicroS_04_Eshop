@@ -32,22 +32,16 @@ public sealed class PaymentRequestedProcessingService(
             return;
         }
 
-        bool paymentAlreadyExists = await dbContext.Payments
-            .AnyAsync(
+        Payment? existingPayment = await dbContext.Payments
+            .FirstOrDefaultAsync(
                 payment => payment.OrderId == integrationEvent.OrderId,
                 cancellationToken);
 
-        if (paymentAlreadyExists)
+        if (existingPayment is not null)
         {
-            dbContext.ProcessedMessages.Add(
-                ProcessedMessage.Create(
-                    integrationEvent.EventId,
-                    ConsumerNames.PaymentRequested,
-                    timeProvider.GetUtcNow()));
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            return;
+            throw new InvalidOperationException(
+                $"Order '{integrationEvent.OrderId}' already has payment '{existingPayment.Id}'. " +
+                $"A second payment request with event id '{integrationEvent.EventId}' cannot be processed.");
         }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
@@ -57,12 +51,12 @@ public sealed class PaymentRequestedProcessingService(
                 out FakePaymentDecision? decision)
             || decision is null)
         {
-            await CreateFailedPaymentAsync(
+            CreateFailedPayment(
                 integrationEvent,
                 "Unsupported payment method.",
-                now,
-                cancellationToken);
+                now);
 
+            await dbContext.SaveChangesAsync(cancellationToken);
             return;
         }
 
@@ -132,11 +126,10 @@ public sealed class PaymentRequestedProcessingService(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task CreateFailedPaymentAsync(
+    private void CreateFailedPayment(
         PaymentRequestedV1 integrationEvent,
         string failureReason,
-        DateTimeOffset now,
-        CancellationToken cancellationToken)
+        DateTimeOffset now)
     {
         Payment payment = Payment.CreatePending(
             id: Guid.NewGuid(),
@@ -174,7 +167,5 @@ public sealed class PaymentRequestedProcessingService(
                 integrationEvent.EventId,
                 ConsumerNames.PaymentRequested,
                 now));
-
-        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

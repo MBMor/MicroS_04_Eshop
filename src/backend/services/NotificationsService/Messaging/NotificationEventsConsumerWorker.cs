@@ -4,7 +4,10 @@ using Eshop.Contracts.IntegrationEvents.V1;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.RabbitMq;
 using Messaging.Shared.Serialization;
+using Microsoft.EntityFrameworkCore;
 using NotificationsService.Application;
+using NotificationsService.Inbox;
+using Npgsql;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -27,13 +30,33 @@ public sealed class NotificationEventsConsumerWorker(
         LoggerMessage.Define<string, ulong>(
             LogLevel.Error,
             new EventId(4001, nameof(LogProcessingFailed)),
-            "Notification message from queue {QueueName} with delivery tag {DeliveryTag} failed.");
+            "Notification message from queue {QueueName} with delivery tag {DeliveryTag} failed unexpectedly and will be retried.");
+
+    private static readonly Action<ILogger, string, ulong, Exception?> LogPermanentFailure =
+        LoggerMessage.Define<string, ulong>(
+            LogLevel.Error,
+            new EventId(4002, nameof(LogPermanentFailure)),
+            "Notification message from queue {QueueName} with delivery tag {DeliveryTag} failed permanently and will be dead-lettered.");
+
+    private static readonly Action<ILogger, string, ulong, Exception?> LogTransientFailure =
+        LoggerMessage.Define<string, ulong>(
+            LogLevel.Warning,
+            new EventId(4003, nameof(LogTransientFailure)),
+            "Notification message from queue {QueueName} with delivery tag {DeliveryTag} failed transiently and will be retried.");
+
+    private static readonly Action<ILogger, string, ulong, Exception?> LogDuplicateMessage =
+        LoggerMessage.Define<string, ulong>(
+            LogLevel.Information,
+            new EventId(4004, nameof(LogDuplicateMessage)),
+            "Notification message from queue {QueueName} with delivery tag {DeliveryTag} was already processed by another consumer instance.");
 
     private IChannel? _channel;
+    private CancellationToken _stoppingToken;
 
-    protected override async Task ExecuteAsync(
-        CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _stoppingToken = stoppingToken;
+
         IConnection connection =
             await connectionProvider.GetConnectionAsync(stoppingToken);
 
@@ -130,11 +153,16 @@ public sealed class NotificationEventsConsumerWorker(
             await DispatchAsync(
                 processingService,
                 envelope.Payload,
-                CancellationToken.None);
+                _stoppingToken);
 
             await _channel.BasicAckAsync(
                 delivery.DeliveryTag,
                 multiple: false);
+        }
+        catch (OperationCanceledException)
+            when (_stoppingToken.IsCancellationRequested)
+        {
+            return;
         }
         catch (JsonException exception)
         {
@@ -148,6 +176,86 @@ public sealed class NotificationEventsConsumerWorker(
                 delivery.DeliveryTag,
                 multiple: false,
                 requeue: false);
+        }
+        catch (DbUpdateException exception)
+            when (InboxDuplicateDetector.IsDuplicate(exception))
+        {
+            LogDuplicateMessage(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicAckAsync(
+                delivery.DeliveryTag,
+                multiple: false);
+        }
+        catch (DbUpdateException exception)
+            when (InboxDuplicateDetector.IsTransient(exception))
+        {
+            LogTransientFailure(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
+        }
+        catch (ArgumentException exception)
+        {
+            LogPermanentFailure(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
+        }
+        catch (InvalidOperationException exception)
+        {
+            LogPermanentFailure(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: false);
+        }
+        catch (NpgsqlException exception)
+            when (exception.IsTransient)
+        {
+            LogTransientFailure(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
+        }
+        catch (TimeoutException exception)
+        {
+            LogTransientFailure(
+                logger,
+                queueName,
+                delivery.DeliveryTag,
+                exception);
+
+            await _channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
         }
         catch (Exception exception)
         {
@@ -173,40 +281,59 @@ public sealed class NotificationEventsConsumerWorker(
         return integrationEvent switch
         {
             OrderCreatedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             StockReservedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             StockReservationFailedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             PaymentAuthorizedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             PaymentFailedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             OrderConfirmedV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             OrderCancelledV1 value =>
-                processingService.ProcessAsync(value, cancellationToken),
+                processingService.ProcessAsync(
+                    value,
+                    cancellationToken),
 
             _ => throw new InvalidOperationException(
-                $"Unsupported notification event '{typeof(TEvent).Name}'.")
+                $"Unsupported notification event type '{typeof(TEvent).Name}'.")
         };
     }
 
     public override async Task StopAsync(
         CancellationToken cancellationToken)
     {
-        if (_channel is not null)
+        try
         {
-            await _channel.DisposeAsync();
-            _channel = null;
+            await base.StopAsync(cancellationToken);
         }
-
-        await base.StopAsync(cancellationToken);
+        finally
+        {
+            if (_channel is not null)
+            {
+                await _channel.DisposeAsync();
+                _channel = null;
+            }
+        }
     }
 }
