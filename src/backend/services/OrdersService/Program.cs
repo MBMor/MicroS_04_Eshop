@@ -2,6 +2,7 @@ using Asp.Versioning;
 using ErrorHandling.Shared;
 using Eshop.Observability;
 using Messaging.Shared;
+using Messaging.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
 using OrdersService.Application;
@@ -75,6 +76,36 @@ builder.Services.AddHttpClient<IBasketClient, BasketClient>(httpClient =>
     httpClient.Timeout = TimeSpan.FromSeconds(5);
 });
 
+builder.Services
+    .AddOptions<OutboxProcessingOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            OutboxProcessingOptions.SectionName))
+    .Validate(
+        options => options.BatchSize is >= 1 and <= 500,
+        "Outbox batch size must be between 1 and 500.")
+    .Validate(
+        options => options.PollingInterval
+            >= TimeSpan.FromMilliseconds(100),
+        "Outbox polling interval must be at least 100 milliseconds.")
+    .Validate(
+        options => options.ClaimTimeout
+            >= TimeSpan.FromSeconds(30),
+        "Outbox claim timeout must be at least 30 seconds.")
+    .Validate(
+        options => options.PublishedRetention
+            >= TimeSpan.FromHours(1),
+        "Outbox retention must be at least one hour.")
+    .Validate(
+        options => options.CleanupInterval
+            >= TimeSpan.FromMinutes(1),
+        "Outbox cleanup interval must be at least one minute.")
+    .Validate(
+        options => options.CleanupBatchSize
+            is >= 1 and <= 10_000,
+        "Outbox cleanup batch size must be between 1 and 10000.")
+    .ValidateOnStart();
+
 builder.Services.AddScoped<OrderApplicationService>();
 builder.Services.AddSingleton<IOrderOwnerProvider, OrderOwnerProvider>();
 
@@ -82,9 +113,13 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddEshopMessagingCore(builder.Configuration);
 
 builder.Services.AddSingleton<OrdersOutboxWriter>();
+
+builder.Services.AddScoped<OrdersOutboxStore>();
+
 builder.Services.AddScoped<OrderStockResultService>();
 
 builder.Services.AddHostedService<OrdersOutboxPublisherWorker>();
+builder.Services.AddHostedService<OrdersOutboxCleanupWorker>();
 builder.Services.AddHostedService<StockReservedConsumerWorker>();
 builder.Services.AddHostedService<StockReservationFailedConsumerWorker>();
 

@@ -152,6 +152,15 @@ namespace OrdersService.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("ClaimedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("claimed_at_utc");
+
+                    b.Property<string>("ClaimedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("claimed_by");
+
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uuid")
                         .HasColumnName("correlation_id");
@@ -215,7 +224,11 @@ namespace OrdersService.Data.Migrations
                     b.HasIndex("EventId")
                         .IsUnique();
 
+                    b.HasIndex("Status", "ClaimedAtUtc");
+
                     b.HasIndex("Status", "OccurredAtUtc");
+
+                    b.HasIndex("Status", "PublishedAtUtc");
 
                     b.ToTable("outbox_messages", (string)null);
                 });

@@ -107,8 +107,17 @@ public sealed class InventoryDbContext(
         message.Property(entity => entity.LastError).HasColumnName("last_error").HasMaxLength(4_000);
         message.Property(entity => entity.PublishedAtUtc).HasColumnName("published_at_utc");
 
+        message.Property(entity => entity.ClaimedAtUtc).HasColumnName("claimed_at_utc");
+
+        message.Property(entity => entity.ClaimedBy).HasColumnName("claimed_by").HasMaxLength(200);
+
         message.HasIndex(entity => entity.EventId).IsUnique();
-        message.HasIndex(entity => new { entity.Status, entity.OccurredAtUtc });
+
+        message.HasIndex(entity => new{entity.Status, entity.OccurredAtUtc});
+
+        message.HasIndex(entity => new{entity.Status, entity.ClaimedAtUtc});
+
+        message.HasIndex(entity => new{entity.Status, entity.PublishedAtUtc});
     }
 
     private static void ConfigureProcessedMessage(

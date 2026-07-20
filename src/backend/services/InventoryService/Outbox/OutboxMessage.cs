@@ -32,6 +32,10 @@ public sealed class OutboxMessage
 
     public DateTimeOffset? PublishedAtUtc { get; private set; }
 
+    public DateTimeOffset? ClaimedAtUtc { get; private set; }
+
+    public string? ClaimedBy { get; private set; }
+
     public static OutboxMessage Create(
         Guid id,
         Guid eventId,
@@ -74,18 +78,37 @@ public sealed class OutboxMessage
         };
     }
 
-    public void MarkPublished(DateTimeOffset publishedAtUtc)
+    public void Claim(
+        string workerId,
+        DateTimeOffset claimedAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workerId);
+
+        Status = OutboxMessageStatus.Processing;
+        ClaimedBy = workerId;
+        ClaimedAtUtc = claimedAtUtc;
+    }
+
+    public void MarkPublished(
+        DateTimeOffset publishedAtUtc)
     {
         Status = OutboxMessageStatus.Published;
         PublishedAtUtc = publishedAtUtc;
         LastError = null;
+        ClaimedAtUtc = null;
+        ClaimedBy = null;
     }
 
-    public void MarkFailed(string error)
+    public void MarkFailed(
+        string error)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(error);
+
         Status = OutboxMessageStatus.Failed;
-        RetryCount = checked(RetryCount + 1);
-        LastError = Required(error, nameof(error), 4_000);
+        LastError = error;
+        RetryCount++;
+        ClaimedAtUtc = null;
+        ClaimedBy = null;
     }
 
     private static string Required(string value, string parameterName, int maximumLength)

@@ -2,7 +2,8 @@ namespace PaymentsService.Outbox;
 
 public enum OutboxMessageStatus
 {
-    Pending = 1,
+    Pending = 0,
+    Processing = 1,
     Published = 2,
     Failed = 3
 }

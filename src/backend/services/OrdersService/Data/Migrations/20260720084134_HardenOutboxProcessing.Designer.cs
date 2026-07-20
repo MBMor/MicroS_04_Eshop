@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using PaymentsService.Data;
+using OrdersService.Data;
 
 #nullable disable
 
-namespace PaymentsService.Data.Migrations
+namespace OrdersService.Data.Migrations
 {
-    [DbContext(typeof(PaymentsDbContext))]
-    partial class PaymentsDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(OrdersDbContext))]
+    [Migration("20260720084134_HardenOutboxProcessing")]
+    partial class HardenOutboxProcessing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,16 +25,11 @@ namespace PaymentsService.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("PaymentsService.Domain.Payment", b =>
+            modelBuilder.Entity("OrdersService.Domain.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -43,20 +41,17 @@ namespace PaymentsService.Data.Migrations
                         .HasColumnType("character varying(3)")
                         .HasColumnName("currency");
 
+                    b.Property<string>("CustomerEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("customer_email");
+
                     b.Property<string>("CustomerId")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
                         .HasColumnName("customer_id");
-
-                    b.Property<string>("FailureReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("failure_reason");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
 
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
@@ -64,15 +59,20 @@ namespace PaymentsService.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("payment_method");
 
-                    b.Property<DateTimeOffset?>("ProcessedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("processed_at_utc");
-
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
                         .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_amount");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
 
@@ -80,22 +80,54 @@ namespace PaymentsService.Data.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("OrderId")
-                        .IsUnique();
-
                     b.HasIndex("Status");
 
-                    b.ToTable("payments", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_payments_amount_positive", "\"amount\" > 0");
-
-                            t.HasCheckConstraint("ck_payments_failure_reason", "(\n    \"status\" = 'Failed'\n    AND \"failure_reason\" IS NOT NULL\n)\nOR\n(\n    \"status\" <> 'Failed'\n    AND \"failure_reason\" IS NULL\n)");
-
-                            t.HasCheckConstraint("ck_payments_processed_status", "(\n    \"status\" = 'Pending'\n    AND \"processed_at_utc\" IS NULL\n)\nOR\n(\n    \"status\" IN ('Authorized', 'Failed')\n    AND \"processed_at_utc\" IS NOT NULL\n)");
-                        });
+                    b.ToTable("orders", (string)null);
                 });
 
-            modelBuilder.Entity("PaymentsService.Inbox.ProcessedMessage", b =>
+            modelBuilder.Entity("OrdersService.Domain.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("product_name");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("unit_price");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("order_items", (string)null);
+                });
+
+            modelBuilder.Entity("OrdersService.Inbox.ProcessedMessage", b =>
                 {
                     b.Property<Guid>("EventId")
                         .HasColumnType("uuid")
@@ -117,7 +149,7 @@ namespace PaymentsService.Data.Migrations
                     b.ToTable("processed_messages", (string)null);
                 });
 
-            modelBuilder.Entity("PaymentsService.Outbox.OutboxMessage", b =>
+            modelBuilder.Entity("OrdersService.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -202,6 +234,20 @@ namespace PaymentsService.Data.Migrations
                     b.HasIndex("Status", "PublishedAtUtc");
 
                     b.ToTable("outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("OrdersService.Domain.OrderItem", b =>
+                {
+                    b.HasOne("OrdersService.Domain.Order", null)
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrdersService.Domain.Order", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

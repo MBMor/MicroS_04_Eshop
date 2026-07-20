@@ -2,9 +2,9 @@ using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
 using Messaging.Shared.Abstractions;
 using Messaging.Shared.Contracts;
+using Messaging.Shared.Outbox;
 using Messaging.Shared.RabbitMq;
-using Microsoft.EntityFrameworkCore;
-using OrdersService.Data;
+using Microsoft.Extensions.Options;
 
 namespace OrdersService.Outbox;
 
@@ -12,56 +12,81 @@ public sealed class OrdersOutboxPublisherWorker(
     IServiceScopeFactory scopeFactory,
     IIntegrationEventPublisher eventPublisher,
     TimeProvider timeProvider,
+    IOptions<OutboxProcessingOptions> options,
     ILogger<OrdersOutboxPublisherWorker> logger)
     : BackgroundService
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    private static readonly JsonSerializerOptions SerializerOptions =
+        new(JsonSerializerDefaults.Web)
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
-    private static readonly TimeSpan PollingInterval = TimeSpan.FromSeconds(2);
+    private static readonly Action<ILogger, Exception?>
+        LogBatchFailed =
+            LoggerMessage.Define(
+                LogLevel.Error,
+                new EventId(2400, nameof(LogBatchFailed)),
+                "Orders outbox publishing batch failed.");
 
-    private static readonly Action<ILogger, Exception?> LogBatchFailed =
-        LoggerMessage.Define(
-            LogLevel.Error,
-            new EventId(2400, nameof(LogBatchFailed)),
-            "Orders outbox publishing batch failed.");
+    private static readonly Action<ILogger, Guid, Guid, Exception?>
+        LogMessageFailed =
+            LoggerMessage.Define<Guid, Guid>(
+                LogLevel.Error,
+                new EventId(2401, nameof(LogMessageFailed)),
+                "Publishing orders outbox message {MessageId} with event {EventId} failed.");
 
-    private static readonly Action<ILogger, Guid, Guid, Exception?> LogMessageFailed =
-        LoggerMessage.Define<Guid, Guid>(
-            LogLevel.Error,
-            new EventId(2401, nameof(LogMessageFailed)),
-            "Publishing orders outbox message {MessageId} with event {EventId} failed.");
+    private static readonly Action<ILogger, Guid, string, Exception?>
+        LogClaimLost =
+            LoggerMessage.Define<Guid, string>(
+                LogLevel.Warning,
+                new EventId(2402, nameof(LogClaimLost)),
+                "Orders outbox message {MessageId} is no longer claimed by worker {WorkerId}.");
 
-    private const int BatchSize = 20;
+    private static readonly Action<ILogger, Guid, Exception?>
+        LogStateUpdateFailed =
+            LoggerMessage.Define<Guid>(
+                LogLevel.Error,
+                new EventId(2403, nameof(LogStateUpdateFailed)),
+                "Updating state of orders outbox message {MessageId} failed.");
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private readonly OutboxProcessingOptions _options =
+        options.Value;
+
+    private readonly string _workerId =
+        $"{Environment.MachineName}:{Guid.NewGuid():N}";
+
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 int processedCount =
-                    await PublishBatchAsync(stoppingToken);
+                    await PublishBatchAsync(
+                        stoppingToken);
 
                 if (processedCount == 0)
                 {
                     await Task.Delay(
-                        PollingInterval,
+                        _options.PollingInterval,
                         stoppingToken);
                 }
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
             {
                 break;
             }
             catch (Exception exception)
             {
-                LogBatchFailed(logger, exception);
+                LogBatchFailed(
+                    logger,
+                    exception);
 
                 await Task.Delay(
-                    PollingInterval,
+                    _options.PollingInterval,
                     stoppingToken);
             }
         }
@@ -70,50 +95,157 @@ public sealed class OrdersOutboxPublisherWorker(
     private async Task<int> PublishBatchAsync(
         CancellationToken cancellationToken)
     {
-        await using AsyncServiceScope scope =
-            scopeFactory.CreateAsyncScope();
+        List<ClaimedOutboxMessage> messages =
+            await ClaimBatchAsync(
+                cancellationToken);
 
-        OrdersDbContext dbContext =
-            scope.ServiceProvider
-                .GetRequiredService<OrdersDbContext>();
-
-        List<OutboxMessage> messages = await dbContext.OutboxMessages
-            .Where(message => message.Status != OutboxMessageStatus.Published)
-            .OrderBy(message => message.OccurredAtUtc)
-            .Take(BatchSize)
-            .ToListAsync(cancellationToken);
-
-        foreach (OutboxMessage message in messages)
+        foreach (ClaimedOutboxMessage message in messages)
         {
-            try
-            {
-                await PublishMessageAsync(
-                    message,
-                    cancellationToken);
-
-                message.MarkPublished(
-                    timeProvider.GetUtcNow());
-            }
-            catch (Exception exception)
-            {
-                message.MarkFailed(exception.Message);
-
-                LogMessageFailed(
-                    logger,
-                    message.Id,
-                    message.EventId,
-                    exception);
-            }
-
-            await dbContext.SaveChangesAsync(
+            await ProcessMessageAsync(
+                message,
                 cancellationToken);
         }
 
         return messages.Count;
     }
 
+    private async Task ProcessMessageAsync(
+        ClaimedOutboxMessage message,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await PublishMessageAsync(
+                message,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            LogMessageFailed(
+                logger,
+                message.Id,
+                message.EventId,
+                exception);
+
+            try
+            {
+                bool markedFailed =
+                    await MarkFailedAsync(
+                        message.Id,
+                        exception.Message,
+                        cancellationToken);
+
+                if (!markedFailed)
+                {
+                    LogClaimLost(
+                        logger,
+                        message.Id,
+                        _workerId,
+                        null);
+                }
+            }
+            catch (Exception updateException)
+            {
+                LogStateUpdateFailed(
+                    logger,
+                    message.Id,
+                    updateException);
+
+                throw;
+            }
+
+            return;
+        }
+
+        try
+        {
+            bool markedPublished =
+                await MarkPublishedAsync(
+                    message.Id,
+                    timeProvider.GetUtcNow(),
+                    cancellationToken);
+
+            if (!markedPublished)
+            {
+                LogClaimLost(
+                    logger,
+                    message.Id,
+                    _workerId,
+                    null);
+            }
+        }
+        catch (Exception exception)
+        {
+            LogStateUpdateFailed(
+                logger,
+                message.Id,
+                exception);
+
+            throw;
+        }
+    }
+
+    private async Task<List<ClaimedOutboxMessage>>
+        ClaimBatchAsync(
+            CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope =
+            scopeFactory.CreateAsyncScope();
+
+        OrdersOutboxStore store =
+            scope.ServiceProvider
+                .GetRequiredService<OrdersOutboxStore>();
+
+        return await store.ClaimBatchAsync(
+            _workerId,
+            cancellationToken);
+    }
+
+    private async Task<bool> MarkPublishedAsync(
+        Guid messageId,
+        DateTimeOffset publishedAtUtc,
+        CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope =
+            scopeFactory.CreateAsyncScope();
+
+        OrdersOutboxStore store =
+            scope.ServiceProvider
+                .GetRequiredService<OrdersOutboxStore>();
+
+        return await store.MarkPublishedAsync(
+            messageId,
+            _workerId,
+            publishedAtUtc,
+            cancellationToken);
+    }
+
+    private async Task<bool> MarkFailedAsync(
+        Guid messageId,
+        string error,
+        CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope =
+            scopeFactory.CreateAsyncScope();
+
+        OrdersOutboxStore store =
+            scope.ServiceProvider
+                .GetRequiredService<OrdersOutboxStore>();
+
+        return await store.MarkFailedAsync(
+            messageId,
+            _workerId,
+            error,
+            cancellationToken);
+    }
+
     private Task PublishMessageAsync(
-        OutboxMessage message,
+        ClaimedOutboxMessage message,
         CancellationToken cancellationToken)
     {
         MessagePublishContext context = new(
@@ -125,41 +257,47 @@ public sealed class OrdersOutboxPublisherWorker(
         {
             RabbitMqRoutingKeys.OrderCreatedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<OrderCreatedV1>(message.Payload),
+                    Deserialize<OrderCreatedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             RabbitMqRoutingKeys.PaymentRequestedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<PaymentRequestedV1>(message.Payload),
+                    Deserialize<PaymentRequestedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             RabbitMqRoutingKeys.StockReleaseRequestedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<StockReleaseRequestedV1>(message.Payload),
+                    Deserialize<StockReleaseRequestedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             RabbitMqRoutingKeys.OrderConfirmedV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<OrderConfirmedV1>(message.Payload),
+                    Deserialize<OrderConfirmedV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             RabbitMqRoutingKeys.OrderCancelledV1 =>
                 eventPublisher.PublishAsync(
-                    Deserialize<OrderCancelledV1>(message.Payload),
+                    Deserialize<OrderCancelledV1>(
+                        message.Payload),
                     message.RoutingKey,
                     context,
                     cancellationToken),
 
             _ => throw new InvalidOperationException(
-                $"Unsupported orders outbox routing key '{message.RoutingKey}'.")
+                $"Unsupported orders outbox routing key " +
+                $"'{message.RoutingKey}'.")
         };
     }
 
@@ -167,9 +305,10 @@ public sealed class OrdersOutboxPublisherWorker(
         string payload)
     {
         return JsonSerializer.Deserialize<TEvent>(
-                   payload,
-                   SerializerOptions)
-               ?? throw new JsonException(
-                   $"Outbox payload could not be deserialized as '{typeof(TEvent).Name}'.");
+            payload,
+            SerializerOptions)
+            ?? throw new JsonException(
+                $"Outbox payload could not be deserialized " +
+                $"as '{typeof(TEvent).Name}'.");
     }
 }

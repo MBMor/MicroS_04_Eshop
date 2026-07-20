@@ -6,6 +6,7 @@ using InventoryService.Data;
 using InventoryService.Messaging;
 using InventoryService.Outbox;
 using Messaging.Shared;
+using Messaging.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
 
@@ -54,15 +55,49 @@ builder.Services.AddDbContext<InventoryDbContext>(
         options.UseNpgsql(inventoryConnectionString);
     });
 
+builder.Services
+    .AddOptions<OutboxProcessingOptions>()
+    .Bind(
+        builder.Configuration.GetSection(
+            OutboxProcessingOptions.SectionName))
+    .Validate(
+        options => options.BatchSize is >= 1 and <= 500,
+        "Outbox batch size must be between 1 and 500.")
+    .Validate(
+        options => options.PollingInterval
+            >= TimeSpan.FromMilliseconds(100),
+        "Outbox polling interval must be at least 100 milliseconds.")
+    .Validate(
+        options => options.ClaimTimeout
+            >= TimeSpan.FromSeconds(30),
+        "Outbox claim timeout must be at least 30 seconds.")
+    .Validate(
+        options => options.PublishedRetention
+            >= TimeSpan.FromHours(1),
+        "Outbox retention must be at least one hour.")
+    .Validate(
+        options => options.CleanupInterval
+            >= TimeSpan.FromMinutes(1),
+        "Outbox cleanup interval must be at least one minute.")
+    .Validate(
+        options => options.CleanupBatchSize
+            is >= 1 and <= 10_000,
+        "Outbox cleanup batch size must be between 1 and 10000.")
+    .ValidateOnStart();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<InventoryApplicationService>();
 builder.Services.AddEshopMessagingCore(builder.Configuration);
 
 builder.Services.AddSingleton<InventoryOutboxWriter>();
+
+builder.Services.AddScoped<InventoryOutboxStore>();
+
 builder.Services.AddScoped<OrderStockReservationService>();
 
 builder.Services.AddHostedService<OrderCreatedConsumerWorker>();
 builder.Services.AddHostedService<InventoryOutboxPublisherWorker>();
+builder.Services.AddHostedService<InventoryOutboxCleanupWorker>();
 
 builder.Services.AddScoped<OrderStockReleaseService>();
 builder.Services.AddHostedService<StockReleaseRequestedConsumerWorker>();
