@@ -84,6 +84,9 @@ public sealed class InventoryDbContext(
         inventoryItem.Property(entity => entity.UpdatedAtUtc)
             .HasColumnName("updated_at_utc");
 
+        inventoryItem.Property(entity => entity.Version)
+            .IsRowVersion();
+
         inventoryItem.Ignore(entity => entity.AvailableQuantity);
     }
 

@@ -22,6 +22,8 @@ public sealed class InventoryItem
 
     public DateTimeOffset? UpdatedAtUtc { get; private set; }
 
+    public uint Version { get; private set; }
+
     public int AvailableQuantity =>
         OnHandQuantity - ReservedQuantity;
 

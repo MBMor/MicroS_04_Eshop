@@ -305,6 +305,29 @@ public sealed class StockReleaseRequestedConsumerWorker(
                 multiple: false,
                 requeue: true);
         }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            outcome = "retry";
+            processingException = exception;
+
+            MessagingActivity.RecordFailure(
+                activity,
+                exception);
+
+            LogTransientFailure(
+                logger,
+                delivery.DeliveryTag,
+                exception);
+
+            RecordRetry(
+                delivery.RoutingKey,
+                exception);
+
+            await channel.BasicNackAsync(
+                delivery.DeliveryTag,
+                multiple: false,
+                requeue: true);
+        }
         catch (ArgumentException exception)
         {
             outcome = "dead_letter";
