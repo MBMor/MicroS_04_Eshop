@@ -180,6 +180,10 @@ namespace OrdersService.Data.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("last_error");
 
+                    b.Property<DateTimeOffset?>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at_utc");
+
                     b.Property<DateTimeOffset>("OccurredAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("occurred_at_utc");
@@ -225,6 +229,8 @@ namespace OrdersService.Data.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status", "ClaimedAtUtc");
+
+                    b.HasIndex("Status", "NextAttemptAtUtc");
 
                     b.HasIndex("Status", "OccurredAtUtc");
 

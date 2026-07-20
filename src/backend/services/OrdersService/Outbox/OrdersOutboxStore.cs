@@ -22,11 +22,11 @@ public sealed class OrdersOutboxStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workerId);
 
-        DateTimeOffset claimedAtUtc =
+        DateTimeOffset now =
             timeProvider.GetUtcNow();
 
         DateTimeOffset staleClaimThreshold =
-            claimedAtUtc - _options.ClaimTimeout;
+            now - _options.ClaimTimeout;
 
         string pendingStatus =
             OutboxMessageStatus.Pending.ToString();
@@ -47,9 +47,16 @@ public sealed class OrdersOutboxStore(
                     SELECT *
                     FROM outbox_messages
                     WHERE
-                        status IN (
-                            {pendingStatus},
-                            {failedStatus}
+                        status = {pendingStatus}
+                        OR
+                        (
+                            status = {failedStatus}
+                            AND retry_count < {_options.MaximumRetryCount}
+                            AND
+                            (
+                                next_attempt_at_utc IS NULL
+                                OR next_attempt_at_utc <= {now}
+                            )
                         )
                         OR
                         (
@@ -60,7 +67,15 @@ public sealed class OrdersOutboxStore(
                                 OR claimed_at_utc < {staleClaimThreshold}
                             )
                         )
-                    ORDER BY occurred_at_utc
+                    ORDER BY
+                        CASE
+                            WHEN status = {failedStatus}
+                                THEN COALESCE(
+                                    next_attempt_at_utc,
+                                    occurred_at_utc)
+                            ELSE occurred_at_utc
+                        END,
+                        occurred_at_utc
                     FOR UPDATE SKIP LOCKED
                     LIMIT {_options.BatchSize}
                     """)
@@ -74,7 +89,7 @@ public sealed class OrdersOutboxStore(
         {
             message.Claim(
                 workerId,
-                claimedAtUtc);
+                now);
 
             claimedMessages.Add(
                 new ClaimedOutboxMessage(
@@ -124,6 +139,9 @@ public sealed class OrdersOutboxStore(
                             message => message.LastError,
                             (string?)null)
                         .SetProperty(
+                            message => message.NextAttemptAtUtc,
+                            (DateTimeOffset?)null)
+                        .SetProperty(
                             message => message.ClaimedAtUtc,
                             (DateTimeOffset?)null)
                         .SetProperty(
@@ -145,24 +163,69 @@ public sealed class OrdersOutboxStore(
         string normalizedError =
             NormalizeError(error);
 
+        int? currentRetryCount =
+            await dbContext.OutboxMessages
+                .AsNoTracking()
+                .Where(message =>
+                    message.Id == messageId
+                    && message.Status
+                        == OutboxMessageStatus.Processing
+                    && message.ClaimedBy == workerId)
+                .Select(message =>
+                    (int?)message.RetryCount)
+                .SingleOrDefaultAsync(cancellationToken);
+
+        if (!currentRetryCount.HasValue)
+        {
+            return false;
+        }
+
+        int nextRetryCount =
+            checked(currentRetryCount.Value + 1);
+
+        bool retryLimitReached =
+            nextRetryCount
+            >= _options.MaximumRetryCount;
+
+        OutboxMessageStatus nextStatus =
+            retryLimitReached
+                ? OutboxMessageStatus.Dead
+                : OutboxMessageStatus.Failed;
+
+        DateTimeOffset? nextAttemptAtUtc =
+            retryLimitReached
+                ? null
+                : timeProvider.GetUtcNow()
+                  + OutboxRetryPolicy.CalculateDelay(
+                      _options,
+                      currentRetryCount.Value);
+
         int affectedRows =
             await dbContext.OutboxMessages
                 .Where(message =>
                     message.Id == messageId
                     && message.Status
                         == OutboxMessageStatus.Processing
-                    && message.ClaimedBy == workerId)
+                    && message.ClaimedBy == workerId
+                    && message.RetryCount
+                        == currentRetryCount.Value)
                 .ExecuteUpdateAsync(
                     setters => setters
                         .SetProperty(
                             message => message.Status,
-                            OutboxMessageStatus.Failed)
+                            nextStatus)
                         .SetProperty(
                             message => message.RetryCount,
-                            message => message.RetryCount + 1)
+                            nextRetryCount)
                         .SetProperty(
                             message => message.LastError,
                             normalizedError)
+                        .SetProperty(
+                            message => message.PublishedAtUtc,
+                            (DateTimeOffset?)null)
+                        .SetProperty(
+                            message => message.NextAttemptAtUtc,
+                            nextAttemptAtUtc)
                         .SetProperty(
                             message => message.ClaimedAtUtc,
                             (DateTimeOffset?)null)
@@ -182,8 +245,9 @@ public sealed class OrdersOutboxStore(
                 ? "Unknown outbox publishing error."
                 : error.Trim();
 
-        return normalizedError.Length <= MaximumErrorLength
-            ? normalizedError
-            : normalizedError[..MaximumErrorLength];
+        return normalizedError.Length
+            <= MaximumErrorLength
+                ? normalizedError
+                : normalizedError[..MaximumErrorLength];
     }
 }

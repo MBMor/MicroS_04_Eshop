@@ -142,6 +142,8 @@ public sealed class PaymentsDbContext(
         message.Property(entity => entity.LastError).HasColumnName("last_error").HasMaxLength(4_000);
         message.Property(entity => entity.PublishedAtUtc).HasColumnName("published_at_utc");
 
+        message.Property(entity => entity.NextAttemptAtUtc).HasColumnName("next_attempt_at_utc");
+
         message.Property(entity => entity.ClaimedAtUtc).HasColumnName("claimed_at_utc");
 
         message.Property(entity => entity.ClaimedBy).HasColumnName("claimed_by").HasMaxLength(200);
@@ -151,6 +153,8 @@ public sealed class PaymentsDbContext(
         message.HasIndex(entity => new { entity.Status, entity.OccurredAtUtc });
 
         message.HasIndex(entity => new { entity.Status, entity.ClaimedAtUtc });
+
+        message.HasIndex(entity => new{entity.Status, entity.NextAttemptAtUtc});
 
         message.HasIndex(entity => new { entity.Status, entity.PublishedAtUtc });
     }

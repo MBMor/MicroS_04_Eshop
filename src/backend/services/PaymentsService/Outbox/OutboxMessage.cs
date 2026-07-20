@@ -32,6 +32,8 @@ public sealed class OutboxMessage
 
     public DateTimeOffset? PublishedAtUtc { get; private set; }
 
+    public DateTimeOffset? NextAttemptAtUtc { get; private set; }
+
     public DateTimeOffset? ClaimedAtUtc { get; private set; }
 
     public string? ClaimedBy { get; private set; }
@@ -93,6 +95,7 @@ public sealed class OutboxMessage
         Status = OutboxMessageStatus.Processing;
         ClaimedBy = workerId;
         ClaimedAtUtc = claimedAtUtc;
+        NextAttemptAtUtc = null;
     }
 
     public void MarkPublished(
@@ -101,20 +104,41 @@ public sealed class OutboxMessage
         Status = OutboxMessageStatus.Published;
         PublishedAtUtc = publishedAtUtc;
         LastError = null;
+        NextAttemptAtUtc = null;
         ClaimedAtUtc = null;
         ClaimedBy = null;
     }
 
     public void MarkFailed(
-        string error)
+        string error,
+        DateTimeOffset failedAtUtc,
+        int maximumRetryCount,
+        TimeSpan retryDelay)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(error);
 
-        Status = OutboxMessageStatus.Failed;
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumRetryCount, 1);
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(retryDelay, TimeSpan.Zero);
+
+        int nextRetryCount =
+            checked(RetryCount + 1);
+
+        RetryCount = nextRetryCount;
         LastError = error;
-        RetryCount++;
         ClaimedAtUtc = null;
         ClaimedBy = null;
+
+        if (nextRetryCount >= maximumRetryCount)
+        {
+            Status = OutboxMessageStatus.Dead;
+            NextAttemptAtUtc = null;
+            return;
+        }
+
+        Status = OutboxMessageStatus.Failed;
+        NextAttemptAtUtc =
+            failedAtUtc + retryDelay;
     }
 
     private static string Required(

@@ -72,6 +72,18 @@ builder.Services
             >= TimeSpan.FromSeconds(30),
         "Outbox claim timeout must be at least 30 seconds.")
     .Validate(
+        options => options.MaximumRetryCount
+            is >= 1 and <= 100,
+        "Outbox maximum retry count must be between 1 and 100.")
+    .Validate(
+        options => options.InitialRetryDelay
+            >= TimeSpan.FromMilliseconds(100),
+        "Outbox initial retry delay must be at least 100 milliseconds.")
+    .Validate(
+        options => options.MaximumRetryDelay
+            >= options.InitialRetryDelay,
+        "Outbox maximum retry delay must be greater than or equal to the initial retry delay.")
+    .Validate(
         options => options.PublishedRetention
             >= TimeSpan.FromHours(1),
         "Outbox retention must be at least one hour.")
