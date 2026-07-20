@@ -117,6 +117,7 @@ public sealed class OrderApplicationService(
         return dbContext.Orders
             .AsNoTracking()
             .Include(order => order.Items)
+            .Include(order => order.StatusHistory)
             .FirstOrDefaultAsync(
                 order =>
                     order.Id == orderId

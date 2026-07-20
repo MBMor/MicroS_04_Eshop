@@ -12,7 +12,7 @@ public sealed class OrdersDbContext(
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
-
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
@@ -20,6 +20,7 @@ public sealed class OrdersDbContext(
     {
         ConfigureOrder(modelBuilder.Entity<Order>());
         ConfigureOrderItem(modelBuilder.Entity<OrderItem>());
+        ConfigureOrderStatusHistory(modelBuilder.Entity<OrderStatusHistory>());
         ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
         ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
     }
@@ -84,6 +85,11 @@ public sealed class OrdersDbContext(
             .HasForeignKey(item => item.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        order.HasMany(entity => entity.StatusHistory)
+            .WithOne()
+            .HasForeignKey(history => history.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         order.Navigation(entity => entity.Items)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
@@ -129,6 +135,49 @@ public sealed class OrdersDbContext(
             .IsRequired();
 
         item.Ignore(entity => entity.LineTotal);
+    }
+
+    private static void ConfigureOrderStatusHistory(
+    EntityTypeBuilder<OrderStatusHistory> history)
+    {
+        history.ToTable("order_status_history");
+
+        history.HasKey(entity => entity.Id);
+
+        history.Property(entity => entity.Id)
+            .HasColumnName("id")
+            .ValueGeneratedNever();
+
+        history.Property(entity => entity.OrderId)
+            .HasColumnName("order_id")
+            .IsRequired();
+
+        history.Property(entity => entity.FromStatus)
+            .HasColumnName("from_status")
+            .HasConversion<string>()
+            .HasMaxLength(64);
+
+        history.Property(entity => entity.ToStatus)
+            .HasColumnName("to_status")
+            .HasConversion<string>()
+            .HasMaxLength(64)
+            .IsRequired();
+
+        history.Property(entity => entity.Reason)
+            .HasColumnName("reason")
+            .HasMaxLength(
+                OrderStatusHistory.MaximumReasonLength)
+            .IsRequired();
+
+        history.Property(entity => entity.ChangedAtUtc)
+            .HasColumnName("changed_at_utc")
+            .IsRequired();
+
+        history.HasIndex(entity => new
+        {
+            entity.OrderId,
+            entity.ChangedAtUtc
+        });
     }
 
     private static void ConfigureOutboxMessage(EntityTypeBuilder<OutboxMessage> message)

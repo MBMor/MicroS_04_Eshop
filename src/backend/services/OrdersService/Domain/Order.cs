@@ -3,6 +3,7 @@ namespace OrdersService.Domain;
 public sealed class Order
 {
     private readonly List<OrderItem> _items = [];
+    private readonly List<OrderStatusHistory> _statusHistory = [];
 
     private Order()
     {
@@ -27,6 +28,8 @@ public sealed class Order
     public DateTimeOffset? UpdatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<OrderItem> Items => _items;
+
+    public IReadOnlyCollection<OrderStatusHistory> StatusHistory => _statusHistory;
 
     public static Order Create(
         Guid id,
@@ -118,53 +121,66 @@ public sealed class Order
 
         order._items.AddRange(orderItems);
 
+        order._statusHistory.Add(
+            OrderStatusHistory.Create(
+                Guid.NewGuid(),
+                order.Id,
+                fromStatus: null,
+                OrderStatus.PendingStockReservation,
+                "Order created and awaiting stock reservation.",
+                createdAtUtc));
+
         return order;
     }
 
-    public void MarkStockReserved(DateTimeOffset updatedAtUtc)
+    public void MarkStockReserved(
+        DateTimeOffset updatedAtUtc)
     {
-        if (Status != OrderStatus.PendingStockReservation)
-        {
-            throw new InvalidOperationException(
-                $"Order in status '{Status}' cannot accept a stock reservation.");
-        }
-
-        Status = OrderStatus.PendingPayment;
-        UpdatedAtUtc = updatedAtUtc;
+        Transition(
+            OrderStatus.PendingStockReservation,
+            OrderStatus.PendingPayment,
+            "Stock reserved; order is awaiting payment.",
+            updatedAtUtc);
     }
 
-    public void MarkStockReservationFailed(string reason, DateTimeOffset updatedAtUtc)
+    public void MarkStockReservationFailed(
+        string reason,
+        DateTimeOffset updatedAtUtc)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-
-        if (Status != OrderStatus.PendingStockReservation)
-        {
-            throw new InvalidOperationException(
-                $"Order in status '{Status}' cannot accept a failed stock reservation.");
-        }
-
-        Status = OrderStatus.StockReservationFailed;
-        UpdatedAtUtc = updatedAtUtc;
+        Transition(
+            OrderStatus.PendingStockReservation,
+            OrderStatus.StockReservationFailed,
+            reason,
+            updatedAtUtc);
     }
 
-    public void MarkPaymentAuthorized(DateTimeOffset updatedAtUtc)
+    public void MarkPaymentAuthorized(
+        DateTimeOffset updatedAtUtc)
     {
         Transition(
             OrderStatus.PendingPayment,
             OrderStatus.Confirmed,
+            "Payment authorized.",
             updatedAtUtc);
     }
 
-    public void MarkPaymentFailed(DateTimeOffset updatedAtUtc)
+    public void MarkPaymentFailed(
+        string reason,
+        DateTimeOffset updatedAtUtc)
     {
         Transition(
             OrderStatus.PendingPayment,
             OrderStatus.PaymentFailed,
+            reason,
             updatedAtUtc);
     }
 
-    public void Cancel(DateTimeOffset updatedAtUtc)
+    public void Cancel(
+        string reason,
+        DateTimeOffset updatedAtUtc)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
         if (Status is not (
             OrderStatus.PendingStockReservation
             or OrderStatus.PendingPayment
@@ -174,22 +190,51 @@ public sealed class Order
                 $"Order in status '{Status}' cannot be cancelled.");
         }
 
-        Status = OrderStatus.Cancelled;
-        UpdatedAtUtc = updatedAtUtc;
+        ApplyTransition(
+            OrderStatus.Cancelled,
+            reason,
+            updatedAtUtc);
     }
 
     private void Transition(
         OrderStatus expectedStatus,
         OrderStatus newStatus,
+        string reason,
         DateTimeOffset updatedAtUtc)
     {
         if (Status != expectedStatus)
         {
             throw new InvalidOperationException(
-                $"Order status transition from '{Status}' to '{newStatus}' is not allowed.");
+                $"Order status transition from '{Status}' " +
+                $"to '{newStatus}' is not allowed.");
         }
+
+        ApplyTransition(
+            newStatus,
+            reason,
+            updatedAtUtc);
+    }
+
+    private void ApplyTransition(
+        OrderStatus newStatus,
+        string reason,
+        DateTimeOffset updatedAtUtc)
+    {
+        OrderStatus previousStatus =
+            Status;
+
+        OrderStatusHistory historyEntry =
+            OrderStatusHistory.Create(
+                Guid.NewGuid(),
+                Id,
+                previousStatus,
+                newStatus,
+                reason,
+                updatedAtUtc);
 
         Status = newStatus;
         UpdatedAtUtc = updatedAtUtc;
+
+        _statusHistory.Add(historyEntry);
     }
 }

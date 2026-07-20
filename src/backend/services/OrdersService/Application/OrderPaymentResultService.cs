@@ -93,7 +93,7 @@ public sealed class OrderPaymentResultService(
 
         DateTimeOffset now = timeProvider.GetUtcNow();
 
-        order.MarkPaymentFailed(now);
+        order.MarkPaymentFailed(integrationEvent.Reason, now);
 
         StockReleaseRequestedV1 stockReleaseRequested = new(
             EventId: Guid.NewGuid(),
@@ -147,9 +147,15 @@ public sealed class OrderPaymentResultService(
             ?? throw new InvalidOperationException(
                 $"Order '{integrationEvent.OrderId}' does not exist.");
 
-        DateTimeOffset now = timeProvider.GetUtcNow();
+        DateTimeOffset now =
+            timeProvider.GetUtcNow();
 
-        order.Cancel(now);
+        const string cancellationReason =
+            "Payment failed and reserved stock was released.";
+
+        order.Cancel(
+            cancellationReason,
+            now);
 
         OrderCancelledV1 orderCancelled = new(
             EventId: Guid.NewGuid(),
@@ -157,7 +163,7 @@ public sealed class OrderPaymentResultService(
             CorrelationId: integrationEvent.CorrelationId,
             OrderId: order.Id,
             CustomerId: order.CustomerId,
-            Reason: "Payment failed and reserved stock was released.");
+            Reason: cancellationReason);
 
         dbContext.OutboxMessages.Add(
             outboxWriter.Create(
