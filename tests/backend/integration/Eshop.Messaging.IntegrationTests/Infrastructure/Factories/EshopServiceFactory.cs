@@ -111,6 +111,15 @@ public abstract class EshopServiceFactory<TEntryPoint>(
             ["RabbitMq:ConsumerDeliveryLimit"] =
                 "3",
 
+            ["RabbitMq:NetworkRecoveryIntervalSeconds"] =
+                "1",
+
+            ["RabbitMq:RequestedConnectionTimeoutSeconds"] =
+                "2",
+
+            ["RabbitMq:PublishTimeoutSeconds"] =
+                "3",
+
             ["Outbox:BatchSize"] =
                 "10",
 

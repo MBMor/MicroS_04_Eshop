@@ -45,6 +45,18 @@ public static class MessagingServiceCollectionExtensions
                 options =>
                     options.ConsumerDeliveryLimit is >= 1 and <= 20,
                 "RabbitMQ consumer delivery limit must be between 1 and 20.")
+            .Validate(
+                options =>
+                    options.NetworkRecoveryIntervalSeconds > 0,
+                "RabbitMQ network recovery interval must be greater than zero.")
+            .Validate(
+                options =>
+                    options.RequestedConnectionTimeoutSeconds > 0,
+                "RabbitMQ requested connection timeout must be greater than zero.")
+            .Validate(
+                options =>
+                    options.PublishTimeoutSeconds > 0,
+                "RabbitMQ publish timeout must be greater than zero.")
             .ValidateOnStart();
 
         services.AddSingleton<IMessageSerializer, SystemTextJsonMessageSerializer>();

@@ -16,8 +16,11 @@ namespace Eshop.Messaging.IntegrationTests.Infrastructure;
 
 public static class MessagingTestReset
 {
+    // Must be longer than the test Outbox:ClaimTimeout of 30 seconds.
+    // After failure cleanup, a restarted worker may need to reclaim
+    // an orphaned Processing message before the fixture can be reset.
     private static readonly TimeSpan ResetTimeout =
-        TimeSpan.FromSeconds(15);
+        TimeSpan.FromSeconds(45);
 
     private static readonly TimeSpan StabilityInterval =
         TimeSpan.FromMilliseconds(300);

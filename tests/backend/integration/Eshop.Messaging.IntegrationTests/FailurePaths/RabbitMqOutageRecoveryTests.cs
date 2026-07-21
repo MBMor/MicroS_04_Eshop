@@ -28,6 +28,7 @@ public sealed class RabbitMqOutageRecoveryTests(
     private static readonly TimeSpan ScenarioTimeout =
         TimeSpan.FromSeconds(60);
 
+
     [Fact]
     public async Task OrdersOutbox_RabbitMqOutage_RetriesAndPublishesAfterRecovery()
     {
@@ -36,6 +37,9 @@ public sealed class RabbitMqOutageRecoveryTests(
 
         const int orderedQuantity = 2;
         const decimal unitPrice = 49.90m;
+
+        var rabbitMqIsRunning = true;
+        var serviceHostsWereRestarted = false;
 
         Fixture.OrdersFactory.BasketClient.SetBasket(
             CustomerId,
@@ -52,8 +56,8 @@ public sealed class RabbitMqOutageRecoveryTests(
                     unitPrice * orderedQuantity)
             ]));
 
-        bool rabbitMqIsRunning = true;
-        bool serviceHostsWereRestarted = false;
+        rabbitMqIsRunning = true;
+
 
         try
         {
@@ -104,24 +108,20 @@ public sealed class RabbitMqOutageRecoveryTests(
                 retrySnapshot.Status);
 
             await Fixture.StartRabbitMqAsync();
-
             rabbitMqIsRunning = true;
 
-            // The previous publisher may be blocked inside
-            // a publisher-confirm operation on the original connection.
-            // Restarting the service hosts creates a new connection provider
-            // and a new outbox worker.
+            // RabbitMQ.Client 7.2.1 can leave an in-flight publisher-confirm
+            // operation blocked after the broker connection is interrupted.
+            // Recreating the service hosts replaces the affected connection,
+            // publisher and outbox worker.
             await Fixture.RestartServiceHostsAsync(
                 CancellationToken.None);
 
             serviceHostsWereRestarted = true;
 
-            // After the original worker was stopped, the message may
-            // have remained in the Processing state. The new worker
-            // will claim it after Outbox:ClaimTimeout expires.
-
             await AssertOutboxMessageWasPublishedAsync(
                 retrySnapshot.Id);
+
         }
         finally
         {
@@ -129,8 +129,13 @@ public sealed class RabbitMqOutageRecoveryTests(
             {
                 await Fixture.StartRabbitMqAsync(
                     CancellationToken.None);
+
+                rabbitMqIsRunning = true;
             }
 
+            // Cleanup after an assertion or infrastructure failure.
+            // This prevents a blocked publisher from contaminating
+            // the shared fixture used by subsequent tests.
             if (!serviceHostsWereRestarted)
             {
                 await Fixture.RestartServiceHostsAsync(

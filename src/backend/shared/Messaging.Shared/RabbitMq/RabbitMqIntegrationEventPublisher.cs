@@ -6,15 +6,18 @@ using Messaging.Shared.Abstractions;
 using Messaging.Shared.Contracts;
 using Messaging.Shared.Serialization;
 using Messaging.Shared.Telemetry;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
 namespace Messaging.Shared.RabbitMq;
 
 public sealed class RabbitMqIntegrationEventPublisher(
     IRabbitMqConnectionProvider connectionProvider,
-    IMessageSerializer serializer)
+    IMessageSerializer serializer,
+    IOptions<RabbitMqOptions> options)
     : IIntegrationEventPublisher
 {
+    private readonly RabbitMqOptions _options = options.Value;
     public async Task PublishAsync<TEvent>(
         TEvent integrationEvent,
         string routingKey,
@@ -25,6 +28,16 @@ public sealed class RabbitMqIntegrationEventPublisher(
         ArgumentNullException.ThrowIfNull(integrationEvent);
         ArgumentNullException.ThrowIfNull(publishContext);
         ArgumentException.ThrowIfNullOrWhiteSpace(routingKey);
+
+        using CancellationTokenSource publishTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken);
+
+        publishTimeout.CancelAfter(
+            TimeSpan.FromSeconds(
+                _options.PublishTimeoutSeconds));
+
+        CancellationToken publishToken =
+            publishTimeout.Token;
 
         long startedTimestamp = Stopwatch.GetTimestamp();
 
@@ -56,7 +69,7 @@ public sealed class RabbitMqIntegrationEventPublisher(
         {
             IConnection connection =
                 await connectionProvider.GetConnectionAsync(
-                    cancellationToken);
+                    publishToken);
 
             CreateChannelOptions channelOptions = new(
                 publisherConfirmationsEnabled: true,
@@ -65,7 +78,7 @@ public sealed class RabbitMqIntegrationEventPublisher(
             await using IChannel channel =
                 await connection.CreateChannelAsync(
                     channelOptions,
-                    cancellationToken);
+                    publishToken);
 
             MessageEnvelope<TEvent> envelope = new(
                 integrationEvent.EventId,
@@ -116,7 +129,7 @@ public sealed class RabbitMqIntegrationEventPublisher(
                 mandatory: true,
                 basicProperties: properties,
                 body: body,
-                cancellationToken: cancellationToken);
+                cancellationToken: publishToken);
 
             MessagingTelemetry.PublishedMessages.Add(
                 1,

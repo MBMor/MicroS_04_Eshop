@@ -2,25 +2,45 @@ namespace Messaging.Shared.RabbitMq;
 
 public sealed class RabbitMqOptions
 {
-    public const string SectionName = "RabbitMq";
+    public const string SectionName =
+        "RabbitMq";
 
-    public string HostName { get; set; } = "localhost";
+    public string HostName { get; set; } =
+        "localhost";
 
-    public int Port { get; set; } = 5672;
+    public int Port { get; set; } =
+        5672;
 
-    public string UserName { get; set; } = "eshop";
+    public string UserName { get; set; } =
+        "eshop";
 
-    public string Password { get; set; } = "eshop_password";
+    public string Password { get; set; } =
+        "eshop_password";
 
-    public string VirtualHost { get; set; } = "/";
+    public string VirtualHost { get; set; } =
+        "/";
 
-    public string ClientProvidedName { get; set; } = "eshop-service";
+    public string ClientProvidedName { get; set; } =
+        "eshop-service";
 
-    public ushort RequestedHeartbeatSeconds { get; set; } = 30;
+    public ushort RequestedHeartbeatSeconds { get; set; } =
+        30;
 
-    public bool AutomaticRecoveryEnabled { get; set; } = true;
+    public bool AutomaticRecoveryEnabled { get; set; } =
+        true;
 
-    public bool TopologyRecoveryEnabled { get; set; } = true;
+    public bool TopologyRecoveryEnabled { get; set; } =
+        true;
 
-    public int ConsumerDeliveryLimit { get; set; } = 3;
+    public int NetworkRecoveryIntervalSeconds { get; set; } =
+        5;
+
+    public int RequestedConnectionTimeoutSeconds { get; set; } =
+        10;
+
+    public int PublishTimeoutSeconds { get; set; } =
+        10;
+
+    public int ConsumerDeliveryLimit { get; set; } =
+        3;
 }
