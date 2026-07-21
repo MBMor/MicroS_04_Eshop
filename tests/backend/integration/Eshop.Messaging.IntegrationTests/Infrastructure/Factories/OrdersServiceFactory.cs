@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OrdersService;
+using OrdersService.Application;
 using OrdersService.Data;
-using OrdersService.Integration;
 using OrdersService.Identity;
+using OrdersService.Integration;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
@@ -22,6 +23,9 @@ public sealed class OrdersServiceFactory(
         suppressHostedServices)
 {
     public TestBasketClient BasketClient { get; } =
+        new();
+
+    public TransientConsumerFailureState TransientConsumerFailures { get; } =
         new();
 
     protected override void AddServiceSettings(
@@ -54,6 +58,15 @@ public sealed class OrdersServiceFactory(
         services.AddSingleton<
             IOrderOwnerProvider,
             TestOrderOwnerProvider>();
+
+        services.RemoveAll<IOrderStockResultService>();
+
+        services.AddSingleton(
+            TransientConsumerFailures);
+
+        services.AddScoped<
+            IOrderStockResultService,
+            TransientFailureOrderStockResultService>();
     }
 
     private void ReplaceDbContext(

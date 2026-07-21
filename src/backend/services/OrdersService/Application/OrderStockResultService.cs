@@ -12,6 +12,7 @@ public sealed class OrderStockResultService(
     OrdersDbContext dbContext,
     OrdersOutboxWriter outboxWriter,
     TimeProvider timeProvider)
+    : IOrderStockResultService
 {
     public async Task ApplyStockReservedAsync(
         StockReservedV1 integrationEvent,

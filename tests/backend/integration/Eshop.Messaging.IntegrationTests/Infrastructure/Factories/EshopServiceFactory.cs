@@ -121,7 +121,7 @@ public abstract class EshopServiceFactory<TEntryPoint>(
                 "00:00:30",
 
             ["Outbox:MaximumRetryCount"] =
-                "3",
+                "50",
 
             ["Outbox:InitialRetryDelay"] =
                 "00:00:00.100",

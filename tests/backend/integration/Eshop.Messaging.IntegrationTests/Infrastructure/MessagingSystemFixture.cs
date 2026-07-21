@@ -118,10 +118,41 @@ public sealed class MessagingSystemFixture :
             "Notifications service factory has not been initialized.");
 
     public Task ResetAsync(
-    CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         return MessagingTestReset.ResetAsync(
             this,
+            cancellationToken);
+    }
+
+    public Task StopRabbitMqAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _rabbitMqContainer.StopAsync(
+            cancellationToken);
+    }
+
+    public async Task StartRabbitMqAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _rabbitMqContainer.StartAsync(
+            cancellationToken);
+
+        await RabbitMqTestTopology.DeclareAsync(
+            this,
+            cancellationToken);
+    }
+
+    public async Task RestartServiceHostsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        DisposeServiceFactories();
+
+        CreateServiceFactories();
+
+        StartServiceHosts();
+
+        await WaitForConsumersAsync(
             cancellationToken);
     }
 
@@ -212,7 +243,6 @@ public sealed class MessagingSystemFixture :
 
     private void StartServiceHosts()
     {
-        // Přístup k Services sestaví a spustí testovací host.
         _ = OrdersFactory.Services;
         _ = InventoryFactory.Services;
         _ = PaymentsFactory.Services;

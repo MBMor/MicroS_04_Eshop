@@ -188,10 +188,10 @@ public sealed class StockReservationFailedConsumerWorker(
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();
 
-            OrderStockResultService service =
+            IOrderStockResultService service =
                 scope.ServiceProvider
                     .GetRequiredService<
-                        OrderStockResultService>();
+                        IOrderStockResultService>();
 
             await service.ApplyStockReservationFailedAsync(
                 envelope.Payload,

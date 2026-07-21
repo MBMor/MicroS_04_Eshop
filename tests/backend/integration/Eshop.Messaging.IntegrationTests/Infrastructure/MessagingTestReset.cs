@@ -38,6 +38,8 @@ public static class MessagingTestReset
 
         fixture.OrdersFactory.BasketClient.Reset();
 
+        fixture.OrdersFactory.TransientConsumerFailures.Reset();
+
         await rabbitMqAdmin.PurgeAllAsync(
             cancellationToken);
 

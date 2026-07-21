@@ -130,6 +130,11 @@ builder.Services.AddScoped<OrdersOutboxStore>();
 
 builder.Services.AddScoped<OrderStockResultService>();
 
+builder.Services.AddScoped<IOrderStockResultService>(
+    serviceProvider =>
+        serviceProvider.GetRequiredService<
+            OrderStockResultService>());
+
 builder.Services.AddHostedService<OrdersOutboxPublisherWorker>();
 builder.Services.AddHostedService<OrdersOutboxCleanupWorker>();
 builder.Services.AddHostedService<StockReservedConsumerWorker>();

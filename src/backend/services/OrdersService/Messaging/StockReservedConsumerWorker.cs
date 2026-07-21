@@ -188,10 +188,10 @@ public sealed class StockReservedConsumerWorker(
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();
 
-            OrderStockResultService service =
+            IOrderStockResultService service =
                 scope.ServiceProvider
                     .GetRequiredService<
-                        OrderStockResultService>();
+                        IOrderStockResultService>();
 
             await service.ApplyStockReservedAsync(
                 envelope.Payload,
