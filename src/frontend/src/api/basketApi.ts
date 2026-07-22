@@ -1,15 +1,9 @@
-import { apiRequest } from './apiClient';
 import type { Basket } from '../types/basket';
-
-const basketRequestOptions = {
-    includeDevelopmentCustomerId: true,
-} as const;
+import { apiRequest } from './apiClient';
 
 export function getBasket(): Promise<Basket> {
     return apiRequest<Basket>(
         '/api/v1/basket',
-        {},
-        basketRequestOptions,
     );
 }
 
@@ -29,7 +23,6 @@ export function addBasketItem(
                 quantity,
             }),
         },
-        basketRequestOptions,
     );
 }
 
@@ -48,7 +41,6 @@ export function updateBasketItem(
                 quantity,
             }),
         },
-        basketRequestOptions,
     );
 }
 
@@ -60,7 +52,6 @@ export function removeBasketItem(
         {
             method: 'DELETE',
         },
-        basketRequestOptions,
     );
 }
 
@@ -70,6 +61,5 @@ export function clearBasket(): Promise<void> {
         {
             method: 'DELETE',
         },
-        basketRequestOptions,
     );
 }

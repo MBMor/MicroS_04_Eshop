@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
+import { useAuth } from '../auth/useAuth';
+import { eshopRoles } from '../auth/roles';
+
 import { addBasketItem } from '../api/basketApi';
 import { getProducts } from '../api/productsApi';
 import type { Product } from '../types/product';
 
 export function ProductCatalogPage() {
+  const {
+    isAuthenticated,
+    hasRole,
+    login,
+  } = useAuth();
+
+  const hasCustomerRole =
+    hasRole(eshopRoles.customer);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingProductId, setPendingProductId] =
@@ -62,12 +73,26 @@ export function ProductCatalogPage() {
         };
     }, []);
 
-  async function handleAddToBasket(product: Product) {
-    setPendingProductId(product.id);
-    setErrorMessage(null);
-    setSuccessMessage(null);
+    async function handleAddToBasket(product: Product) {
+        setErrorMessage(null);
+        setSuccessMessage(null);
 
-    try {
+        if (!isAuthenticated) {
+            await login();
+            return;
+        }
+
+        if (!hasCustomerRole) {
+            setErrorMessage(
+                'A customer account is required to use the basket.',
+            );
+
+            return;
+        }
+
+        setPendingProductId(product.id);
+
+        try {
       await addBasketItem(product.id, 1);
       setSuccessMessage(`${product.name} was added to the basket.`);
     } catch (error) {
@@ -162,17 +187,25 @@ export function ProductCatalogPage() {
                 <button
                   className="primary-button"
                   type="button"
-                  disabled={
-                    !product.isActive
-                    || pendingProductId === product.id
-                  }
+                    disabled={
+                      !product.isActive
+                      || pendingProductId === product.id
+                      || (
+                        isAuthenticated
+                        && !hasCustomerRole
+                      )
+                    }
                   onClick={() => {
                     void handleAddToBasket(product);
                   }}
                 >
                   {pendingProductId === product.id
-                    ? 'Adding…'
-                    : 'Add to basket'}
+                      ? 'Adding…'
+                      : !isAuthenticated
+                        ? 'Sign in to add'
+                        : !hasCustomerRole
+                          ? 'Customer role required'
+                          : 'Add to basket'}
                 </button>
               </div>
             </article>

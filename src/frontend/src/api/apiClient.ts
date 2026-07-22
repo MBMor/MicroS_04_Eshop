@@ -1,18 +1,18 @@
-import { apiConfig, buildApiUrl } from '../config/apiConfig';
+import { getValidAccessToken } from '../auth/keycloakClient';
+import { buildApiUrl } from '../config/apiConfig';
 
 type ProblemDetails = {
     title?: string;
     detail?: string;
 };
 
-type ApiRequestOptions = {
-    includeDevelopmentCustomerId?: boolean;
-};
-
 export class ApiError extends Error {
     public readonly status: number;
 
-    public constructor(message: string, status: number) {
+    public constructor(
+        message: string,
+        status: number,
+    ) {
         super(message);
         this.name = 'ApiError';
         this.status = status;
@@ -22,26 +22,27 @@ export class ApiError extends Error {
 export async function apiRequest<T>(
     path: string,
     requestInit: RequestInit = {},
-    options: ApiRequestOptions = {},
 ): Promise<T> {
     const headers = new Headers(requestInit.headers);
 
     headers.set('Accept', 'application/json');
 
-    if (
-        options.includeDevelopmentCustomerId
-        && apiConfig.developmentCustomerId
-    ) {
+    const accessToken = await getValidAccessToken();
+
+    if (accessToken) {
         headers.set(
-            'X-Customer-Id',
-            apiConfig.developmentCustomerId,
+            'Authorization',
+            `Bearer ${accessToken}`,
         );
     }
 
-    const response = await fetch(buildApiUrl(path), {
-        ...requestInit,
-        headers,
-    });
+    const response = await fetch(
+        buildApiUrl(path),
+        {
+            ...requestInit,
+            headers,
+        },
+    );
 
     if (!response.ok) {
         throw new ApiError(
@@ -60,10 +61,12 @@ export async function apiRequest<T>(
 async function readErrorMessage(
     response: Response,
 ): Promise<string> {
-    const fallbackMessage = `API request failed with status ${response.status}.`;
+    const fallbackMessage =
+        getStatusFallbackMessage(response.status);
 
     try {
-        const problem = await response.json() as ProblemDetails;
+        const problem =
+            await response.json() as ProblemDetails;
 
         return problem.detail
             ?? problem.title
@@ -71,4 +74,18 @@ async function readErrorMessage(
     } catch {
         return fallbackMessage;
     }
+}
+
+function getStatusFallbackMessage(
+    status: number,
+): string {
+    if (status === 401) {
+        return 'Authentication is required or the session expired.';
+    }
+
+    if (status === 403) {
+        return 'You do not have permission to perform this operation.';
+    }
+
+    return `API request failed with status ${status}.`;
 }

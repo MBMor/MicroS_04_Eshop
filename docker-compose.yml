@@ -137,7 +137,9 @@ services:
     environment:
       VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
       VITE_DEV_PROXY_TARGET: ${VITE_DEV_PROXY_TARGET:-http://host.docker.internal:5080}
-      VITE_DEVELOPMENT_CUSTOMER_ID: ${VITE_DEVELOPMENT_CUSTOMER_ID:-local-development-user}
+      VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-http://localhost:18080}
+      VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-eshop}
+      VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-eshop-frontend}
     ports:
       - "${REACT_FRONTEND_HTTP_PORT:-5173}:5173"
     volumes:
