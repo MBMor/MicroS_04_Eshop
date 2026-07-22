@@ -128,7 +128,7 @@ public sealed class NotificationsController(
         return CreateProblem(
             StatusCodes.Status401Unauthorized,
             "Notification owner could not be resolved.",
-            "Authentication or a development customer header is required.");
+            "A valid authenticated subject claim is required.");
     }
 
     private static ProblemDetails CreateProblem(

@@ -20,6 +20,11 @@
     <ProjectReference Include="..\..\shared\Observability.Shared\Observability.Shared.csproj" />
     <ProjectReference Include="..\..\shared\OpenApi.Shared\OpenApi.Shared.csproj" />
     <ProjectReference Include="..\..\shared\Eshop.Contracts\Eshop.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\Security.Shared\Security.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Options\" />
   </ItemGroup>
 
 </Project>

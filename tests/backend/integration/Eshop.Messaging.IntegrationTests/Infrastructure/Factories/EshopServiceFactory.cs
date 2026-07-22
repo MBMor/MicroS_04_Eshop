@@ -6,6 +6,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Eshop.Messaging.IntegrationTests.Infrastructure.Fakes;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
@@ -33,6 +35,24 @@ public abstract class EshopServiceFactory<TEntryPoint>(
     private readonly bool _suppressHostedServices =
         suppressHostedServices;
 
+    protected override IHost CreateHost(
+    IHostBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        Dictionary<string, string?> settings =
+            CreateConfiguredSettings();
+
+        builder.ConfigureHostConfiguration(
+            configurationBuilder =>
+            {
+                configurationBuilder.AddInMemoryCollection(
+                    settings);
+            });
+
+        return base.CreateHost(builder);
+    }
+
     protected sealed override void ConfigureWebHost(
         IWebHostBuilder builder)
     {
@@ -41,13 +61,8 @@ public abstract class EshopServiceFactory<TEntryPoint>(
         builder.ConfigureAppConfiguration(
             (_, configurationBuilder) =>
             {
-                Dictionary<string, string?> settings =
-                    CreateSettings();
-
-                AddServiceSettings(settings);
-
                 configurationBuilder.AddInMemoryCollection(
-                    settings);
+                    CreateConfiguredSettings());
             });
 
         builder.ConfigureTestServices(
@@ -57,6 +72,26 @@ public abstract class EshopServiceFactory<TEntryPoint>(
                 {
                     services.RemoveAll<IHostedService>();
                 }
+
+                services
+                    .AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme =
+                            TestAuthenticationHandler.SchemeName;
+
+                        options.DefaultChallengeScheme =
+                            TestAuthenticationHandler.SchemeName;
+
+                        options.DefaultForbidScheme =
+                            TestAuthenticationHandler.SchemeName;
+                    })
+                    .AddScheme<
+                        AuthenticationSchemeOptions,
+                        TestAuthenticationHandler>(
+                        TestAuthenticationHandler.SchemeName,
+                        _ =>
+                        {
+                        });
 
                 ConfigureAdditionalServices(services);
             });
@@ -70,6 +105,17 @@ public abstract class EshopServiceFactory<TEntryPoint>(
     protected virtual void ConfigureAdditionalServices(
         IServiceCollection services)
     {
+    }
+
+    private Dictionary<string, string?>
+    CreateConfiguredSettings()
+    {
+        Dictionary<string, string?> settings =
+            CreateSettings();
+
+        AddServiceSettings(settings);
+
+        return settings;
     }
 
     private Dictionary<string, string?> CreateSettings()
@@ -154,7 +200,16 @@ public abstract class EshopServiceFactory<TEntryPoint>(
                 "Warning",
 
             ["Logging:LogLevel:Microsoft.EntityFrameworkCore"] =
-                "Warning"
+                "Warning",
+
+            ["Keycloak:Authority"] =
+                "http://keycloak.integration.test/realms/eshop",
+
+            ["Keycloak:Audience"] =
+                "eshop-api",
+
+            ["Keycloak:RequireHttpsMetadata"] =
+                "false"
         };
     }
 }

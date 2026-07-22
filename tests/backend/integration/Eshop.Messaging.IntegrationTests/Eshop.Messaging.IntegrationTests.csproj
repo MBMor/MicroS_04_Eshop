@@ -52,6 +52,8 @@
     <ProjectReference Include="..\..\..\..\src\backend\shared\Eshop.Contracts\Eshop.Contracts.csproj" />
 
     <ProjectReference Include="..\..\..\..\src\backend\shared\Messaging.Shared\Messaging.Shared.csproj" />
+
+    <ProjectReference Include="..\..\..\..\src\backend\shared\Security.Shared\Security.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -34,7 +34,7 @@ public sealed class BasketController(
             return Unauthorized(CreateProblem(
                 StatusCodes.Status401Unauthorized,
                 "Basket owner could not be resolved.",
-                "Authentication or a development customer header is required."));
+                "A valid authenticated subject claim is required."));
         }
 
         ShoppingBasket basket = await basketService.GetAsync(

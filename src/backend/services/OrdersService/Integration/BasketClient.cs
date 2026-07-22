@@ -1,15 +1,20 @@
 using System.Net.Http.Json;
-using Microsoft.Extensions.Options;
-using OrdersService.Options;
+using System.Security.Claims;
+using Eshop.Security.Authorization;
 
 namespace OrdersService.Integration;
 
 public sealed class BasketClient(
     HttpClient httpClient,
-    IOptions<OrdersOptions> ordersOptions) : IBasketClient
+    IHttpContextAccessor httpContextAccessor,
+    IWebHostEnvironment environment)
+    : IBasketClient
 {
-    private readonly OrdersOptions _ordersOptions =
-        ordersOptions.Value;
+    private const string AuthorizationHeaderName =
+        "Authorization";
+
+    private const string TestCustomerHeaderName =
+        "X-Customer-Id";
 
     public async Task<BasketSnapshot> GetBasketAsync(
         string customerId,
@@ -28,12 +33,13 @@ public sealed class BasketClient(
         response.EnsureSuccessStatusCode();
 
         BasketSnapshot? basket =
-            await response.Content.ReadFromJsonAsync<BasketSnapshot>(
-                cancellationToken);
+            await response.Content
+                .ReadFromJsonAsync<BasketSnapshot>(
+                    cancellationToken);
 
         return basket
-            ?? throw new InvalidOperationException(
-                "Basket Service returned an empty response.");
+               ?? throw new InvalidOperationException(
+                   "Basket Service returned an empty response.");
     }
 
     public async Task ClearBasketAsync(
@@ -58,12 +64,62 @@ public sealed class BasketClient(
         string path,
         string customerId)
     {
-        HttpRequestMessage request = new(method, path);
-
-        request.Headers.TryAddWithoutValidation(
-            _ordersOptions.DevelopmentCustomerHeaderName,
+        ArgumentException.ThrowIfNullOrWhiteSpace(
             customerId);
 
-        return request;
+        HttpContext httpContext =
+            httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException(
+                "The current authenticated HTTP context " +
+                "is not available.");
+
+        string? authenticatedSubject =
+            httpContext.User.FindFirstValue(
+                EshopClaimNames.Subject);
+
+        if (!string.Equals(
+                authenticatedSubject,
+                customerId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "The order customer does not match " +
+                "the authenticated token subject.");
+        }
+
+        HttpRequestMessage request =
+            new(method, path);
+
+        string authorization =
+            httpContext.Request.Headers[
+                AuthorizationHeaderName]
+            .ToString();
+
+        if (!string.IsNullOrWhiteSpace(authorization))
+        {
+            request.Headers.TryAddWithoutValidation(
+                AuthorizationHeaderName,
+                authorization);
+
+            return request;
+        }
+
+        if (environment.IsEnvironment("Testing"))
+        {
+            // Integration tests use their own authentication
+            // scheme and therefore do not carry a real JWT.
+            request.Headers.TryAddWithoutValidation(
+                TestCustomerHeaderName,
+                customerId);
+
+            return request;
+        }
+
+        request.Dispose();
+
+        throw new InvalidOperationException(
+            "The authenticated request does not contain " +
+            "an Authorization header that can be propagated " +
+            "to Basket Service.");
     }
 }

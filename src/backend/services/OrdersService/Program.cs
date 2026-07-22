@@ -10,8 +10,9 @@ using OrdersService.Data;
 using OrdersService.Identity;
 using OrdersService.Integration;
 using OrdersService.Messaging;
-using OrdersService.Options;
 using OrdersService.Outbox;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -46,14 +47,10 @@ builder.Services.AddEshopOpenApi(
     description:
         "Customer checkout and order query API.");
 
-builder.Services
-    .AddOptions<OrdersOptions>()
-    .BindConfiguration(OrdersOptions.SectionName)
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(
-            options.DevelopmentCustomerHeaderName),
-        "Development customer header name must be configured.")
-    .ValidateOnStart();
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
 
 string ordersConnectionString =
     builder.Configuration.GetConnectionString("OrdersDb")
@@ -69,6 +66,8 @@ string basketBaseUrl =
     builder.Configuration["Services:BasketBaseUrl"]
     ?? throw new InvalidOperationException(
         "Configuration value 'Services:BasketBaseUrl' was not found.");
+
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHttpClient<IBasketClient, BasketClient>(httpClient =>
 {
@@ -151,7 +150,13 @@ WebApplication app = builder.Build();
 app.UseEshopErrorHandling();
 app.UseEshopOpenApi();
 
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers()
+    .RequireAuthorization(
+        EshopPolicies.CustomerOnly);
+
 app.MapHealthChecks("/health");
 
 app.Run();

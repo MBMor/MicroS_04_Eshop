@@ -34,7 +34,7 @@ public sealed class OrdersController(
             return Unauthorized(CreateProblem(
                 StatusCodes.Status401Unauthorized,
                 "Order owner could not be resolved.",
-                "Authentication or a development customer header is required."));
+                "A valid authenticated subject claim is required."));
         }
 
         try

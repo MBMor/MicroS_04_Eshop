@@ -1,56 +1,37 @@
 using System.Security.Claims;
-using BasketService.Options;
-using Microsoft.Extensions.Options;
+using Eshop.Security.Authorization;
 
 namespace BasketService.Identity;
 
-public sealed class BasketOwnerProvider(
-    IWebHostEnvironment environment,
-    IOptions<BasketOptions> basketOptions) : IBasketOwnerProvider
+public sealed class BasketOwnerProvider
+    : IBasketOwnerProvider
 {
     private const int MaxCustomerIdLength = 128;
 
-    private readonly BasketOptions _basketOptions = basketOptions.Value;
-
-    public string? GetCustomerId(HttpContext httpContext)
+    public string? GetCustomerId(
+        HttpContext httpContext)
     {
-        string? authenticatedCustomerId =
-            httpContext.User.FindFirstValue("sub")
-            ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        ArgumentNullException.ThrowIfNull(httpContext);
 
-        string? normalizedCustomerId = Normalize(authenticatedCustomerId);
+        string? subject = httpContext.User.FindFirstValue(
+            EshopClaimNames.Subject);
 
-        if (normalizedCustomerId is not null)
-        {
-            return normalizedCustomerId;
-        }
-
-        if (!environment.IsDevelopment()
-            || !_basketOptions.AllowDevelopmentCustomerHeader)
-        {
-            return null;
-        }
-
-        if (!httpContext.Request.Headers.TryGetValue(
-                _basketOptions.DevelopmentCustomerHeaderName,
-                out Microsoft.Extensions.Primitives.StringValues values))
-        {
-            return null;
-        }
-
-        return Normalize(values.ToString());
+        return Normalize(subject);
     }
 
-    private static string? Normalize(string? customerId)
+    private static string? Normalize(
+        string? customerId)
     {
         if (string.IsNullOrWhiteSpace(customerId))
         {
             return null;
         }
 
-        string normalizedCustomerId = customerId.Trim();
+        string normalizedCustomerId =
+            customerId.Trim();
 
-        return normalizedCustomerId.Length <= MaxCustomerIdLength
+        return normalizedCustomerId.Length
+               <= MaxCustomerIdLength
             ? normalizedCustomerId
             : null;
     }

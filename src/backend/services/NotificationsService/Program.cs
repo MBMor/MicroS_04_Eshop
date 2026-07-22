@@ -7,8 +7,9 @@ using NotificationsService.Application;
 using NotificationsService.Data;
 using NotificationsService.Identity;
 using NotificationsService.Messaging;
-using NotificationsService.Options;
 using OpenApi.Shared;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -44,14 +45,10 @@ builder.Services.AddEshopOpenApi(
     description:
         "Customer notification read model API.");
 
-builder.Services
-    .AddOptions<NotificationsOptions>()
-    .BindConfiguration(NotificationsOptions.SectionName)
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(
-            options.DevelopmentCustomerHeaderName),
-        "Development customer header name must be configured.")
-    .ValidateOnStart();
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
 
 string notificationsConnectionString =
     builder.Configuration.GetConnectionString("NotificationsDb")
@@ -81,7 +78,13 @@ WebApplication app = builder.Build();
 app.UseEshopErrorHandling();
 app.UseEshopOpenApi();
 
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers()
+    .RequireAuthorization(
+        EshopPolicies.CustomerOnly);
+
 app.MapHealthChecks("/health");
 
 app.Run();

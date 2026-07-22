@@ -6,6 +6,8 @@ using BasketService.Integration;
 using BasketService.Options;
 using ErrorHandling.Shared;
 using OpenApi.Shared;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,11 @@ builder.Services.AddEshopOpenApi(
     description:
         "Customer shopping basket management API.");
 
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
+
 builder.Services
     .AddOptions<BasketOptions>()
     .BindConfiguration(BasketOptions.SectionName)
@@ -45,10 +52,6 @@ builder.Services
     .Validate(
         options => options.MaxQuantityPerItem > 0,
         "Maximum quantity per item must be greater than zero.")
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(
-            options.DevelopmentCustomerHeaderName),
-        "Development customer header name must be configured.")
     .ValidateOnStart();
 
 string redisConnectionString =
@@ -82,7 +85,13 @@ WebApplication app = builder.Build();
 app.UseEshopErrorHandling();
 app.UseEshopOpenApi();
 
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers()
+    .RequireAuthorization(
+        EshopPolicies.CustomerOnly);
+
 app.MapHealthChecks("/health");
 
 app.Run();
