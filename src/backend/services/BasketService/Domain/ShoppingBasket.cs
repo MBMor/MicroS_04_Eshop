@@ -24,6 +24,15 @@ public sealed record ShoppingBasket(
         out ShoppingBasket updatedBasket,
         out string? error)
     {
+        if (newItem.Quantity < 1)
+        {
+            updatedBasket = this;
+
+            error = $"Quantity must be between 1 and {maxQuantityPerItem}.";
+
+            return false;
+        }
+
         BasketItem? existingItem = Items.FirstOrDefault(
             item => item.ProductId == newItem.ProductId);
 

@@ -71,12 +71,29 @@ public sealed class Product
     {
         ValidatePrice(priceAmount);
 
-        Name = RequiredTrimmed(name, nameof(name));
-        Sku = RequiredTrimmed(sku, nameof(sku)).ToUpperInvariant();
-        Description = description?.Trim() ?? string.Empty;
-        Category = RequiredTrimmed(category, nameof(category));
+        string normalizedName =
+            RequiredTrimmed(name, nameof(name));
+
+        string normalizedSku =
+            RequiredTrimmed(sku, nameof(sku))
+                .ToUpperInvariant();
+
+        string normalizedDescription =
+            description?.Trim() ?? string.Empty;
+
+        string normalizedCategory =
+            RequiredTrimmed(category, nameof(category));
+
+        string normalizedCurrency =
+            RequiredTrimmed(currency, nameof(currency))
+                .ToUpperInvariant();
+
+        Name = normalizedName;
+        Sku = normalizedSku;
+        Description = normalizedDescription;
+        Category = normalizedCategory;
         PriceAmount = priceAmount;
-        Currency = RequiredTrimmed(currency, nameof(currency)).ToUpperInvariant();
+        Currency = normalizedCurrency;
         IsActive = isActive;
         UpdatedAtUtc = updatedAtUtc;
     }

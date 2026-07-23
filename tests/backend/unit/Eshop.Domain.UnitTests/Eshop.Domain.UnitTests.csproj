@@ -30,10 +30,13 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\backend\services\OrdersService\OrdersService.csproj" />
-    <ProjectReference Include="..\..\..\..\src\backend\services\InventoryService\InventoryService.csproj" />
-    <ProjectReference Include="..\..\..\..\src\backend\services\PaymentsService\PaymentsService.csproj" />
-  </ItemGroup>
+<ItemGroup>
+  <ProjectReference Include="..\..\..\..\src\backend\services\CatalogService\CatalogService.csproj" />
+  <ProjectReference Include="..\..\..\..\src\backend\services\BasketService\BasketService.csproj" />
+  <ProjectReference Include="..\..\..\..\src\backend\services\OrdersService\OrdersService.csproj" />
+  <ProjectReference Include="..\..\..\..\src\backend\services\InventoryService\InventoryService.csproj" />
+  <ProjectReference Include="..\..\..\..\src\backend\services\PaymentsService\PaymentsService.csproj" />
+  <ProjectReference Include="..\..\..\..\src\backend\services\NotificationsService\NotificationsService.csproj" />
+</ItemGroup>
 
 </Project>
