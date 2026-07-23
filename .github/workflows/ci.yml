@@ -82,6 +82,16 @@ jobs:
           dotnet restore
           tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj
 
+      - name: Restore Catalog Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj
+
+      - name: Restore Orders Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
+
       - name: Build API Gateway integration tests
         run: >
           dotnet build
@@ -131,6 +141,20 @@ jobs:
           --configuration Release
           --no-restore
 
+      - name: Build Catalog Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Orders Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
       - name: Run domain unit tests
         run: >
           dotnet test
@@ -174,6 +198,28 @@ jobs:
             --logger "trx;LogFileName=messaging-integration-tests.trx" \
             --diag artifacts/test-results/messaging/vstest-diagnostic.log \
             --results-directory artifacts/test-results/messaging
+
+      - name: Run Catalog Service integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=catalog-service-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/catalog-service
+
+      - name: Run Orders Service integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=orders-service-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/orders-service
 
       - name: Upload backend test results
         if: always()

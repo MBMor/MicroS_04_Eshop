@@ -46,6 +46,7 @@
     <Project Path="tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj" />
+    <Project Path="tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj" />
   </Folder>
   <Folder Name="/tests/backend/unit/">
     <Project Path="tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj" />
