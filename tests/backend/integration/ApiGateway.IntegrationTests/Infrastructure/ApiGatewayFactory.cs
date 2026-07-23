@@ -10,13 +10,14 @@ using Microsoft.Extensions.Hosting;
 namespace ApiGateway.IntegrationTests.Infrastructure;
 
 internal sealed class ApiGatewayFactory(
-    Uri downstreamAddress)
+    Uri downstreamAddress,
+    IReadOnlyDictionary<string, string?>? configurationOverrides = null)
     : WebApplicationFactory<ApiGatewayAssemblyMarker>
 {
     private const string TestingEnvironment = "Testing";
 
-    private readonly Uri _downstreamAddress =
-        downstreamAddress;
+    private readonly Uri _downstreamAddress = downstreamAddress;
+    private readonly IReadOnlyDictionary<string, string?>? _configurationOverrides = configurationOverrides;
 
     protected override IHost CreateHost(
         IHostBuilder builder)
@@ -81,13 +82,12 @@ internal sealed class ApiGatewayFactory(
             });
     }
 
-    private Dictionary<string, string?>
-        CreateSettings()
+    private Dictionary<string, string?> CreateSettings()
     {
         string downstreamAddress =
             _downstreamAddress.AbsoluteUri;
 
-        return new Dictionary<string, string?>(
+        Dictionary<string, string?> settings = new(
             StringComparer.OrdinalIgnoreCase)
         {
             ["Keycloak:Authority"] =
@@ -98,6 +98,30 @@ internal sealed class ApiGatewayFactory(
 
             ["Keycloak:RequireHttpsMetadata"] =
                 "false",
+
+            ["RateLimiting:PublicRead:PermitLimit"] =
+                "120",
+
+            ["RateLimiting:PublicRead:WindowSeconds"] =
+                "60",
+
+            ["RateLimiting:CustomerApi:PermitLimit"] =
+                "60",
+
+            ["RateLimiting:CustomerApi:WindowSeconds"] =
+                "60",
+
+            ["RateLimiting:Checkout:PermitLimit"] =
+                "5",
+
+            ["RateLimiting:Checkout:WindowSeconds"] =
+                "60",
+
+            ["RateLimiting:Operational:PermitLimit"] =
+                "60",
+
+            ["RateLimiting:Operational:WindowSeconds"] =
+                "60",
 
             ["ReverseProxy:Clusters:" +
              "catalog-cluster:Destinations:" +
@@ -140,5 +164,18 @@ internal sealed class ApiGatewayFactory(
              "Yarp.ReverseProxy"] =
                 "Warning"
         };
+
+        if (_configurationOverrides is null)
+        {
+            return settings;
+        }
+
+        foreach (KeyValuePair<string, string?> entry
+                 in _configurationOverrides)
+        {
+            settings[entry.Key] = entry.Value;
+        }
+
+        return settings;
     }
 }

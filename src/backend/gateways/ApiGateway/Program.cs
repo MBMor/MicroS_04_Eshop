@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ApiGateway.RateLimiting;
 using ErrorHandling.Shared;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
@@ -15,17 +16,24 @@ builder.Services.AddEshopJwtAuthentication(
 
 builder.Services.AddEshopAuthorization();
 
+builder.Services.AddGatewayRateLimiting(
+    builder.Configuration);
+
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(
-        builder.Configuration.GetSection("ReverseProxy"));
+        builder.Configuration.GetSection(
+            "ReverseProxy"));
 
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
 
+app.UseRouting();
+
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapGet("/", () => Results.Ok(new
 {
