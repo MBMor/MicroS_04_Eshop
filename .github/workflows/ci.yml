@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Display .NET information
+        run: dotnet --info
+
+      - name: Verify Docker availability
+        run: |
+          docker version
+          docker info
+
+      - name: Restore API Gateway integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
+
+      - name: Restore messaging integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
+
+      - name: Restore Basket Service
+        run: >
+          dotnet restore
+          src/backend/services/BasketService/BasketService.csproj
+
+      - name: Restore Catalog Service
+        run: >
+          dotnet restore
+          src/backend/services/CatalogService/CatalogService.csproj
+
+      - name: Restore RabbitMQ topology initializer
+        run: >
+          dotnet restore
+          src/backend/tools/RabbitMq.TopologyInitializer/RabbitMq.TopologyInitializer.csproj
+
+      - name: Build API Gateway integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build messaging integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Basket Service
+        run: >
+          dotnet build
+          src/backend/services/BasketService/BasketService.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Catalog Service
+        run: >
+          dotnet build
+          src/backend/services/CatalogService/CatalogService.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build RabbitMQ topology initializer
+        run: >
+          dotnet build
+          src/backend/tools/RabbitMq.TopologyInitializer/RabbitMq.TopologyInitializer.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Run API Gateway integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=api-gateway-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/api-gateway
+
+      - name: Run messaging integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=messaging-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/messaging
+
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-results
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: src/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Display Node.js information
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check frontend
+        run: npm run typecheck
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Run frontend tests
+        run: npm run test
+
+      - name: Build frontend
+        run: npm run build
