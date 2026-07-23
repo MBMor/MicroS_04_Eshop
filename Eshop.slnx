@@ -45,4 +45,7 @@
     <Project Path="tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tests/backend/unit/">
+    <Project Path="tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj" />
+  </Folder>
 </Solution>

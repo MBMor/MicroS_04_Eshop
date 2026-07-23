@@ -110,11 +110,13 @@ public sealed class Payment
     {
         EnsurePending();
 
-        Status = PaymentStatus.Failed;
-        FailureReason = RequiredTrimmed(
+        string normalizedFailureReason = RequiredTrimmed(
             failureReason,
             nameof(failureReason),
             MaxFailureReasonLength);
+
+        Status = PaymentStatus.Failed;
+        FailureReason = normalizedFailureReason;
         ProcessedAtUtc = processedAtUtc;
     }
 

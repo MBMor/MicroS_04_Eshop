@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Eshop.Domain.UnitTests</RootNamespace>
+    <AssemblyName>Eshop.Domain.UnitTests</AssemblyName>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>
+        runtime;
+        build;
+        native;
+        contentfiles;
+        analyzers;
+        buildtransitive
+      </IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\backend\services\OrdersService\OrdersService.csproj" />
+    <ProjectReference Include="..\..\..\..\src\backend\services\InventoryService\InventoryService.csproj" />
+    <ProjectReference Include="..\..\..\..\src\backend\services\PaymentsService\PaymentsService.csproj" />
+  </ItemGroup>
+
+</Project>

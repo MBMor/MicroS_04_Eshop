@@ -56,6 +56,11 @@ jobs:
         run: >
           dotnet restore
           tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
+          
+      - name: Restore domain unit tests
+        run: >
+          dotnet restore
+          tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj
 
       - name: Restore Basket Service
         run: >
@@ -86,6 +91,13 @@ jobs:
           --configuration Release
           --no-restore
 
+      - name: Build domain unit tests
+        run: >
+          dotnet build
+          tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj
+          --configuration Release
+          --no-restore
+
       - name: Build Basket Service
         run: >
           dotnet build
@@ -106,6 +118,17 @@ jobs:
           src/backend/tools/RabbitMq.TopologyInitializer/RabbitMq.TopologyInitializer.csproj
           --configuration Release
           --no-restore
+
+      - name: Run domain unit tests
+        run: >
+          dotnet test
+          tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=domain-unit-tests.trx"
+          --results-directory
+          artifacts/test-results/unit
 
       - name: Run API Gateway integration tests
         run: >
