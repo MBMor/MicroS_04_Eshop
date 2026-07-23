@@ -77,6 +77,11 @@ jobs:
           dotnet restore
           src/backend/tools/RabbitMq.TopologyInitializer/RabbitMq.TopologyInitializer.csproj
 
+      - name: Restore Basket Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj
+
       - name: Build API Gateway integration tests
         run: >
           dotnet build
@@ -119,6 +124,13 @@ jobs:
           --configuration Release
           --no-restore
 
+      - name: Build Basket Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
       - name: Run domain unit tests
         run: >
           dotnet test
@@ -141,16 +153,27 @@ jobs:
           --results-directory
           artifacts/test-results/api-gateway
 
-      - name: Run messaging integration tests
+      - name: Run Basket Service integration tests
         run: >
           dotnet test
-          tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
+          tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj
           --configuration Release
           --no-build
           --logger
-          "trx;LogFileName=messaging-integration-tests.trx"
+          "trx;LogFileName=basket-service-integration-tests.trx"
           --results-directory
-          artifacts/test-results/messaging
+          artifacts/test-results/basket-service
+
+      - name: Run messaging integration tests
+        run: |
+          dotnet test \
+            tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj \
+            --configuration Release \
+            --no-build \
+            --logger "console;verbosity=detailed" \
+            --logger "trx;LogFileName=messaging-integration-tests.trx" \
+            --diag artifacts/test-results/messaging/vstest-diagnostic.log \
+            --results-directory artifacts/test-results/messaging
 
       - name: Upload backend test results
         if: always()
