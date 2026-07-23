@@ -541,17 +541,27 @@ public sealed class StockReservationFailedConsumerWorker(
     public override async Task StopAsync(
         CancellationToken cancellationToken)
     {
+        IChannel? channel = Interlocked.Exchange(
+            ref _channel,
+            null);
+
         try
         {
-            await base.StopAsync(
-                cancellationToken);
+            await base.StopAsync(cancellationToken);
         }
         finally
         {
-            if (_channel is not null)
+            if (channel is not null)
             {
-                await _channel.DisposeAsync();
-                _channel = null;
+                try
+                {
+                    await channel.DisposeAsync();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // The parent RabbitMQ connection may already be gone
+                    // during application shutdown.
+                }
             }
         }
     }

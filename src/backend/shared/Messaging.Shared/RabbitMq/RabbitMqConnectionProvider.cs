@@ -62,8 +62,16 @@ public sealed class RabbitMqConnectionProvider(
 
             if (_connection is not null)
             {
-                await _connection.DisposeAsync();
+                if (_options.AutomaticRecoveryEnabled)
+                {
+                    await WaitForRecoveryAsync(
+                        _connection,
+                        cancellationToken);
 
+                    return _connection;
+                }
+
+                await _connection.DisposeAsync();
                 _connection = null;
             }
 
