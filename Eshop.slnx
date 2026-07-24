@@ -47,6 +47,7 @@
     <Project Path="tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj" />
+    <Project Path="tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj" />
     <Project Path="tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj" />
   </Folder>

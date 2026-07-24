@@ -102,6 +102,11 @@ jobs:
           dotnet restore
           tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
 
+      - name: Restore Notifications Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj
+
       - name: Build API Gateway integration tests
         run: >
           dotnet build
@@ -176,6 +181,13 @@ jobs:
         run: >
           dotnet build
           tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Notifications Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj
           --configuration Release
           --no-restore
 
@@ -266,6 +278,17 @@ jobs:
           "trx;LogFileName=payments-service-integration-tests.trx"
           --results-directory
           artifacts/test-results/payments-service
+
+      - name: Run Notifications Service integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=notifications-service-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/notifications-service
 
       - name: Upload backend test results
         if: always()
