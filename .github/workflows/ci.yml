@@ -97,6 +97,11 @@ jobs:
           dotnet restore
           tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
 
+      - name: Restore Payments Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
+
       - name: Build API Gateway integration tests
         run: >
           dotnet build
@@ -164,6 +169,13 @@ jobs:
         run: >
           dotnet build
           tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Payments Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
           --configuration Release
           --no-restore
 
@@ -243,6 +255,17 @@ jobs:
           "trx;LogFileName=inventory-service-integration-tests.trx"
           --results-directory
           artifacts/test-results/inventory-service
+
+      - name: Run Payments Service integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=payments-service-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/payments-service
 
       - name: Upload backend test results
         if: always()

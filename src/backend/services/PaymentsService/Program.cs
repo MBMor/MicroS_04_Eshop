@@ -9,6 +9,8 @@ using PaymentsService.Application;
 using PaymentsService.Data;
 using PaymentsService.Messaging;
 using PaymentsService.Outbox;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -43,6 +45,11 @@ builder.Services.AddEshopOpenApi(
     title: "Eshop Payments API",
     description:
         "Fake payment processing and payment query API.");
+
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
 
 string paymentsConnectionString =
     builder.Configuration.GetConnectionString("PaymentsDb")
@@ -116,9 +123,16 @@ builder.Services.AddHostedService<PaymentsOutboxCleanupWorker>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+
 app.UseEshopOpenApi();
 
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers()
+    .RequireAuthorization(
+        EshopPolicies.SupportOrAdmin);
+
 app.MapHealthChecks("/health");
 
 app.Run();
