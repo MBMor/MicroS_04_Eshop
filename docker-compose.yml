@@ -74,9 +74,16 @@ services:
       - eshop-internal
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.0
+    build:
+      context: .
+      dockerfile: infrastructure/keycloak/Dockerfile
+    image: eshop/keycloak:26.7.0-optimized
     container_name: eshop-keycloak
-    command: ["start-dev", "--import-realm"]
+    command:
+      - start
+      - --optimized
+      - --http-enabled=true
+      - --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_password}
@@ -104,10 +111,10 @@ services:
           "CMD-SHELL",
           "{ printf 'HEAD /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&0; grep -q 'HTTP/1.1 200'; } 0<>/dev/tcp/127.0.0.1/9000"
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
+      interval: 2s
+      timeout: 2s
+      retries: 90
+      start_period: 5s
     networks:
       - eshop-public
       - eshop-internal

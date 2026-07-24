@@ -1,0 +1,46 @@
+services:
+  postgres:
+    container_name: eshop-e2e-postgres
+
+  redis:
+    container_name: eshop-e2e-redis
+
+  rabbitmq:
+    container_name: eshop-e2e-rabbitmq
+
+  keycloak:
+    container_name: eshop-e2e-keycloak
+
+  frontend:
+    container_name: eshop-e2e-frontend
+
+    environment:
+      VITE_API_BASE_URL: ""
+      VITE_DEV_PROXY_TARGET: http://host.docker.internal:5080
+      VITE_KEYCLOAK_URL: http://localhost:18080
+      VITE_KEYCLOAK_REALM: eshop
+      VITE_KEYCLOAK_CLIENT_ID: eshop-frontend
+
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+networks:
+  eshop-public:
+    name: eshop-e2e-public
+
+  eshop-internal:
+    name: eshop-e2e-internal
+    internal: true
+
+volumes:
+  postgres-data:
+    name: eshop-e2e-postgres-data
+
+  redis-data:
+    name: eshop-e2e-redis-data
+
+  rabbitmq-data:
+    name: eshop-e2e-rabbitmq-data
+
+  frontend-node-modules:
+    name: eshop-e2e-frontend-node-modules

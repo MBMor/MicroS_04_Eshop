@@ -46,3 +46,6 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+tests/e2e/node_modules/
+artifacts/e2e/

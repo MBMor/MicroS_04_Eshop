@@ -375,3 +375,69 @@ jobs:
           source: .
           files: docker-bake.hcl
           pull: true
+
+  e2e:
+    name: Checkout E2E
+
+    needs:
+      - containers
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Verify Docker availability
+        run: |
+          docker version
+          docker info
+          docker compose version
+
+      - name: Install E2E dependencies
+        working-directory: tests/e2e
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium
+        working-directory: tests/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Make E2E scripts executable
+        run: chmod +x scripts/e2e/*.sh
+
+      - name: Start full E2E stack
+        run: ./scripts/e2e/start-stack.sh
+
+      - name: Run checkout E2E tests
+        working-directory: tests/e2e
+        env:
+          CI: "true"
+          E2E_BASE_URL: http://localhost:5173
+        run: npm test
+
+      - name: Stop E2E stack
+        if: always()
+        run: ./scripts/e2e/stop-stack.sh
+
+      - name: Upload E2E diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: checkout-e2e-diagnostics
+          path: artifacts/e2e/
+          if-no-files-found: warn
+          retention-days: 7

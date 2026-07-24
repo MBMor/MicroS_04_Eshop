@@ -7,14 +7,13 @@
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
     <File Path="docker-bake.hcl" />
+    <File Path="docker-compose.e2e.yml" />
     <File Path="docker-compose.yml" />
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/" />
-  <Folder Name="/src/backend/">
-    <File Path="Dockerfile" />
-  </Folder>
+  <Folder Name="/src/backend/" />
   <Folder Name="/src/backend/gateways/">
     <Project Path="src/backend/gateways/ApiGateway/ApiGateway.csproj" />
   </Folder>
