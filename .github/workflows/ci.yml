@@ -92,6 +92,11 @@ jobs:
           dotnet restore
           tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
 
+      - name: Restore Inventory Service integration tests
+        run: >
+          dotnet restore
+          tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
+
       - name: Build API Gateway integration tests
         run: >
           dotnet build
@@ -152,6 +157,13 @@ jobs:
         run: >
           dotnet build
           tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Build Inventory Service integration tests
+        run: >
+          dotnet build
+          tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
           --configuration Release
           --no-restore
 
@@ -220,6 +232,17 @@ jobs:
           "trx;LogFileName=orders-service-integration-tests.trx"
           --results-directory
           artifacts/test-results/orders-service
+
+      - name: Run Inventory Service integration tests
+        run: >
+          dotnet test
+          tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
+          --configuration Release
+          --no-build
+          --logger
+          "trx;LogFileName=inventory-service-integration-tests.trx"
+          --results-directory
+          artifacts/test-results/inventory-service
 
       - name: Upload backend test results
         if: always()

@@ -9,6 +9,8 @@ using Messaging.Shared;
 using Messaging.Shared.Outbox;
 using Microsoft.EntityFrameworkCore;
 using OpenApi.Shared;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
@@ -43,6 +45,11 @@ builder.Services.AddEshopOpenApi(
     title: "Eshop Inventory API",
     description:
         "Inventory item and stock management API.");
+
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
 
 string inventoryConnectionString =
     builder.Configuration.GetConnectionString("InventoryDb")
@@ -117,9 +124,16 @@ builder.Services.AddHostedService<StockReleaseRequestedConsumerWorker>();
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
+
 app.UseEshopOpenApi();
 
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers()
+    .RequireAuthorization(
+        EshopPolicies.SupportOrAdmin);
+
 app.MapHealthChecks("/health");
 
 app.Run();
