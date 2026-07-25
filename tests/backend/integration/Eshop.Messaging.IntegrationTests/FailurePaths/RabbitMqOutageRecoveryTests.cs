@@ -30,7 +30,7 @@ public sealed class RabbitMqOutageRecoveryTests(
 
 
     [Fact]
-    public async Task OrdersOutbox_RabbitMqOutage_RetriesAndPublishesAfterRecovery()
+    public async Task OrdersOutboxRabbitMqOutageRetriesAndPublishesAfterRecovery()
     {
         Guid productId =
             Guid.NewGuid();

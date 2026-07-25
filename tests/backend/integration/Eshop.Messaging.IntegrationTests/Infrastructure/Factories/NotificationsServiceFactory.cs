@@ -6,11 +6,15 @@ using NotificationsService.Data;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
-public sealed class NotificationsServiceFactory(
-    MessagingSystemFixture fixture,
-    bool suppressHostedServices = false)
-    : EshopServiceFactory<
-        NotificationsServiceAssemblyMarker>(
+public sealed class NotificationsServiceFactory
+    : EshopServiceFactory<NotificationsServiceAssemblyMarker>
+{
+    private readonly MessagingSystemFixture _fixture;
+
+    public NotificationsServiceFactory(
+        MessagingSystemFixture fixture,
+        bool suppressHostedServices = false)
+        : base(
             fixture,
             connectionStringName: "NotificationsDb",
             connectionString:
@@ -18,7 +22,10 @@ public sealed class NotificationsServiceFactory(
             clientProvidedName:
                 "notifications-service-integration-tests",
             suppressHostedServices)
-{
+    {
+        _fixture = fixture;
+    }
+
     protected override void AddServiceSettings(
         Dictionary<string, string?> settings)
     {
@@ -43,7 +50,7 @@ public sealed class NotificationsServiceFactory(
             options =>
             {
                 options.UseNpgsql(
-                    fixture.NotificationsConnectionString,
+                    _fixture.NotificationsConnectionString,
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly(

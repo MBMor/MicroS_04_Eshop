@@ -32,7 +32,7 @@ public sealed class DuplicateMessageDeliveryTests(
         TimeSpan.FromSeconds(2);
 
     [Fact]
-    public async Task StockReservationFailedConsumer_DuplicateDelivery_AppliesSideEffectsOnce()
+    public async Task StockReservationFailedConsumerDuplicateDeliveryAppliesSideEffectsOnce()
     {
         Guid orderId =
             Guid.NewGuid();
@@ -82,8 +82,8 @@ public sealed class DuplicateMessageDeliveryTests(
                 TraceState: null,
                 Payload: integrationEvent);
 
-        IMessageSerializer serializer =
-            new SystemTextJsonMessageSerializer();
+        SystemTextJsonMessageSerializer serializer =
+            new();
 
         byte[] messageBody =
             serializer.Serialize(envelope);

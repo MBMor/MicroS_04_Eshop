@@ -62,7 +62,7 @@ public sealed class InventoryServiceFixture
                 processed_messages,
                 inventory_items
             RESTART IDENTITY CASCADE;
-            """);
+            """, Xunit.TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

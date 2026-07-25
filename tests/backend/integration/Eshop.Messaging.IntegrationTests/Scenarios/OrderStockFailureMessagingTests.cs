@@ -45,7 +45,7 @@ public sealed class OrderStockFailureMessagingTests(
         TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task CreateOrder_WithInsufficientStock_MarksReservationAsFailed()
+    public async Task CreateOrderWithInsufficientStockMarksReservationAsFailed()
     {
         Guid productId =
             Guid.NewGuid();

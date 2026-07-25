@@ -10,18 +10,26 @@ using OrdersService.Integration;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
-public sealed class OrdersServiceFactory(
-    MessagingSystemFixture fixture,
-    bool suppressHostedServices = false)
-    : EshopServiceFactory<OrdersServiceAssemblyMarker>(
-        fixture,
-        connectionStringName: "OrdersDb",
-        connectionString:
-            fixture.OrdersConnectionString,
-        clientProvidedName:
-            "orders-service-integration-tests",
-        suppressHostedServices)
+public sealed class OrdersServiceFactory
+    : EshopServiceFactory<OrdersServiceAssemblyMarker>
 {
+    private readonly MessagingSystemFixture _fixture;
+
+    public OrdersServiceFactory(
+        MessagingSystemFixture fixture,
+        bool suppressHostedServices = false)
+        : base(
+            fixture,
+            connectionStringName: "OrdersDb",
+            connectionString:
+                fixture.OrdersConnectionString,
+            clientProvidedName:
+                "orders-service-integration-tests",
+            suppressHostedServices)
+    {
+        _fixture = fixture;
+    }
+
     public TestBasketClient BasketClient { get; } =
         new();
 
@@ -81,7 +89,7 @@ public sealed class OrdersServiceFactory(
             options =>
             {
                 options.UseNpgsql(
-                    fixture.OrdersConnectionString,
+                    _fixture.OrdersConnectionString,
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly(

@@ -6,11 +6,15 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
-public sealed class InventoryServiceFactory(
-    MessagingSystemFixture fixture,
-    bool suppressHostedServices = false)
-    : EshopServiceFactory<
-        InventoryServiceAssemblyMarker>(
+public sealed class InventoryServiceFactory
+    : EshopServiceFactory<InventoryServiceAssemblyMarker>
+{
+    private readonly MessagingSystemFixture _fixture;
+
+    public InventoryServiceFactory(
+        MessagingSystemFixture fixture,
+        bool suppressHostedServices = false)
+        : base(
             fixture,
             connectionStringName: "InventoryDb",
             connectionString:
@@ -18,7 +22,10 @@ public sealed class InventoryServiceFactory(
             clientProvidedName:
                 "inventory-service-integration-tests",
             suppressHostedServices)
-{
+    {
+        _fixture = fixture;
+    }
+
     protected override void ConfigureAdditionalServices(
         IServiceCollection services)
     {
@@ -31,7 +38,7 @@ public sealed class InventoryServiceFactory(
             options =>
             {
                 options.UseNpgsql(
-                    fixture.InventoryConnectionString,
+                    _fixture.InventoryConnectionString,
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly(

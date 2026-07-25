@@ -32,10 +32,10 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Health_AnonymousRequest_ReturnsOk()
+        HealthAnonymousRequestReturnsOk()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync("/health");
+            await fixture.Client.GetAsync("/health", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -44,10 +44,10 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Payments_AnonymousRequest_ReturnsUnauthorized()
+        PaymentsAnonymousRequestReturnsUnauthorized()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync(PaymentsPath);
+            await fixture.Client.GetAsync(PaymentsPath, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -56,7 +56,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Payments_CustomerUser_ReturnsForbidden()
+        PaymentsCustomerUserReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -66,7 +66,7 @@ public sealed class PaymentsServiceIntegrationTests(
                 EshopRoles.Customer);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -77,7 +77,7 @@ public sealed class PaymentsServiceIntegrationTests(
     [InlineData(EshopRoles.Support)]
     [InlineData(EshopRoles.Admin)]
     public async Task
-        GetPayments_OperationalRole_ReturnsOk(
+        GetPaymentsOperationalRoleReturnsOk(
             string role)
     {
         using HttpResponseMessage response =
@@ -92,7 +92,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse[]? payments =
             await response.Content
-                .ReadFromJsonAsync<PaymentResponse[]>();
+                .ReadFromJsonAsync<PaymentResponse[]>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(payments);
         Assert.Empty(payments);
@@ -100,7 +100,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreatePayment_SuccessMethod_PersistsAuthorizedPayment()
+        CreatePaymentSuccessMethodPersistsAuthorizedPayment()
     {
         Guid orderId =
             Guid.NewGuid();
@@ -127,7 +127,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse? created =
             await response.Content
-                .ReadFromJsonAsync<PaymentResponse>();
+                .ReadFromJsonAsync<PaymentResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.NotEqual(Guid.Empty, created.Id);
@@ -158,7 +158,7 @@ public sealed class PaymentsServiceIntegrationTests(
         Payment persisted =
             await dbContext.Payments
                 .AsNoTracking()
-                .SingleAsync();
+                .SingleAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(created.Id, persisted.Id);
         Assert.Equal(orderId, persisted.OrderId);
@@ -176,7 +176,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreatePayment_FailureMethod_PersistsFailedPayment()
+        CreatePaymentFailureMethodPersistsFailedPayment()
     {
         using HttpResponseMessage response =
             await SendAuthenticatedJsonAsync(
@@ -192,7 +192,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse? created =
             await response.Content
-                .ReadFromJsonAsync<PaymentResponse>();
+                .ReadFromJsonAsync<PaymentResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.Equal("Failed", created.Status);
@@ -214,7 +214,7 @@ public sealed class PaymentsServiceIntegrationTests(
         Payment persisted =
             await dbContext.Payments
                 .AsNoTracking()
-                .SingleAsync();
+                .SingleAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             PaymentStatus.Failed,
@@ -229,7 +229,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreatePayment_DuplicateOrder_ReturnsConflict()
+        CreatePaymentDuplicateOrderReturnsConflict()
     {
         Guid orderId =
             Guid.NewGuid();
@@ -261,7 +261,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         ProblemDetails? problem =
             await duplicateResponse.Content
-                .ReadFromJsonAsync<ProblemDetails>();
+                .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
         Assert.Equal("Payment conflict.", problem.Title);
@@ -276,12 +276,12 @@ public sealed class PaymentsServiceIntegrationTests(
 
         Assert.Equal(
             1,
-            await dbContext.Payments.CountAsync());
+            await dbContext.Payments.CountAsync(Xunit.TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task
-        CreatePayment_UnsupportedMethod_ReturnsBadRequestWithoutPersistence()
+        CreatePaymentUnsupportedMethodReturnsBadRequestWithoutPersistence()
     {
         using HttpResponseMessage response =
             await SendAuthenticatedJsonAsync(
@@ -297,7 +297,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         ProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ProblemDetails>();
+                .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
 
@@ -315,7 +315,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreatePayment_EmptyOrderId_ReturnsValidationProblem()
+        CreatePaymentEmptyOrderIdReturnsValidationProblem()
     {
         CreatePaymentRequest requestBody =
             CreateRequest(orderId: Guid.Empty);
@@ -333,7 +333,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         ValidationProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ValidationProblemDetails>();
+                .ReadFromJsonAsync<ValidationProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
 
@@ -346,7 +346,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetPayments_ReturnsPersistedPayments()
+        GetPaymentsReturnsPersistedPayments()
     {
         PaymentResponse firstPayment =
             await CreatePaymentAsync(
@@ -368,7 +368,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse[]? payments =
             await response.Content
-                .ReadFromJsonAsync<PaymentResponse[]>();
+                .ReadFromJsonAsync<PaymentResponse[]>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(payments);
         Assert.Equal(2, payments.Length);
@@ -384,7 +384,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetPayment_ByIdAndOrder_ReturnsPersistedPayment()
+        GetPaymentByIdAndOrderReturnsPersistedPayment()
     {
         PaymentResponse created =
             await CreatePaymentAsync();
@@ -401,7 +401,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse? byId =
             await byIdResponse.Content
-                .ReadFromJsonAsync<PaymentResponse>();
+                .ReadFromJsonAsync<PaymentResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(byId);
         AssertPaymentBusinessValuesEqual(
@@ -420,7 +420,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse? byOrder =
             await byOrderResponse.Content
-                .ReadFromJsonAsync<PaymentResponse>();
+                .ReadFromJsonAsync<PaymentResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(byOrder);
         AssertPaymentBusinessValuesEqual(
@@ -430,7 +430,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        MissingPayment_QueriesReturnNotFound()
+        MissingPaymentQueriesReturnNotFound()
     {
         using HttpResponseMessage byIdResponse =
             await SendAuthenticatedAsync(
@@ -471,7 +471,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         PaymentResponse? payment =
             await response.Content
-                .ReadFromJsonAsync<PaymentResponse>();
+                .ReadFromJsonAsync<PaymentResponse>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<PaymentResponse>(
             payment);
@@ -489,7 +489,7 @@ public sealed class PaymentsServiceIntegrationTests(
 
         Assert.Equal(
             0,
-            await dbContext.Payments.CountAsync());
+            await dbContext.Payments.CountAsync(Xunit.TestContext.Current.CancellationToken));
     }
 
     private async Task<HttpResponseMessage>
@@ -505,7 +505,7 @@ public sealed class PaymentsServiceIntegrationTests(
                 CreateSubject(role),
                 role);
 
-        return await fixture.Client.SendAsync(request);
+        return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private async Task<HttpResponseMessage>
@@ -525,7 +525,7 @@ public sealed class PaymentsServiceIntegrationTests(
         request.Content =
             JsonContent.Create(body);
 
-        return await fixture.Client.SendAsync(request);
+        return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private static HttpRequestMessage

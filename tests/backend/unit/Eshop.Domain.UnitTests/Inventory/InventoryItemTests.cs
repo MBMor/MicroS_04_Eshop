@@ -16,7 +16,7 @@ public sealed class InventoryItemTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void Create_ValidData_NormalizesSkuAndCalculatesAvailability()
+    public void CreateValidDataNormalizesSkuAndCalculatesAvailability()
     {
         InventoryItem item = CreateItem();
 
@@ -32,7 +32,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void TryReserve_ActiveItemWithAvailableStock_ReservesQuantity()
+    public void TryReserveActiveItemWithAvailableStockReservesQuantity()
     {
         InventoryItem item = CreateItem();
         DateTimeOffset updatedAtUtc =
@@ -50,7 +50,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void TryReserve_InactiveItem_ReturnsFalseWithoutMutation()
+    public void TryReserveInactiveItemReturnsFalseWithoutMutation()
     {
         InventoryItem item = CreateItem(
             isActive: false);
@@ -66,7 +66,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void TryReserve_InsufficientAvailableStock_ReturnsFalse()
+    public void TryReserveInsufficientAvailableStockReturnsFalse()
     {
         InventoryItem item = CreateItem();
 
@@ -80,7 +80,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void Update_OnHandBelowReservedQuantity_ThrowsWithoutMutation()
+    public void UpdateOnHandBelowReservedQuantityThrowsWithoutMutation()
     {
         InventoryItem item = CreateItem();
 
@@ -102,7 +102,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void AdjustOnHandQuantity_ResultBelowReservedQuantity_Throws()
+    public void AdjustOnHandQuantityResultBelowReservedQuantityThrows()
     {
         InventoryItem item = CreateItem();
 
@@ -121,7 +121,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void AdjustOnHandQuantity_ValidIncrease_UpdatesAvailability()
+    public void AdjustOnHandQuantityValidIncreaseUpdatesAvailability()
     {
         InventoryItem item = CreateItem();
         DateTimeOffset updatedAtUtc =
@@ -138,7 +138,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void ReleaseReservation_ReservedStock_ReturnsItToAvailability()
+    public void ReleaseReservationReservedStockReturnsItToAvailability()
     {
         InventoryItem item = CreateItem();
 
@@ -161,7 +161,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void CommitReservation_ReservedStock_DecreasesOnHandQuantity()
+    public void CommitReservationReservedStockDecreasesOnHandQuantity()
     {
         InventoryItem item = CreateItem();
 
@@ -184,7 +184,7 @@ public sealed class InventoryItemTests
     }
 
     [Fact]
-    public void ReleaseReservation_MoreThanReserved_ThrowsWithoutMutation()
+    public void ReleaseReservationMoreThanReservedThrowsWithoutMutation()
     {
         InventoryItem item = CreateItem();
 

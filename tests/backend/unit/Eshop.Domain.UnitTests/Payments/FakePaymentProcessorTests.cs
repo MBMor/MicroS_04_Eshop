@@ -9,7 +9,7 @@ public sealed class FakePaymentProcessorTests
         new();
 
     [Fact]
-    public void TryProcess_SuccessMethod_ReturnsAuthorizedDecision()
+    public void TryProcessSuccessMethodReturnsAuthorizedDecision()
     {
         bool recognized = _processor.TryProcess(
             "  TEST-SUCCESS  ",
@@ -23,7 +23,7 @@ public sealed class FakePaymentProcessorTests
     }
 
     [Fact]
-    public void TryProcess_FailureMethod_ReturnsFailedDecision()
+    public void TryProcessFailureMethodReturnsFailedDecision()
     {
         bool recognized = _processor.TryProcess(
             "test-fail",
@@ -40,7 +40,7 @@ public sealed class FakePaymentProcessorTests
     }
 
     [Fact]
-    public void TryProcess_UnsupportedMethod_ReturnsFalse()
+    public void TryProcessUnsupportedMethodReturnsFalse()
     {
         bool recognized = _processor.TryProcess(
             "credit-card",
@@ -51,7 +51,7 @@ public sealed class FakePaymentProcessorTests
     }
 
     [Fact]
-    public void TryProcess_BlankMethod_ReturnsFalse()
+    public void TryProcessBlankMethodReturnsFalse()
     {
         bool recognized = _processor.TryProcess(
             "   ",

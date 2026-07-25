@@ -16,7 +16,7 @@ public sealed class OrderTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void Create_ValidItems_CreatesPendingOrderAndInitialHistory()
+    public void CreateValidItemsCreatesPendingOrderAndInitialHistory()
     {
         Guid orderId = Guid.NewGuid();
 
@@ -56,7 +56,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void Create_ItemsUsingDifferentCurrencies_Throws()
+    public void CreateItemsUsingDifferentCurrenciesThrows()
     {
         Guid orderId = Guid.NewGuid();
 
@@ -88,7 +88,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void Create_ItemBelongingToDifferentOrder_Throws()
+    public void CreateItemBelongingToDifferentOrderThrows()
     {
         Guid orderId = Guid.NewGuid();
 
@@ -120,7 +120,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void MarkStockReserved_PendingOrder_MovesToPendingPayment()
+    public void MarkStockReservedPendingOrderMovesToPendingPayment()
     {
         Order order = CreateOrder();
         DateTimeOffset updatedAtUtc =
@@ -154,7 +154,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void MarkStockReservationFailed_PendingOrder_StoresNormalizedReason()
+    public void MarkStockReservationFailedPendingOrderStoresNormalizedReason()
     {
         Order order = CreateOrder();
         DateTimeOffset updatedAtUtc =
@@ -185,7 +185,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void MarkPaymentAuthorized_PendingPayment_ConfirmsOrder()
+    public void MarkPaymentAuthorizedPendingPaymentConfirmsOrder()
     {
         Order order = CreateOrder();
 
@@ -225,7 +225,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void PaymentFailureThenCancellation_RecordsBothTransitions()
+    public void PaymentFailureThenCancellationRecordsBothTransitions()
     {
         Order order = CreateOrder();
 
@@ -271,7 +271,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void MarkPaymentAuthorized_BeforeStockReservation_ThrowsWithoutMutation()
+    public void MarkPaymentAuthorizedBeforeStockReservationThrowsWithoutMutation()
     {
         Order order = CreateOrder();
 
@@ -288,7 +288,7 @@ public sealed class OrderTests
     }
 
     [Fact]
-    public void Cancel_ConfirmedOrder_ThrowsWithoutMutation()
+    public void CancelConfirmedOrderThrowsWithoutMutation()
     {
         Order order = CreateOrder();
 

@@ -62,7 +62,7 @@ public sealed class PaymentsServiceFixture
                 processed_messages,
                 payments
             RESTART IDENTITY CASCADE;
-            """);
+            """, Xunit.TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

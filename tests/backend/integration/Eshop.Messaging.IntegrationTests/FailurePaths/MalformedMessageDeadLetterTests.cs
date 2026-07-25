@@ -17,7 +17,7 @@ public sealed class MalformedMessageDeadLetterTests(
         TimeSpan.FromSeconds(15);
 
     [Fact]
-    public async Task StockReservedConsumer_InvalidJson_DeadLettersMessageWithoutSideEffects()
+    public async Task StockReservedConsumerInvalidJsonDeadLettersMessageWithoutSideEffects()
     {
         const string queueName =
             RabbitMqQueues.OrdersStockReservedV1;

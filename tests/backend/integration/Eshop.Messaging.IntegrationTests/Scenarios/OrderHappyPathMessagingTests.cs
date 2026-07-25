@@ -47,7 +47,7 @@ public sealed class OrderHappyPathMessagingTests(
         TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task CreateOrder_HappyPath_ConfirmsOrder()
+    public async Task CreateOrderHappyPathConfirmsOrder()
     {
         {
             Guid productId =

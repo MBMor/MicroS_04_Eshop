@@ -72,7 +72,7 @@ public sealed class OrdersServiceFixture
                 processed_messages,
                 orders
             RESTART IDENTITY CASCADE;
-            """);
+            """, Xunit.TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()

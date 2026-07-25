@@ -33,10 +33,10 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Health_AnonymousRequest_ReturnsOk()
+        HealthAnonymousRequestReturnsOk()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync("/health");
+            await fixture.Client.GetAsync("/health", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -45,10 +45,10 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Orders_AnonymousRequest_ReturnsUnauthorized()
+        OrdersAnonymousRequestReturnsUnauthorized()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync(OrdersPath);
+            await fixture.Client.GetAsync(OrdersPath, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -57,7 +57,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Orders_SupportUser_ReturnsForbidden()
+        OrdersSupportUserReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -67,7 +67,7 @@ public sealed class OrdersServiceIntegrationTests(
                 EshopRoles.Support);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -76,7 +76,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateOrder_ValidBasket_PersistsOrderHistoryAndOutbox()
+        CreateOrderValidBasketPersistsOrderHistoryAndOutbox()
     {
         string subject =
             CreateSubject("create");
@@ -111,7 +111,7 @@ public sealed class OrdersServiceIntegrationTests(
             JsonContent.Create(requestBody);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Created,
@@ -119,7 +119,7 @@ public sealed class OrdersServiceIntegrationTests(
 
         OrderResponse? order =
             await response.Content
-                .ReadFromJsonAsync<OrderResponse>();
+                .ReadFromJsonAsync<OrderResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(order);
         Assert.NotEqual(Guid.Empty, order.Id);
@@ -168,7 +168,7 @@ public sealed class OrdersServiceIntegrationTests(
                 .AsNoTracking()
                 .Include(candidate => candidate.Items)
                 .Include(candidate => candidate.StatusHistory)
-                .SingleAsync();
+                .SingleAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(order.Id, persistedOrder.Id);
         Assert.Equal(subject, persistedOrder.CustomerId);
@@ -178,7 +178,7 @@ public sealed class OrdersServiceIntegrationTests(
         Outbox.OutboxMessage outboxMessage =
             await dbContext.OutboxMessages
                 .AsNoTracking()
-                .SingleAsync();
+                .SingleAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             RabbitMqRoutingKeys.OrderCreatedV1,
@@ -192,7 +192,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateOrder_EmptyBasket_ReturnsBadRequestWithoutPersistence()
+        CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence()
     {
         string subject =
             CreateSubject("empty");
@@ -208,7 +208,7 @@ public sealed class OrdersServiceIntegrationTests(
 
         ProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ProblemDetails>();
+                .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
         Assert.Equal("Checkout failed.", problem.Title);
@@ -223,7 +223,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateOrder_MultipleCurrencies_ReturnsBadRequest()
+        CreateOrderMultipleCurrenciesReturnsBadRequest()
     {
         string subject =
             CreateSubject("currencies");
@@ -253,7 +253,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetOrders_ReturnsOnlyAuthenticatedCustomersOrders()
+        GetOrdersReturnsOnlyAuthenticatedCustomersOrders()
     {
         string alice =
             CreateSubject("alice");
@@ -278,7 +278,7 @@ public sealed class OrdersServiceIntegrationTests(
                 alice);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -286,7 +286,7 @@ public sealed class OrdersServiceIntegrationTests(
 
         OrderSummaryResponse[]? orders =
             await response.Content
-                .ReadFromJsonAsync<OrderSummaryResponse[]>();
+                .ReadFromJsonAsync<OrderSummaryResponse[]>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(orders);
 
@@ -302,7 +302,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetOrder_OtherCustomersOrder_ReturnsNotFound()
+        GetOrderOtherCustomersOrderReturnsNotFound()
     {
         string owner =
             CreateSubject("owner");
@@ -322,7 +322,7 @@ public sealed class OrdersServiceIntegrationTests(
                 attacker);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -331,7 +331,7 @@ public sealed class OrdersServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateOrder_InvalidEmail_ReturnsBadRequest()
+        CreateOrderInvalidEmailReturnsBadRequest()
     {
         string subject =
             CreateSubject("invalid-email");
@@ -354,7 +354,7 @@ public sealed class OrdersServiceIntegrationTests(
             });
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.BadRequest,
@@ -382,7 +382,7 @@ public sealed class OrdersServiceIntegrationTests(
 
         OrderResponse? order =
             await response.Content
-                .ReadFromJsonAsync<OrderResponse>();
+                .ReadFromJsonAsync<OrderResponse>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<OrderResponse>(order);
     }
@@ -405,7 +405,7 @@ public sealed class OrdersServiceIntegrationTests(
                 PaymentMethod = "test-success"
             });
 
-        return await fixture.Client.SendAsync(request);
+        return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private async Task AssertDatabaseIsEmptyAsync()
@@ -420,11 +420,11 @@ public sealed class OrdersServiceIntegrationTests(
 
         Assert.Equal(
             0,
-            await dbContext.Orders.CountAsync());
+            await dbContext.Orders.CountAsync(Xunit.TestContext.Current.CancellationToken));
 
         Assert.Equal(
             0,
-            await dbContext.OutboxMessages.CountAsync());
+            await dbContext.OutboxMessages.CountAsync(Xunit.TestContext.Current.CancellationToken));
     }
 
     private static BasketItemSnapshot CreateBasketItem(

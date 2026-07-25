@@ -20,7 +20,7 @@ public sealed class CatalogServiceIntegrationTests(
     private readonly HttpClient _client = fixture.Client;
 
     [Fact]
-    public async Task GetProducts_Default_ReturnsOnlyActiveProducts()
+    public async Task GetProductsDefaultReturnsOnlyActiveProducts()
     {
         ProductResponse activeProduct =
             await CreateProductAsync(
@@ -35,7 +35,7 @@ public sealed class CatalogServiceIntegrationTests(
                     isActive: false));
 
         using HttpResponseMessage response =
-            await _client.GetAsync(ProductsEndpoint);
+            await _client.GetAsync(ProductsEndpoint, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -59,7 +59,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task GetProducts_IncludeInactive_ReturnsAllProducts()
+    public async Task GetProductsIncludeInactiveReturnsAllProducts()
     {
         ProductResponse activeProduct =
             await CreateProductAsync(
@@ -75,7 +75,7 @@ public sealed class CatalogServiceIntegrationTests(
 
         using HttpResponseMessage response =
             await _client.GetAsync(
-                $"{ProductsEndpoint}?includeInactive=true");
+                $"{ProductsEndpoint}?includeInactive=true", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -95,13 +95,13 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task GetProductById_UnknownProduct_ReturnsNotFound()
+    public async Task GetProductByIdUnknownProductReturnsNotFound()
     {
         Guid unknownProductId = Guid.NewGuid();
 
         using HttpResponseMessage response =
             await _client.GetAsync(
-                $"{ProductsEndpoint}/{unknownProductId}");
+                $"{ProductsEndpoint}/{unknownProductId}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -109,7 +109,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task CreateProduct_ValidRequest_PersistsNormalizedProduct()
+    public async Task CreateProductValidRequestPersistsNormalizedProduct()
     {
         CreateProductRequest request = new()
         {
@@ -125,7 +125,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage createResponse =
             await _client.PostAsJsonAsync(
                 ProductsEndpoint,
-                request);
+                request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Created,
@@ -172,7 +172,7 @@ public sealed class CatalogServiceIntegrationTests(
 
         using HttpResponseMessage getResponse =
             await _client.GetAsync(
-                $"{ProductsEndpoint}/{createdProduct.Id}");
+                $"{ProductsEndpoint}/{createdProduct.Id}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -188,7 +188,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task CreateProduct_InvalidRequest_ReturnsBadRequest()
+    public async Task CreateProductInvalidRequestReturnsBadRequest()
     {
         CreateProductRequest request = new()
         {
@@ -204,7 +204,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage response =
             await _client.PostAsJsonAsync(
                 ProductsEndpoint,
-                request);
+                request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.BadRequest,
@@ -212,7 +212,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task CreateProduct_DuplicateSku_ReturnsConflict()
+    public async Task CreateProductDuplicateSkuReturnsConflict()
     {
         string sku = CreateUniqueSku("DUPLICATE");
 
@@ -226,7 +226,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage response =
             await _client.PostAsJsonAsync(
                 ProductsEndpoint,
-                duplicateRequest);
+                duplicateRequest, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Conflict,
@@ -234,7 +234,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task UpdateProduct_ValidRequest_PersistsNewValues()
+    public async Task UpdateProductValidRequestPersistsNewValues()
     {
         ProductResponse createdProduct =
             await CreateProductAsync(
@@ -255,7 +255,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage updateResponse =
             await _client.PutAsJsonAsync(
                 $"{ProductsEndpoint}/{createdProduct.Id}",
-                request);
+                request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -303,7 +303,7 @@ public sealed class CatalogServiceIntegrationTests(
 
         using HttpResponseMessage getResponse =
             await _client.GetAsync(
-                $"{ProductsEndpoint}/{createdProduct.Id}");
+                $"{ProductsEndpoint}/{createdProduct.Id}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -319,7 +319,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task UpdateProduct_DuplicateSku_ReturnsConflict()
+    public async Task UpdateProductDuplicateSkuReturnsConflict()
     {
         ProductResponse firstProduct =
             await CreateProductAsync(
@@ -345,7 +345,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage response =
             await _client.PutAsJsonAsync(
                 $"{ProductsEndpoint}/{secondProduct.Id}",
-                request);
+                request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Conflict,
@@ -353,7 +353,7 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task DeleteProduct_ExistingProduct_DeactivatesProduct()
+    public async Task DeleteProductExistingProductDeactivatesProduct()
     {
         ProductResponse createdProduct =
             await CreateProductAsync(
@@ -362,7 +362,7 @@ public sealed class CatalogServiceIntegrationTests(
 
         using HttpResponseMessage deleteResponse =
             await _client.DeleteAsync(
-                $"{ProductsEndpoint}/{createdProduct.Id}");
+                $"{ProductsEndpoint}/{createdProduct.Id}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NoContent,
@@ -370,7 +370,7 @@ public sealed class CatalogServiceIntegrationTests(
 
         using HttpResponseMessage getResponse =
             await _client.GetAsync(
-                $"{ProductsEndpoint}/{createdProduct.Id}");
+                $"{ProductsEndpoint}/{createdProduct.Id}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -388,7 +388,7 @@ public sealed class CatalogServiceIntegrationTests(
         Assert.NotNull(deactivatedProduct.UpdatedAtUtc);
 
         using HttpResponseMessage listResponse =
-            await _client.GetAsync(ProductsEndpoint);
+            await _client.GetAsync(ProductsEndpoint, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -404,13 +404,13 @@ public sealed class CatalogServiceIntegrationTests(
     }
 
     [Fact]
-    public async Task DeleteProduct_UnknownProduct_ReturnsNotFound()
+    public async Task DeleteProductUnknownProductReturnsNotFound()
     {
         Guid unknownProductId = Guid.NewGuid();
 
         using HttpResponseMessage response =
             await _client.DeleteAsync(
-                $"{ProductsEndpoint}/{unknownProductId}");
+                $"{ProductsEndpoint}/{unknownProductId}", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -423,7 +423,7 @@ public sealed class CatalogServiceIntegrationTests(
         using HttpResponseMessage response =
             await _client.PostAsJsonAsync(
                 ProductsEndpoint,
-                request);
+                request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Created,
@@ -463,7 +463,7 @@ public sealed class CatalogServiceIntegrationTests(
         HttpResponseMessage response)
     {
         T? value =
-            await response.Content.ReadFromJsonAsync<T>();
+            await response.Content.ReadFromJsonAsync<T>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<T>(value);
     }

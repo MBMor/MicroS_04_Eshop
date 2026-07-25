@@ -16,7 +16,7 @@ public sealed class NotificationTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void Create_ValidData_CreatesUnreadNotification()
+    public void CreateValidDataCreatesUnreadNotification()
     {
         Guid notificationId = Guid.NewGuid();
         Guid orderId = Guid.NewGuid();
@@ -56,7 +56,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_EmptyId_Throws()
+    public void CreateEmptyIdThrows()
     {
         Assert.Throws<ArgumentException>(
             () => Notification.Create(
@@ -70,7 +70,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_UnsupportedType_Throws()
+    public void CreateUnsupportedTypeThrows()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
             () => Notification.Create(
@@ -84,7 +84,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_EmptyOptionalOrderId_Throws()
+    public void CreateEmptyOptionalOrderIdThrows()
     {
         Assert.Throws<ArgumentException>(
             () => Notification.Create(
@@ -98,7 +98,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_BlankTitle_Throws()
+    public void CreateBlankTitleThrows()
     {
         Assert.Throws<ArgumentException>(
             () => Notification.Create(
@@ -112,7 +112,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_TitleAboveMaximumLength_Throws()
+    public void CreateTitleAboveMaximumLengthThrows()
     {
         string title = new(
             'a',
@@ -130,7 +130,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void Create_MessageAboveMaximumLength_Throws()
+    public void CreateMessageAboveMaximumLengthThrows()
     {
         string message = new(
             'a',
@@ -148,7 +148,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void MarkAsRead_UnreadNotification_MarksNotificationRead()
+    public void MarkAsReadUnreadNotificationMarksNotificationRead()
     {
         Notification notification =
             CreateNotification();
@@ -165,7 +165,7 @@ public sealed class NotificationTests
     }
 
     [Fact]
-    public void MarkAsRead_AlreadyReadNotification_IsIdempotent()
+    public void MarkAsReadAlreadyReadNotificationIsIdempotent()
     {
         Notification notification =
             CreateNotification();

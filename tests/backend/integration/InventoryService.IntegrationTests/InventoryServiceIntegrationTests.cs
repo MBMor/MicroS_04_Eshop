@@ -32,10 +32,10 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Health_AnonymousRequest_ReturnsOk()
+        HealthAnonymousRequestReturnsOk()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync("/health");
+            await fixture.Client.GetAsync("/health", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -44,10 +44,10 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Inventory_AnonymousRequest_ReturnsUnauthorized()
+        InventoryAnonymousRequestReturnsUnauthorized()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync(InventoryPath);
+            await fixture.Client.GetAsync(InventoryPath, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -56,7 +56,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Inventory_CustomerUser_ReturnsForbidden()
+        InventoryCustomerUserReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -66,7 +66,7 @@ public sealed class InventoryServiceIntegrationTests(
                 EshopRoles.Customer);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -75,7 +75,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateInventoryItem_SupportUser_PersistsNormalizedItem()
+        CreateInventoryItemSupportUserPersistsNormalizedItem()
     {
         Guid productId =
             Guid.NewGuid();
@@ -101,7 +101,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? created =
             await response.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.NotEqual(Guid.Empty, created.Id);
@@ -131,7 +131,7 @@ public sealed class InventoryServiceIntegrationTests(
         InventoryItem persisted =
             await dbContext.InventoryItems
                 .AsNoTracking()
-                .SingleAsync();
+                .SingleAsync(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(created.Id, persisted.Id);
         Assert.Equal(productId, persisted.ProductId);
@@ -143,7 +143,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetInventoryItemByProductId_ReturnsPersistedItem()
+        GetInventoryItemByProductIdReturnsPersistedItem()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync();
@@ -160,7 +160,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? item =
             await response.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(item);
         Assert.Equal(created.Id, item.Id);
@@ -170,7 +170,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetInventoryItems_DefaultQueryExcludesInactiveItems()
+        GetInventoryItemsDefaultQueryExcludesInactiveItems()
     {
         InventoryItemResponse activeItem =
             await CreateInventoryItemAsync(
@@ -190,7 +190,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse[]? activeItems =
             await defaultResponse.Content
-                .ReadFromJsonAsync<InventoryItemResponse[]>();
+                .ReadFromJsonAsync<InventoryItemResponse[]>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -214,7 +214,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse[]? allItems =
             await allResponse.Content
-                .ReadFromJsonAsync<InventoryItemResponse[]>();
+                .ReadFromJsonAsync<InventoryItemResponse[]>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -233,7 +233,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateInventoryItem_DuplicateProductId_ReturnsConflict()
+        CreateInventoryItemDuplicateProductIdReturnsConflict()
     {
         Guid productId =
             Guid.NewGuid();
@@ -263,7 +263,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         ProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ProblemDetails>();
+                .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
 
@@ -274,7 +274,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        CreateInventoryItem_DuplicateNormalizedSku_ReturnsConflict()
+        CreateInventoryItemDuplicateNormalizedSkuReturnsConflict()
     {
         await CreateInventoryItemAsync(
             sku: "DUPLICATE-SKU");
@@ -301,7 +301,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        UpdateInventoryItem_ValidRequest_PersistsChanges()
+        UpdateInventoryItemValidRequestPersistsChanges()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync(
@@ -327,7 +327,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? updated =
             await updateResponse.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(updated);
         Assert.Equal(created.Id, updated.Id);
@@ -347,7 +347,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? persisted =
             await getResponse.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(persisted);
         Assert.Equal(updated.Id, persisted.Id);
@@ -370,7 +370,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AdjustInventoryStock_ValidDelta_PersistsNewQuantity()
+        AdjustInventoryStockValidDeltaPersistsNewQuantity()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync(
@@ -394,7 +394,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? adjusted =
             await response.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(adjusted);
         Assert.Equal(15, adjusted.OnHandQuantity);
@@ -405,7 +405,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AdjustInventoryStock_ZeroDelta_ReturnsValidationProblem()
+        AdjustInventoryStockZeroDeltaReturnsValidationProblem()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync();
@@ -428,7 +428,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         ValidationProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ValidationProblemDetails>();
+                .ReadFromJsonAsync<ValidationProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
 
@@ -439,7 +439,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AdjustInventoryStock_BelowReservedQuantity_ReturnsBadRequestWithoutMutation()
+        AdjustInventoryStockBelowReservedQuantityReturnsBadRequestWithoutMutation()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync(
@@ -458,14 +458,15 @@ public sealed class InventoryServiceIntegrationTests(
                 await dbContext.InventoryItems
                     .SingleAsync(
                         candidate =>
-                            candidate.Id == created.Id);
+                            candidate.Id == created.Id,
+                        Xunit.TestContext.Current.CancellationToken);
 
             Assert.True(
                 item.TryReserve(
                     quantity: 6,
                     DateTimeOffset.UtcNow));
 
-            await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken);
         }
 
         AdjustInventoryStockRequest requestBody = new()
@@ -486,7 +487,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         ProblemDetails? problem =
             await response.Content
-                .ReadFromJsonAsync<ProblemDetails>();
+                .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
 
@@ -507,7 +508,8 @@ public sealed class InventoryServiceIntegrationTests(
                 .AsNoTracking()
                 .SingleAsync(
                     candidate =>
-                        candidate.Id == created.Id);
+                        candidate.Id == created.Id,
+                    Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(10, persisted.OnHandQuantity);
         Assert.Equal(6, persisted.ReservedQuantity);
@@ -516,7 +518,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        MissingInventoryItem_OperationsReturnNotFound()
+        MissingInventoryItemOperationsReturnNotFound()
     {
         Guid missingId =
             Guid.NewGuid();
@@ -568,7 +570,7 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
-        InventoryRowVersion_ConcurrentUpdatesRejectStaleWrite()
+        InventoryRowVersionConcurrentUpdatesRejectStaleWrite()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync(
@@ -591,12 +593,14 @@ public sealed class InventoryServiceIntegrationTests(
         InventoryItem firstEntity =
             await firstContext.InventoryItems
                 .SingleAsync(
-                    item => item.Id == created.Id);
+                    item => item.Id == created.Id,
+                Xunit.TestContext.Current.CancellationToken);
 
         InventoryItem secondEntity =
             await secondContext.InventoryItems
                 .SingleAsync(
-                    item => item.Id == created.Id);
+                    item => item.Id == created.Id,
+                Xunit.TestContext.Current.CancellationToken);
 
         firstEntity.AdjustOnHandQuantity(
             quantityDelta: 1,
@@ -606,10 +610,10 @@ public sealed class InventoryServiceIntegrationTests(
             quantityDelta: 1,
             DateTimeOffset.UtcNow);
 
-        await firstContext.SaveChangesAsync();
+        await firstContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
-            () => secondContext.SaveChangesAsync());
+            () => secondContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken));
 
         await using AsyncServiceScope verificationScope =
             fixture.Factory.Services.CreateAsyncScope();
@@ -622,7 +626,8 @@ public sealed class InventoryServiceIntegrationTests(
             await verificationContext.InventoryItems
                 .AsNoTracking()
                 .SingleAsync(
-                    item => item.Id == created.Id);
+                    item => item.Id == created.Id,
+                Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(11, persisted.OnHandQuantity);
     }
@@ -662,7 +667,7 @@ public sealed class InventoryServiceIntegrationTests(
 
         InventoryItemResponse? created =
             await response.Content
-                .ReadFromJsonAsync<InventoryItemResponse>();
+                .ReadFromJsonAsync<InventoryItemResponse>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<InventoryItemResponse>(
             created);
@@ -681,7 +686,7 @@ public sealed class InventoryServiceIntegrationTests(
                 CreateSubject(role),
                 role);
 
-        return await fixture.Client.SendAsync(request);
+        return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private async Task<HttpResponseMessage>
@@ -701,7 +706,7 @@ public sealed class InventoryServiceIntegrationTests(
         request.Content =
             JsonContent.Create(body);
 
-        return await fixture.Client.SendAsync(request);
+        return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private static HttpRequestMessage

@@ -11,22 +11,25 @@ public sealed class GatewayRateLimitingTests
 {
     [Fact]
     public async Task
-        Catalog_AnonymousClientExceedsLimit_ReturnsTooManyRequests()
+        CatalogAnonymousClientExceedsLimitReturnsTooManyRequests()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
 
         using HttpResponseMessage firstResponse =
             await host.Client.GetAsync(
-                "/api/v1/products");
+                "/api/v1/products",
+                TestContext.Current.CancellationToken);
 
         using HttpResponseMessage secondResponse =
             await host.Client.GetAsync(
-                "/api/v1/products");
+                "/api/v1/products",
+                TestContext.Current.CancellationToken);
 
         using HttpResponseMessage rejectedResponse =
             await host.Client.GetAsync(
-                "/api/v1/products");
+                "/api/v1/products",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -42,7 +45,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        Basket_SameCustomerExceedsLimit_ReturnsTooManyRequests()
+        BasketSameCustomerExceedsLimitReturnsTooManyRequests()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -85,7 +88,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        Checkout_SameCustomerExceedsLimit_ReturnsTooManyRequests()
+        CheckoutSameCustomerExceedsLimitReturnsTooManyRequests()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -116,7 +119,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        Checkout_DifferentCustomersHaveIndependentLimits()
+        CheckoutDifferentCustomersHaveIndependentLimits()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -148,7 +151,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        OperationalEndpoint_SameUserExceedsLimit_ReturnsTooManyRequests()
+        OperationalEndpointSameUserExceedsLimitReturnsTooManyRequests()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -179,7 +182,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        HealthEndpoint_IsNotRateLimited()
+        HealthEndpointIsNotRateLimited()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -187,7 +190,9 @@ public sealed class GatewayRateLimitingTests
         for (int attempt = 0; attempt < 10; attempt++)
         {
             using HttpResponseMessage response =
-                await host.Client.GetAsync("/health");
+                await host.Client.GetAsync(
+                    "/health",
+                    TestContext.Current.CancellationToken);
 
             Assert.Equal(
                 HttpStatusCode.OK,
@@ -197,7 +202,7 @@ public sealed class GatewayRateLimitingTests
 
     [Fact]
     public async Task
-        CrossOriginPreflight_DoesNotGrantCorsAccess()
+        CrossOriginPreflightDoesNotGrantCorsAccess()
     {
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
@@ -215,7 +220,9 @@ public sealed class GatewayRateLimitingTests
             "GET");
 
         using HttpResponseMessage response =
-            await host.Client.SendAsync(request);
+            await host.Client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
 
         Assert.False(
             response.Headers.Contains(
@@ -241,7 +248,7 @@ public sealed class GatewayRateLimitingTests
             TestAuthenticationHandler.RolesHeaderName,
             string.Join(',', roles));
 
-        return await client.SendAsync(request);
+        return await client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private static async Task AssertRateLimitedAsync(
@@ -259,7 +266,7 @@ public sealed class GatewayRateLimitingTests
             response.Content.Headers.ContentType?.MediaType);
 
         string content =
-            await response.Content.ReadAsStringAsync();
+            await response.Content.ReadAsStringAsync(Xunit.TestContext.Current.CancellationToken);
 
         using JsonDocument problem =
             JsonDocument.Parse(content);

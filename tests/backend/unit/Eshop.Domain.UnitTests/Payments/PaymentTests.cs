@@ -16,7 +16,7 @@ public sealed class PaymentTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void CreatePending_ValidData_NormalizesValues()
+    public void CreatePendingValidDataNormalizesValues()
     {
         Guid paymentId = Guid.NewGuid();
         Guid orderId = Guid.NewGuid();
@@ -43,7 +43,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void CreatePending_NonPositiveAmount_Throws()
+    public void CreatePendingNonPositiveAmountThrows()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
             () => Payment.CreatePending(
@@ -57,7 +57,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void Authorize_PendingPayment_MarksPaymentAuthorized()
+    public void AuthorizePendingPaymentMarksPaymentAuthorized()
     {
         Payment payment = CreatePayment();
 
@@ -78,7 +78,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void Fail_PendingPayment_NormalizesFailureReason()
+    public void FailPendingPaymentNormalizesFailureReason()
     {
         Payment payment = CreatePayment();
 
@@ -103,7 +103,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void Fail_BlankReason_ThrowsWithoutMutation()
+    public void FailBlankReasonThrowsWithoutMutation()
     {
         Payment payment = CreatePayment();
 
@@ -121,7 +121,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void Authorize_AlreadyAuthorizedPayment_Throws()
+    public void AuthorizeAlreadyAuthorizedPaymentThrows()
     {
         Payment payment = CreatePayment();
 
@@ -142,7 +142,7 @@ public sealed class PaymentTests
     }
 
     [Fact]
-    public void Fail_AuthorizedPayment_ThrowsWithoutMutation()
+    public void FailAuthorizedPaymentThrowsWithoutMutation()
     {
         Payment payment = CreatePayment();
 

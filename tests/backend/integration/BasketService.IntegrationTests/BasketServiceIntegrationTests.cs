@@ -19,10 +19,10 @@ public sealed class BasketServiceIntegrationTests(
 {
     [Fact]
     public async Task
-        Health_AnonymousRequest_ReturnsOk()
+        HealthAnonymousRequestReturnsOk()
     {
         using HttpResponseMessage response =
-            await fixture.Client.GetAsync("/health");
+            await fixture.Client.GetAsync("/health", TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -31,11 +31,12 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Basket_AnonymousRequest_ReturnsUnauthorized()
+        BasketAnonymousRequestReturnsUnauthorized()
     {
         using HttpResponseMessage response =
             await fixture.Client.GetAsync(
-                "/api/v1/basket");
+                "/api/v1/basket",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -44,7 +45,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Basket_SupportUser_ReturnsForbidden()
+        BasketSupportUserReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -54,7 +55,7 @@ public sealed class BasketServiceIntegrationTests(
                 EshopRoles.Support);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -63,7 +64,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetBasket_NewCustomer_ReturnsEmptyBasket()
+        GetBasketNewCustomerReturnsEmptyBasket()
     {
         string subject =
             CreateSubject("empty");
@@ -75,7 +76,7 @@ public sealed class BasketServiceIntegrationTests(
                 subject);
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -83,7 +84,7 @@ public sealed class BasketServiceIntegrationTests(
 
         BasketResponse? basket =
             await response.Content
-                .ReadFromJsonAsync<BasketResponse>();
+                .ReadFromJsonAsync<BasketResponse>(TestContext.Current.CancellationToken);
 
         Assert.NotNull(basket);
         Assert.Empty(basket.Items);
@@ -101,7 +102,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AddItem_ActiveProduct_PersistsInRedisAndIsolatesCustomers()
+        AddItemActiveProductPersistsInRedisAndIsolatesCustomers()
     {
         CatalogProductSnapshot product =
             fixture.CatalogClient.RegisterProduct();
@@ -126,7 +127,7 @@ public sealed class BasketServiceIntegrationTests(
             });
 
         using HttpResponseMessage addResponse =
-            await fixture.Client.SendAsync(addRequest);
+            await fixture.Client.SendAsync(addRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -140,7 +141,8 @@ public sealed class BasketServiceIntegrationTests(
 
         using HttpResponseMessage firstGetResponse =
             await fixture.Client.SendAsync(
-                firstGetRequest);
+                firstGetRequest,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -172,7 +174,8 @@ public sealed class BasketServiceIntegrationTests(
 
         using HttpResponseMessage secondGetResponse =
             await fixture.Client.SendAsync(
-                secondGetRequest);
+                secondGetRequest,
+                TestContext.Current.CancellationToken);
 
         using JsonDocument secondBasket =
             await ReadJsonAsync(secondGetResponse);
@@ -186,7 +189,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AddItem_UnknownProduct_ReturnsNotFound()
+        AddItemUnknownProductReturnsNotFound()
     {
         using HttpRequestMessage request =
             CreateCustomerRequest(
@@ -202,7 +205,7 @@ public sealed class BasketServiceIntegrationTests(
             });
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -211,7 +214,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        AddItem_InactiveProduct_ReturnsBadRequest()
+        AddItemInactiveProductReturnsBadRequest()
     {
         CatalogProductSnapshot product =
             fixture.CatalogClient.RegisterProduct(
@@ -231,7 +234,7 @@ public sealed class BasketServiceIntegrationTests(
             });
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.BadRequest,
@@ -240,7 +243,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        BasketMutationFlow_UpdateRemoveAndClear_PersistsChanges()
+        BasketMutationFlowUpdateRemoveAndClearPersistsChanges()
     {
         CatalogProductSnapshot firstProduct =
             fixture.CatalogClient.RegisterProduct(
@@ -277,7 +280,7 @@ public sealed class BasketServiceIntegrationTests(
             });
 
         using HttpResponseMessage updateResponse =
-            await fixture.Client.SendAsync(updateRequest);
+            await fixture.Client.SendAsync(updateRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -306,7 +309,7 @@ public sealed class BasketServiceIntegrationTests(
                 subject);
 
         using HttpResponseMessage removeResponse =
-            await fixture.Client.SendAsync(removeRequest);
+            await fixture.Client.SendAsync(removeRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NoContent,
@@ -320,7 +323,8 @@ public sealed class BasketServiceIntegrationTests(
 
         using HttpResponseMessage getAfterRemoveResponse =
             await fixture.Client.SendAsync(
-                getAfterRemoveRequest);
+                getAfterRemoveRequest,
+                TestContext.Current.CancellationToken);
 
         using JsonDocument basketAfterRemove =
             await ReadJsonAsync(getAfterRemoveResponse);
@@ -343,7 +347,7 @@ public sealed class BasketServiceIntegrationTests(
                 subject);
 
         using HttpResponseMessage clearResponse =
-            await fixture.Client.SendAsync(clearRequest);
+            await fixture.Client.SendAsync(clearRequest, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NoContent,
@@ -357,7 +361,8 @@ public sealed class BasketServiceIntegrationTests(
 
         using HttpResponseMessage getAfterClearResponse =
             await fixture.Client.SendAsync(
-                getAfterClearRequest);
+                getAfterClearRequest,
+                TestContext.Current.CancellationToken);
 
         using JsonDocument basketAfterClear =
             await ReadJsonAsync(getAfterClearResponse);
@@ -371,7 +376,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        RedisRepository_SetAndGet_RoundTripsSerializedBasket()
+        RedisRepositorySetAndGetRoundTripsSerializedBasket()
     {
         string customerId =
             CreateSubject("repository-roundtrip");
@@ -441,7 +446,7 @@ public sealed class BasketServiceIntegrationTests(
 
     [Fact]
     public async Task
-        RedisRepository_Set_AssignsExpectedAbsoluteExpiration()
+        RedisRepositorySetAssignsExpectedAbsoluteExpiration()
     {
         string customerId =
             CreateSubject("repository-ttl");
@@ -505,7 +510,7 @@ public sealed class BasketServiceIntegrationTests(
             });
 
         using HttpResponseMessage response =
-            await fixture.Client.SendAsync(request);
+            await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -551,7 +556,7 @@ public sealed class BasketServiceIntegrationTests(
             HttpResponseMessage response)
     {
         string content =
-            await response.Content.ReadAsStringAsync();
+            await response.Content.ReadAsStringAsync(Xunit.TestContext.Current.CancellationToken);
 
         return JsonDocument.Parse(content);
     }

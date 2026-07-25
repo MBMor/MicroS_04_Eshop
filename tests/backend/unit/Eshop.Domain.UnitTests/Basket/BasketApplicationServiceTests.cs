@@ -13,7 +13,7 @@ public sealed class BasketApplicationServiceTests
     private const string CustomerId = "customer-1";
 
     [Fact]
-    public async Task AddItem_ProductNotFound_ReturnsNotFound()
+    public async Task AddItemProductNotFoundReturnsNotFound()
     {
         InMemoryBasketRepository repository = new();
 
@@ -48,7 +48,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task AddItem_InactiveProduct_ReturnsValidationFailure()
+    public async Task AddItemInactiveProductReturnsValidationFailure()
     {
         InMemoryBasketRepository repository = new();
 
@@ -82,7 +82,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task AddItem_ActiveProduct_PersistsUpdatedBasket()
+    public async Task AddItemActiveProductPersistsUpdatedBasket()
     {
         InMemoryBasketRepository repository = new();
 
@@ -130,7 +130,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task AddItem_InvalidQuantity_DoesNotPersistBasket()
+    public async Task AddItemInvalidQuantityDoesNotPersistBasket()
     {
         InMemoryBasketRepository repository = new();
 
@@ -164,7 +164,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task UpdateQuantity_MissingItem_ReturnsNotFound()
+    public async Task UpdateQuantityMissingItemReturnsNotFound()
     {
         InMemoryBasketRepository repository = new();
 
@@ -192,7 +192,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task RemoveItem_LastItem_DeletesBasket()
+    public async Task RemoveItemLastItemDeletesBasket()
     {
         Guid productId = Guid.NewGuid();
 
@@ -227,7 +227,7 @@ public sealed class BasketApplicationServiceTests
     }
 
     [Fact]
-    public async Task Clear_ExistingBasket_DeletesBasket()
+    public async Task ClearExistingBasketDeletesBasket()
     {
         InMemoryBasketRepository repository = new()
         {

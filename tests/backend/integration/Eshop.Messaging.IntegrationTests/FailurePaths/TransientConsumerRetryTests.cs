@@ -29,7 +29,7 @@ public sealed class TransientConsumerRetryTests(
         TimeSpan.FromSeconds(15);
 
     [Fact]
-    public async Task StockReservationFailedConsumer_TransientFailure_RequeuesAndProcessesMessage()
+    public async Task StockReservationFailedConsumerTransientFailureRequeuesAndProcessesMessage()
     {
         Guid orderId =
             Guid.NewGuid();
@@ -85,8 +85,8 @@ public sealed class TransientConsumerRetryTests(
                 TraceState: null,
                 Payload: integrationEvent);
 
-        IMessageSerializer serializer =
-            new SystemTextJsonMessageSerializer();
+        SystemTextJsonMessageSerializer serializer =
+            new();
 
         byte[] messageBody =
             serializer.Serialize(

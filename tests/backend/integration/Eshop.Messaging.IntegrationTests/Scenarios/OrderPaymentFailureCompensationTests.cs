@@ -52,7 +52,7 @@ public sealed class OrderPaymentFailureCompensationTests(
         TimeSpan.FromSeconds(30);
 
     [Fact]
-    public async Task CreateOrder_WhenPaymentFails_ReleasesStockAndCancelsOrder()
+    public async Task CreateOrderWhenPaymentFailsReleasesStockAndCancelsOrder()
     {
         Guid productId =
             Guid.NewGuid();

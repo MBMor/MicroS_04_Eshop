@@ -6,11 +6,15 @@ using PaymentsService.Data;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 
-public sealed class PaymentsServiceFactory(
-    MessagingSystemFixture fixture,
-    bool suppressHostedServices = false)
-    : EshopServiceFactory<
-        PaymentsServiceAssemblyMarker>(
+public sealed class PaymentsServiceFactory
+    : EshopServiceFactory<PaymentsServiceAssemblyMarker>
+{
+    private readonly MessagingSystemFixture _fixture;
+
+    public PaymentsServiceFactory(
+        MessagingSystemFixture fixture,
+        bool suppressHostedServices = false)
+        : base(
             fixture,
             connectionStringName: "PaymentsDb",
             connectionString:
@@ -18,7 +22,10 @@ public sealed class PaymentsServiceFactory(
             clientProvidedName:
                 "payments-service-integration-tests",
             suppressHostedServices)
-{
+    {
+        _fixture = fixture;
+    }
+
     protected override void ConfigureAdditionalServices(
         IServiceCollection services)
     {
@@ -31,7 +38,7 @@ public sealed class PaymentsServiceFactory(
             options =>
             {
                 options.UseNpgsql(
-                    fixture.PaymentsConnectionString,
+                    _fixture.PaymentsConnectionString,
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly(

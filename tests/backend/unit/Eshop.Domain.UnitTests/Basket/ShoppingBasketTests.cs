@@ -18,7 +18,7 @@ public sealed class ShoppingBasketTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void Empty_ValidCustomer_CreatesEmptyBasket()
+    public void EmptyValidCustomerCreatesEmptyBasket()
     {
         ShoppingBasket basket = ShoppingBasket.Empty(
             "customer-1",
@@ -30,7 +30,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void Empty_BlankCustomer_Throws()
+    public void EmptyBlankCustomerThrows()
     {
         Assert.Throws<ArgumentException>(
             () => ShoppingBasket.Empty(
@@ -39,7 +39,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryAddOrIncrease_NewItem_AddsItem()
+    public void TryAddOrIncreaseNewItemAddsItem()
     {
         ShoppingBasket basket = CreateEmptyBasket();
 
@@ -65,7 +65,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryAddOrIncrease_ExistingItem_IncreasesQuantity()
+    public void TryAddOrIncreaseExistingItemIncreasesQuantity()
     {
         Guid productId = Guid.NewGuid();
 
@@ -106,7 +106,7 @@ public sealed class ShoppingBasketTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void TryAddOrIncrease_NonPositiveQuantity_FailsWithoutMutation(
+    public void TryAddOrIncreaseNonPositiveQuantityFailsWithoutMutation(
         int quantity)
     {
         ShoppingBasket basket = CreateEmptyBasket();
@@ -129,7 +129,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryAddOrIncrease_QuantityAboveMaximum_Fails()
+    public void TryAddOrIncreaseQuantityAboveMaximumFails()
     {
         ShoppingBasket basket = CreateEmptyBasket();
 
@@ -149,7 +149,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryUpdateQuantity_ExistingItem_UpdatesQuantity()
+    public void TryUpdateQuantityExistingItemUpdatesQuantity()
     {
         Guid productId = Guid.NewGuid();
 
@@ -175,7 +175,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryUpdateQuantity_MissingItem_Fails()
+    public void TryUpdateQuantityMissingItemFails()
     {
         ShoppingBasket basket = CreateEmptyBasket();
 
@@ -196,7 +196,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryUpdateQuantity_InvalidQuantity_FailsWithoutMutation()
+    public void TryUpdateQuantityInvalidQuantityFailsWithoutMutation()
     {
         Guid productId = Guid.NewGuid();
 
@@ -225,7 +225,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryRemove_ExistingItem_RemovesItem()
+    public void TryRemoveExistingItemRemovesItem()
     {
         Guid productId = Guid.NewGuid();
 
@@ -244,7 +244,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void TryRemove_MissingItem_FailsWithoutMutation()
+    public void TryRemoveMissingItemFailsWithoutMutation()
     {
         ShoppingBasket basket = CreateEmptyBasket();
 
@@ -258,7 +258,7 @@ public sealed class ShoppingBasketTests
     }
 
     [Fact]
-    public void BasketItem_LineTotal_MultipliesPriceAndQuantity()
+    public void BasketItemLineTotalMultipliesPriceAndQuantity()
     {
         BasketItem item = new(
             Guid.NewGuid(),

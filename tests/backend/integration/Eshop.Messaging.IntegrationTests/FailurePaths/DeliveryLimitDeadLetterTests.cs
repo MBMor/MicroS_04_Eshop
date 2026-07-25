@@ -6,10 +6,15 @@ using Xunit;
 namespace Eshop.Messaging.IntegrationTests.FailurePaths;
 
 [Collection(MessagingTestCollections.System)]
-public sealed class DeliveryLimitDeadLetterTests(
-    MessagingSystemFixture fixture)
-    : MessagingIntegrationTestBase(fixture)
+public sealed class DeliveryLimitDeadLetterTests : MessagingIntegrationTestBase
 {
+    private readonly MessagingSystemFixture _fixture;
+
+    public DeliveryLimitDeadLetterTests(MessagingSystemFixture fixture) : base(fixture)
+    {
+        _fixture = fixture;
+    }
+
     private static readonly TimeSpan ScenarioTimeout =
         TimeSpan.FromSeconds(15);
 
@@ -17,7 +22,7 @@ public sealed class DeliveryLimitDeadLetterTests(
         RabbitMqTopologySettings.DeliveryLimit + 3;
 
     [Fact]
-    public async Task QuorumQueue_DeliveryLimitExceeded_DeadLettersMessage()
+    public async Task QuorumQueueDeliveryLimitExceededDeadLettersMessage()
     {
         string testId =
             Guid.NewGuid().ToString("N");
@@ -40,13 +45,13 @@ public sealed class DeliveryLimitDeadLetterTests(
                 """);
 
         RabbitMqDeliveryLimitTestHarness harness =
-            new(fixture);
+            new(_fixture);
 
         RabbitMqTestClient rabbitMqClient =
-            new(fixture);
+            new(_fixture);
 
         RabbitMqTestAdmin rabbitMqAdmin =
-            new(fixture);
+            new(_fixture);
 
         await harness.DeclareAsync(
             queueName,

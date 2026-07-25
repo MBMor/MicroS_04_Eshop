@@ -16,7 +16,7 @@ public sealed class ProductTests
             offset: TimeSpan.Zero);
 
     [Fact]
-    public void Create_ValidData_NormalizesValues()
+    public void CreateValidDataNormalizesValues()
     {
         Guid productId = Guid.NewGuid();
 
@@ -44,7 +44,7 @@ public sealed class ProductTests
     }
 
     [Fact]
-    public void Create_EmptyId_Throws()
+    public void CreateEmptyIdThrows()
     {
         Assert.Throws<ArgumentException>(
             () => Product.Create(
@@ -62,7 +62,7 @@ public sealed class ProductTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Create_NonPositivePrice_Throws(
+    public void CreateNonPositivePriceThrows(
         int priceAmount)
     {
         Assert.Throws<ArgumentOutOfRangeException>(
@@ -79,7 +79,7 @@ public sealed class ProductTests
     }
 
     [Fact]
-    public void Update_ValidData_UpdatesAndNormalizesValues()
+    public void UpdateValidDataUpdatesAndNormalizesValues()
     {
         Product product = CreateProduct();
 
@@ -113,7 +113,7 @@ public sealed class ProductTests
     }
 
     [Fact]
-    public void Update_InvalidSku_ThrowsWithoutPartialMutation()
+    public void UpdateInvalidSkuThrowsWithoutPartialMutation()
     {
         Product product = CreateProduct();
 
@@ -139,7 +139,7 @@ public sealed class ProductTests
     }
 
     [Fact]
-    public void Deactivate_ActiveProduct_DeactivatesProduct()
+    public void DeactivateActiveProductDeactivatesProduct()
     {
         Product product = CreateProduct();
 

@@ -18,7 +18,7 @@ public sealed class PermanentBusinessFailureDeadLetterTests(
         TimeSpan.FromSeconds(15);
 
     [Fact]
-    public async Task StockReservedConsumer_UnknownOrder_DeadLettersMessageWithoutRetry()
+    public async Task StockReservedConsumerUnknownOrderDeadLettersMessageWithoutRetry()
     {
         Guid eventId =
             Guid.NewGuid();
@@ -57,8 +57,8 @@ public sealed class PermanentBusinessFailureDeadLetterTests(
                 TraceState: null,
                 Payload: integrationEvent);
 
-        IMessageSerializer serializer =
-            new SystemTextJsonMessageSerializer();
+        SystemTextJsonMessageSerializer serializer =
+            new();
 
         byte[] messageBody =
             serializer.Serialize(envelope);

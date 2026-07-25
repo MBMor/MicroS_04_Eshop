@@ -14,10 +14,12 @@ public sealed class GatewayAuthorizationTests(
         fixture.Client;
 
     [Fact]
-    public async Task Root_Anonymous_ReturnsOk()
+    public async Task RootAnonymousReturnsOk()
     {
         using HttpResponseMessage response =
-            await _client.GetAsync("/");
+            await _client.GetAsync(
+                "/",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -25,11 +27,12 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Catalog_Anonymous_ForwardsRequest()
+    public async Task CatalogAnonymousForwardsRequest()
     {
         using HttpResponseMessage response =
             await _client.GetAsync(
-                "/api/v1/products");
+                "/api/v1/products",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -37,7 +40,8 @@ public sealed class GatewayAuthorizationTests(
 
         ForwardedResponse? forwardedResponse =
             await response.Content
-                .ReadFromJsonAsync<ForwardedResponse>();
+                .ReadFromJsonAsync<ForwardedResponse>(
+                    TestContext.Current.CancellationToken);
 
         Assert.NotNull(forwardedResponse);
 
@@ -51,11 +55,12 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task AuthMe_Anonymous_ReturnsUnauthorized()
+    public async Task AuthMeAnonymousReturnsUnauthorized()
     {
         using HttpResponseMessage response =
             await _client.GetAsync(
-                "/api/v1/auth/me");
+                "/api/v1/auth/me",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -63,7 +68,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task AuthMe_Authenticated_ReturnsClaims()
+    public async Task AuthMeAuthenticatedReturnsClaims()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -73,7 +78,9 @@ public sealed class GatewayAuthorizationTests(
                 EshopRoles.Customer);
 
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -82,7 +89,8 @@ public sealed class GatewayAuthorizationTests(
         AuthenticatedUserResponse? user =
             await response.Content
                 .ReadFromJsonAsync<
-                    AuthenticatedUserResponse>();
+                    AuthenticatedUserResponse>(
+                    TestContext.Current.CancellationToken);
 
         Assert.NotNull(user);
 
@@ -104,11 +112,12 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Basket_Anonymous_ReturnsUnauthorized()
+    public async Task BasketAnonymousReturnsUnauthorized()
     {
         using HttpResponseMessage response =
             await _client.GetAsync(
-                "/api/v1/basket");
+                "/api/v1/basket",
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -116,7 +125,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Basket_Customer_ForwardsRequest()
+    public async Task BasketCustomerForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -131,7 +140,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Orders_Customer_ForwardsRequest()
+    public async Task OrdersCustomerForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -146,7 +155,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Notifications_Customer_ForwardsRequest()
+    public async Task NotificationsCustomerForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -161,7 +170,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Basket_Support_ReturnsForbidden()
+    public async Task BasketSupportReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -171,7 +180,9 @@ public sealed class GatewayAuthorizationTests(
                 EshopRoles.Support);
 
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -179,7 +190,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Orders_AdminWithoutCustomerRole_ReturnsForbidden()
+    public async Task OrdersAdminWithoutCustomerRoleReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -189,7 +200,9 @@ public sealed class GatewayAuthorizationTests(
                 EshopRoles.Admin);
 
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -197,7 +210,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Inventory_Customer_ReturnsForbidden()
+    public async Task InventoryCustomerReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -207,7 +220,9 @@ public sealed class GatewayAuthorizationTests(
                 EshopRoles.Customer);
 
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -215,7 +230,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Inventory_Support_ForwardsRequest()
+    public async Task InventorySupportForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -230,7 +245,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Inventory_Admin_ForwardsRequest()
+    public async Task InventoryAdminForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -245,7 +260,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Payments_Support_ForwardsRequest()
+    public async Task PaymentsSupportForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -260,7 +275,7 @@ public sealed class GatewayAuthorizationTests(
     }
 
     [Fact]
-    public async Task Payments_Admin_ForwardsRequest()
+    public async Task PaymentsAdminForwardsRequest()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -279,7 +294,7 @@ public sealed class GatewayAuthorizationTests(
         string expectedPath)
     {
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -287,7 +302,7 @@ public sealed class GatewayAuthorizationTests(
 
         ForwardedResponse? forwardedResponse =
             await response.Content
-                .ReadFromJsonAsync<ForwardedResponse>();
+                .ReadFromJsonAsync<ForwardedResponse>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(forwardedResponse);
 

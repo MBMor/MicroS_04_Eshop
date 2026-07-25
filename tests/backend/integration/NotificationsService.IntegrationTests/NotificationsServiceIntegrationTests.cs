@@ -26,10 +26,10 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Health_AnonymousRequest_ReturnsOk()
+        HealthAnonymousRequestReturnsOk()
     {
         using HttpResponseMessage response =
-            await _client.GetAsync("/health");
+            await _client.GetAsync("/health", Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -38,11 +38,11 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Notifications_AnonymousRequest_ReturnsUnauthorized()
+        NotificationsAnonymousRequestReturnsUnauthorized()
     {
         using HttpResponseMessage response =
             await _client.GetAsync(
-                NotificationsEndpoint);
+                NotificationsEndpoint, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -51,7 +51,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        Notifications_SupportUser_ReturnsForbidden()
+        NotificationsSupportUserReturnsForbidden()
     {
         using HttpRequestMessage request =
             CreateAuthenticatedRequest(
@@ -61,7 +61,7 @@ public sealed class NotificationsServiceIntegrationTests(
                 EshopRoles.Support);
 
         using HttpResponseMessage response =
-            await _client.SendAsync(request);
+            await _client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
@@ -70,7 +70,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_NewCustomer_ReturnsEmptyCollection()
+        GetNotificationsNewCustomerReturnsEmptyCollection()
     {
         string customerId =
             CreateSubject("empty");
@@ -93,7 +93,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_ReturnsOnlyCurrentCustomerInDescendingOrder()
+        GetNotificationsReturnsOnlyCurrentCustomerInDescendingOrder()
     {
         string customerId =
             CreateSubject("owner");
@@ -155,7 +155,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_UnreadOnly_ReturnsOnlyUnreadNotifications()
+        GetNotificationsUnreadOnlyReturnsOnlyUnreadNotifications()
     {
         string customerId =
             CreateSubject("unread");
@@ -205,7 +205,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_OrderFilter_ReturnsMatchingOrder()
+        GetNotificationsOrderFilterReturnsMatchingOrder()
     {
         string customerId =
             CreateSubject("order-filter");
@@ -260,7 +260,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_LimitIsAppliedAfterDescendingOrdering()
+        GetNotificationsLimitIsAppliedAfterDescendingOrdering()
     {
         string customerId =
             CreateSubject("limit");
@@ -312,7 +312,7 @@ public sealed class NotificationsServiceIntegrationTests(
     [InlineData(0)]
     [InlineData(101)]
     public async Task
-        GetNotifications_InvalidLimit_ReturnsBadRequest(
+        GetNotificationsInvalidLimitReturnsBadRequest(
             int limit)
     {
         string customerId =
@@ -337,7 +337,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotifications_EmptyOrderId_ReturnsBadRequest()
+        GetNotificationsEmptyOrderIdReturnsBadRequest()
     {
         string customerId =
             CreateSubject("empty-order");
@@ -365,7 +365,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetUnreadCount_ReturnsOnlyCurrentCustomersUnreadCount()
+        GetUnreadCountReturnsOnlyCurrentCustomersUnreadCount()
     {
         string customerId =
             CreateSubject("unread-count");
@@ -417,7 +417,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotificationById_Owner_ReturnsPersistedNotification()
+        GetNotificationByIdOwnerReturnsPersistedNotification()
     {
         string customerId =
             CreateSubject("detail-owner");
@@ -478,7 +478,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
     [Fact]
     public async Task
-        GetNotificationById_OtherCustomer_ReturnsNotFound()
+        GetNotificationByIdOtherCustomerReturnsNotFound()
     {
         string ownerId =
             CreateSubject("detail-owner");
@@ -546,7 +546,7 @@ public sealed class NotificationsServiceIntegrationTests(
 
         dbContext.Notifications.Add(notification);
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken);
 
         return notification;
     }
@@ -563,7 +563,7 @@ public sealed class NotificationsServiceIntegrationTests(
                 customerId,
                 EshopRoles.Customer);
 
-        return await _client.SendAsync(request);
+        return await _client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
     private static HttpRequestMessage
@@ -593,7 +593,7 @@ public sealed class NotificationsServiceIntegrationTests(
     {
         T? value =
             await response.Content
-                .ReadFromJsonAsync<T>();
+                .ReadFromJsonAsync<T>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<T>(value);
     }
