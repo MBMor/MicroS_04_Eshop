@@ -1,4 +1,4 @@
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using RabbitMQ.Client;
 
 namespace Eshop.Messaging.IntegrationTests.Infrastructure;

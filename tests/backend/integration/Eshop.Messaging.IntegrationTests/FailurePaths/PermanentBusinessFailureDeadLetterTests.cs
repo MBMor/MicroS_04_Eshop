@@ -1,8 +1,8 @@
 using Eshop.Contracts.IntegrationEvents.V1;
 using Eshop.Messaging.IntegrationTests.Infrastructure;
-using Messaging.Shared.Contracts;
-using Messaging.Shared.RabbitMq;
-using Messaging.Shared.Serialization;
+using Eshop.Messaging.Contracts;
+using Eshop.Messaging.RabbitMq;
+using Eshop.Messaging.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OrdersService.Data;
 using Xunit;

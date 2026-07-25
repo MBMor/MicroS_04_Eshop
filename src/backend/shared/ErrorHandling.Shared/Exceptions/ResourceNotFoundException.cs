@@ -1,4 +1,4 @@
-namespace ErrorHandling.Shared.Exceptions;
+namespace Eshop.ErrorHandling.Exceptions;
 
 public sealed class ResourceNotFoundException(
     string message,

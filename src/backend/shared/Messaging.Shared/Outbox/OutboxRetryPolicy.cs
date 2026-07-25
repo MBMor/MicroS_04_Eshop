@@ -1,4 +1,4 @@
-namespace Messaging.Shared.Outbox;
+namespace Eshop.Messaging.Outbox;
 
 public static class OutboxRetryPolicy
 {

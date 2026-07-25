@@ -4,7 +4,7 @@ using OrdersService.Domain;
 using OrdersService.Integration;
 using OrdersService.Outbox;
 using Eshop.Contracts.IntegrationEvents.V1;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 
 namespace OrdersService.Application;
 

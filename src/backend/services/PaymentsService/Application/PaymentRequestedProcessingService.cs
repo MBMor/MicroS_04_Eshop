@@ -1,5 +1,5 @@
 using Eshop.Contracts.IntegrationEvents.V1;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using PaymentsService.Data;
 using PaymentsService.Domain;

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace Messaging.Shared.RabbitMq;
+namespace Eshop.Messaging.RabbitMq;
 
 public sealed class RabbitMqConnectionProvider(
     IOptions<RabbitMqOptions> options)

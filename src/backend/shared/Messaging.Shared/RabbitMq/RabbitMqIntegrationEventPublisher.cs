@@ -2,14 +2,14 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Text;
 using Eshop.Contracts.IntegrationEvents;
-using Messaging.Shared.Abstractions;
-using Messaging.Shared.Contracts;
-using Messaging.Shared.Serialization;
-using Messaging.Shared.Telemetry;
+using Eshop.Messaging.Abstractions;
+using Eshop.Messaging.Contracts;
+using Eshop.Messaging.Serialization;
+using Eshop.Messaging.Telemetry;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
-namespace Messaging.Shared.RabbitMq;
+namespace Eshop.Messaging.RabbitMq;
 
 public sealed class RabbitMqIntegrationEventPublisher(
     IRabbitMqConnectionProvider connectionProvider,

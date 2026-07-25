@@ -1,10 +1,10 @@
-using Messaging.Shared.RabbitMq;
-using Messaging.Shared.Serialization;
+using Eshop.Messaging.RabbitMq;
+using Eshop.Messaging.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Messaging.Shared.Abstractions;
+using Eshop.Messaging.Abstractions;
 
-namespace Messaging.Shared;
+namespace Eshop.Messaging;
 
 public static class MessagingServiceCollectionExtensions
 {

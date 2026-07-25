@@ -1,4 +1,4 @@
-namespace Messaging.Shared.Contracts;
+namespace Eshop.Messaging.Contracts;
 
 public sealed record MessageEnvelope<TMessage>(
     Guid MessageId,

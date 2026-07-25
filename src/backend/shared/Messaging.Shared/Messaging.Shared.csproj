@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Messaging.Shared</RootNamespace>
+    <RootNamespace>Eshop.Messaging</RootNamespace>
     <AssemblyName>Messaging.Shared</AssemblyName>
   </PropertyGroup>
 

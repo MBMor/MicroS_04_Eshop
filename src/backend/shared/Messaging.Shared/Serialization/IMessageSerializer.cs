@@ -1,4 +1,4 @@
-namespace Messaging.Shared.Serialization;
+namespace Eshop.Messaging.Serialization;
 
 public interface IMessageSerializer
 {

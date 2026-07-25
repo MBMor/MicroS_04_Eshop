@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using InventoryService.Data;
 using InventoryService.Domain;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Data;
 using NotificationsService.Domain;

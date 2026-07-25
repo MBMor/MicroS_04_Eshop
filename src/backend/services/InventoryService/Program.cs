@@ -1,14 +1,14 @@
 using Asp.Versioning;
-using ErrorHandling.Shared;
+using Eshop.ErrorHandling;
 using Eshop.Observability;
 using InventoryService.Application;
 using InventoryService.Data;
 using InventoryService.Messaging;
 using InventoryService.Outbox;
-using Messaging.Shared;
-using Messaging.Shared.Outbox;
+using Eshop.Messaging;
+using Eshop.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
-using OpenApi.Shared;
+using Eshop.OpenApi;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 

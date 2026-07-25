@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace Messaging.Shared.Telemetry;
+namespace Eshop.Messaging.Telemetry;
 
 public static class MessagingTelemetry
 {

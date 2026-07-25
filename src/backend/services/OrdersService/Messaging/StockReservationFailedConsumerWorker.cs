@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
-using Messaging.Shared.Contracts;
-using Messaging.Shared.RabbitMq;
-using Messaging.Shared.Serialization;
-using Messaging.Shared.Telemetry;
+using Eshop.Messaging.Contracts;
+using Eshop.Messaging.RabbitMq;
+using Eshop.Messaging.Serialization;
+using Eshop.Messaging.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OrdersService.Application;

@@ -1,13 +1,13 @@
 using Asp.Versioning;
-using ErrorHandling.Shared;
+using Eshop.ErrorHandling;
 using Eshop.Observability;
-using Messaging.Shared;
+using Eshop.Messaging;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Application;
 using NotificationsService.Data;
 using NotificationsService.Identity;
 using NotificationsService.Messaging;
-using OpenApi.Shared;
+using Eshop.OpenApi;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 

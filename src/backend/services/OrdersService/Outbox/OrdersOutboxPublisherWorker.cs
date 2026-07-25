@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Eshop.Contracts.IntegrationEvents.V1;
-using Messaging.Shared.Abstractions;
-using Messaging.Shared.Contracts;
-using Messaging.Shared.Outbox;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.Abstractions;
+using Eshop.Messaging.Contracts;
+using Eshop.Messaging.Outbox;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.Extensions.Options;
 
 namespace OrdersService.Outbox;

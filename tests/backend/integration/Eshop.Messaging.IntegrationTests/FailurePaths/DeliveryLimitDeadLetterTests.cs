@@ -1,6 +1,6 @@
 using System.Text;
 using Eshop.Messaging.IntegrationTests.Infrastructure;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Xunit;
 
 namespace Eshop.Messaging.IntegrationTests.FailurePaths;

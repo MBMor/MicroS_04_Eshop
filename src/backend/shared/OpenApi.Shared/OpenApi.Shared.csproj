@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>OpenApi.Shared</RootNamespace>
+    <RootNamespace>Eshop.OpenApi</RootNamespace>
     <AssemblyName>OpenApi.Shared</AssemblyName>
   </PropertyGroup>
 

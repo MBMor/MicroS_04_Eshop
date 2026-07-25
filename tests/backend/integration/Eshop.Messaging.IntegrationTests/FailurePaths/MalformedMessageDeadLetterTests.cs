@@ -1,6 +1,6 @@
 using System.Text;
 using Eshop.Messaging.IntegrationTests.Infrastructure;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.ObjectModel;
 using OrdersService.Data;

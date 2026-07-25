@@ -4,8 +4,8 @@ using BasketService.Data;
 using BasketService.Identity;
 using BasketService.Integration;
 using BasketService.Options;
-using ErrorHandling.Shared;
-using OpenApi.Shared;
+using Eshop.ErrorHandling;
+using Eshop.OpenApi;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 

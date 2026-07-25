@@ -1,5 +1,5 @@
 using InventoryService.Data;
-using Messaging.Shared.Outbox;
+using Eshop.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 

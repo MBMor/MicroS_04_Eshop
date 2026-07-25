@@ -1,4 +1,4 @@
-namespace Messaging.Shared.RabbitMq;
+namespace Eshop.Messaging.RabbitMq;
 
 public static class RabbitMqRoutingKeys
 {

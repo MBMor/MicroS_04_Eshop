@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Eshop.Messaging.IntegrationTests.Infrastructure;
 using Eshop.Messaging.IntegrationTests.Infrastructure.Fakes;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using OrdersService.Contracts;
 using OrdersService.Data;

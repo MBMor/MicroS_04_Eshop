@@ -1,10 +1,10 @@
 using Asp.Versioning;
-using ErrorHandling.Shared;
+using Eshop.ErrorHandling;
 using Eshop.Observability;
-using Messaging.Shared;
-using Messaging.Shared.Outbox;
+using Eshop.Messaging;
+using Eshop.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
-using OpenApi.Shared;
+using Eshop.OpenApi;
 using OrdersService.Application;
 using OrdersService.Data;
 using OrdersService.Identity;

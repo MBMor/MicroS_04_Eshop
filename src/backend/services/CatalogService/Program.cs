@@ -1,8 +1,8 @@
 using Asp.Versioning;
 using CatalogService.Data;
-using ErrorHandling.Shared;
+using Eshop.ErrorHandling;
 using Microsoft.EntityFrameworkCore;
-using OpenApi.Shared;
+using Eshop.OpenApi;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

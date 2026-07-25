@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Text;
-using Messaging.Shared.Contracts;
+using Eshop.Messaging.Contracts;
 using RabbitMQ.Client;
 
-namespace Messaging.Shared.RabbitMq;
+namespace Eshop.Messaging.RabbitMq;
 
 public static class RabbitMqTraceContext
 {

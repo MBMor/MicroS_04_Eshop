@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using Messaging.Shared.Contracts;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.Contracts;
+using Eshop.Messaging.RabbitMq;
 
-namespace Messaging.Shared.Telemetry;
+namespace Eshop.Messaging.Telemetry;
 
 public static class MessagingActivity
 {

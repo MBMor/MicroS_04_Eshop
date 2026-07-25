@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Messaging.Shared.Serialization;
+namespace Eshop.Messaging.Serialization;
 
 public sealed class SystemTextJsonMessageSerializer
     : IMessageSerializer

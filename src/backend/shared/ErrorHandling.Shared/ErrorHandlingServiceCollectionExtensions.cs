@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ErrorHandling.Shared;
+namespace Eshop.ErrorHandling;
 
 public static class ErrorHandlingServiceCollectionExtensions
 {

@@ -1,7 +1,7 @@
 using Eshop.Contracts.IntegrationEvents;
-using Messaging.Shared.Contracts;
+using Eshop.Messaging.Contracts;
 
-namespace Messaging.Shared.Abstractions;
+namespace Eshop.Messaging.Abstractions;
 
 public interface IIntegrationEventConsumer<in TEvent>
     where TEvent : IIntegrationEvent

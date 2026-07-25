@@ -1,4 +1,4 @@
-namespace Messaging.Shared.Outbox;
+namespace Eshop.Messaging.Outbox;
 
 public sealed record ClaimedOutboxMessage(
     Guid Id,

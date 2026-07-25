@@ -3,7 +3,7 @@ using InventoryService.Data;
 using InventoryService.Domain;
 using InventoryService.Inbox;
 using InventoryService.Outbox;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryService.Application;

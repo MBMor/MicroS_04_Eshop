@@ -1,4 +1,4 @@
-using Messaging.Shared.Outbox;
+using Eshop.Messaging.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;

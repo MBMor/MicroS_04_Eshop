@@ -1,4 +1,4 @@
-using Messaging.Shared.Telemetry;
+using Eshop.Messaging.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

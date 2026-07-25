@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Npgsql;
 using RabbitMQ.Client;
 using Testcontainers.PostgreSql;

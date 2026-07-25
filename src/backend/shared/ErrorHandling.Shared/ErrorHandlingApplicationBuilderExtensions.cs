@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 
-namespace ErrorHandling.Shared;
+namespace Eshop.ErrorHandling;
 
 public static class ErrorHandlingApplicationBuilderExtensions
 {

@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using ApiGateway.RateLimiting;
-using ErrorHandling.Shared;
+using Eshop.ErrorHandling;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 

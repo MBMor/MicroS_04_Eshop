@@ -1,4 +1,4 @@
-namespace ErrorHandling.Shared.Exceptions;
+namespace Eshop.ErrorHandling.Exceptions;
 
 public abstract class EshopException(
     string message,

@@ -4,7 +4,7 @@ using Eshop.Messaging.IntegrationTests.Infrastructure;
 using Eshop.Messaging.IntegrationTests.Infrastructure.Fakes;
 using InventoryService.Data;
 using InventoryService.Domain;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Data;
 using NotificationsService.Domain;

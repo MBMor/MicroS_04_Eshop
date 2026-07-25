@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Eshop.Security.Authorization;
-using Messaging.Shared.RabbitMq;
+using Eshop.Messaging.RabbitMq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace OpenApi.Shared;
+namespace Eshop.OpenApi;
 
 internal sealed class ConfigureSwaggerOptions(
     IApiVersionDescriptionProvider apiVersionDescriptionProvider,

@@ -1,4 +1,4 @@
-namespace OpenApi.Shared;
+namespace Eshop.OpenApi;
 
 public sealed class EshopOpenApiOptions
 {
