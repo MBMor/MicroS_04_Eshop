@@ -1,33 +1,53 @@
 # Microservices Eshop
 
-[![CI](https://github.com/MBMor/MicroS_04_Eshop/actions/workflows/ci.yml/badge.svg)](https://github.com/MBMor/MicroS_04_Eshop/actions/workflows/ci.yml)
-
 A portfolio-grade microservices e-commerce system built with .NET 10, ASP.NET Core, React, PostgreSQL, Redis, RabbitMQ, Keycloak, Docker Compose and OpenTelemetry.
 
-The project demonstrates practical microservice patterns including database-per-service, asynchronous messaging, transactional outbox, idempotent consumers, dead-letter queues, optimistic concurrency, JWT authentication, role-based authorization, distributed tracing and integration testing with Testcontainers.
+The project demonstrates production-oriented microservice patterns including:
+
+- database per service
+- synchronous HTTP communication
+- asynchronous event-driven workflows
+- transactional outbox
+- idempotent consumers
+- quorum queues and dead-letter queues
+- eventual consistency
+- compensation after payment failure
+- optimistic concurrency
+- JWT authentication
+- role-based authorization
+- customer resource ownership
+- API Gateway rate limiting
+- distributed tracing
+- integration testing with Testcontainers
+- full-stack browser testing with Playwright
+- reproducible container builds
+- CI quality gates
 
 ## Project Goals
 
-The primary goal of this project is to demonstrate production-oriented microservices development rather than only basic CRUD APIs.
+The primary goal of this project is to demonstrate practical microservices development beyond basic CRUD APIs.
 
 The system focuses on:
 
 - independently owned service data
-- synchronous and asynchronous service communication
+- explicit service boundaries
+- secure identity propagation
+- synchronous and asynchronous communication
 - eventual consistency
-- failure recovery
-- message delivery guarantees
-- secure customer identity propagation
-- operational visibility across service boundaries
-- automated integration testing
+- failure classification and recovery
+- reliable message delivery
+- observable cross-service workflows
+- automated testing at multiple levels
 - reproducible local infrastructure
-- CI quality gates
+- Linux-compatible container builds
+- continuous integration quality gates
 
 ## Technology Stack
 
 ### Backend
 
 - .NET 10
+- C#
 - ASP.NET Core
 - Entity Framework Core
 - YARP Reverse Proxy
@@ -48,11 +68,14 @@ The system focuses on:
 - Keycloak JavaScript adapter
 - Vitest
 - React Testing Library
+- Playwright
 - ESLint
 
 ### Infrastructure
 
 - Docker Compose
+- Docker Buildx
+- Docker Bake
 - PostgreSQL 18
 - Redis 8
 - RabbitMQ 4 Management
@@ -65,7 +88,6 @@ The system focuses on:
 ```mermaid
 flowchart LR
     Browser[React frontend]
-
     Keycloak[Keycloak]
 
     Gateway[API Gateway<br/>YARP]
@@ -86,7 +108,6 @@ flowchart LR
     NotificationsDb[(Notifications DB)]
 
     RabbitMQ[(RabbitMQ)]
-
     Aspire[Aspire Dashboard]
 
     Browser -->|OIDC + PKCE| Keycloak
@@ -107,16 +128,18 @@ flowchart LR
     Payments --> PaymentsDb
     Notifications --> NotificationsDb
 
-    Orders --> RabbitMQ
-    Inventory --> RabbitMQ
-    Payments --> RabbitMQ
-    Notifications --> RabbitMQ
+    Orders <--> RabbitMQ
+    Inventory <--> RabbitMQ
+    Payments <--> RabbitMQ
+    Notifications <--> RabbitMQ
 
-    Orders -. traces and metrics .-> Aspire
-    Inventory -. traces and metrics .-> Aspire
-    Payments -. traces and metrics .-> Aspire
-    Notifications -. traces and metrics .-> Aspire
-    Gateway -. traces and metrics .-> Aspire
+    Gateway -. traces, metrics and logs .-> Aspire
+    Catalog -. traces, metrics and logs .-> Aspire
+    Basket -. traces, metrics and logs .-> Aspire
+    Orders -. traces, metrics and logs .-> Aspire
+    Inventory -. traces, metrics and logs .-> Aspire
+    Payments -. traces, metrics and logs .-> Aspire
+    Notifications -. traces, metrics and logs .-> Aspire
 ```
 
 ## Services
@@ -124,11 +147,11 @@ flowchart LR
 | Component | Responsibility | Local URL |
 |---|---|---|
 | React frontend | Product catalog, basket, checkout, orders and authentication UI | `http://localhost:5173` |
-| API Gateway | Public API entry point, routing, authentication and authorization | `http://localhost:5080` |
+| API Gateway | Public API entry point, routing, authentication, authorization and rate limiting | `http://localhost:5080` |
 | Catalog Service | Product catalog management and queries | `http://localhost:5081` |
 | Basket Service | Customer basket stored in Redis | `http://localhost:5082` |
-| Orders Service | Order lifecycle, checkout and order ownership | `http://localhost:5083` |
-| Inventory Service | Stock management and reservations | `http://localhost:5084` |
+| Orders Service | Order lifecycle, checkout, ownership and workflow coordination | `http://localhost:5083` |
+| Inventory Service | Stock management, reservation and compensation | `http://localhost:5084` |
 | Payments Service | Fake payment processing | `http://localhost:5085` |
 | Notifications Service | Customer order and payment notifications | `http://localhost:5086` |
 | Keycloak | OpenID Connect identity provider | `http://localhost:18080` |
@@ -139,59 +162,83 @@ flowchart LR
 
 ### Catalog Service
 
-Owns product information such as:
+Catalog Service owns product information such as:
 
 - product identifier
+- SKU
 - name
 - description
+- category
 - price
 - currency
 - active status
+- creation and update timestamps
 
 Catalog data is publicly readable through the API Gateway.
 
+Catalog management operations are protected separately from public product queries.
+
 ### Basket Service
 
-Stores customer baskets in Redis.
+Basket Service stores customer baskets in Redis.
 
 The basket owner is derived from the validated JWT `sub` claim. The service does not trust a customer identifier supplied by the frontend.
 
+Basket operations include:
+
+- loading the current basket
+- adding an item
+- changing item quantity
+- removing an item
+- clearing the basket
+
 ### Orders Service
 
-Owns the order aggregate and checkout workflow.
+Orders Service owns the order aggregate and coordinates the checkout workflow.
 
 Responsibilities include:
 
 - loading the authenticated customer's basket
 - validating checkout input
 - creating an order
-- storing an outbox message in the same database transaction
-- applying stock reservation results
+- persisting order items and totals
+- storing outgoing messages in a transactional outbox
+- applying inventory results
+- requesting fake payment processing
 - applying payment results
+- requesting inventory compensation
 - exposing customer-owned order queries
 
 ### Inventory Service
 
-Owns stock quantities and stock reservations.
+Inventory Service owns:
 
-It consumes order events, reserves stock and publishes either:
+- stock quantities
+- reserved quantities
+- product-to-inventory mapping
+- stock reservations
+- stock releases
 
-- `StockReserved`
-- `StockReservationFailed`
+It consumes order workflow events, reserves stock and publishes either a success or failure result.
 
-Optimistic concurrency prevents overselling during parallel reservations.
+Optimistic concurrency protects inventory against lost updates and overselling during parallel reservations.
 
 ### Payments Service
 
-Implements fake payment processing.
+Payments Service implements deterministic fake payment processing.
 
-It consumes payment requests and publishes payment results through its transactional outbox.
+The checkout form supports fake payment methods used for development and testing:
+
+- `test-success`
+- `test-fail`
+
+Payments Service consumes payment requests and publishes payment results through its transactional outbox.
 
 ### Notifications Service
 
-Consumes business events and stores notifications for the affected customer.
+Notifications Service consumes business events and stores notifications for the affected customer.
 
-Notification ownership is derived from message data produced by trusted backend services and exposed only to the authenticated customer.
+Notification ownership is derived from trusted backend event data and notifications are exposed only to the authenticated customer.
 
 ## API Gateway
 
@@ -199,12 +246,15 @@ The API Gateway is implemented with YARP.
 
 Responsibilities include:
 
-- routing public API requests
+- exposing the public API surface
+- forwarding requests to backend services
 - validating JWT access tokens
 - validating issuer, audience, signature and expiration
 - enforcing role-based authorization
-- exposing public health endpoints
-- forwarding authorized requests to backend services
+- protecting internal service routes
+- partitioning rate limits by identity or client
+- exposing health endpoints
+- propagating correlation information
 
 ### Authorization Matrix
 
@@ -224,7 +274,23 @@ Responsibilities include:
 | `/api/v1/payments` | `support` or `admin` |
 | `/api/v1/payments/{...}` | `support` or `admin` |
 
-Protected downstream services validate bearer tokens independently, so direct access to a service port does not bypass authentication.
+Protected downstream services validate bearer tokens independently. Direct access to a service port therefore does not bypass authentication or authorization.
+
+## Rate Limiting
+
+The API Gateway applies partitioned rate limiting.
+
+Partitions can be based on:
+
+- authenticated user identity
+- token subject
+- client address for anonymous traffic
+
+Checkout operations use a stricter policy than general customer API traffic.
+
+Rate-limit responses include standard HTTP status information and can include retry metadata.
+
+The E2E environment overrides production-oriented limits with higher test-only limits so that sequential browser scenarios do not interfere with each other.
 
 ## Authentication and Authorization
 
@@ -252,7 +318,7 @@ eshop
 | Client | Type | Purpose |
 |---|---|---|
 | `eshop-frontend` | Public OpenID Connect client | React SPA authentication |
-| `eshop-api` | Bearer-only audience | Backend API protection |
+| `eshop-api` | Backend API audience | Bearer-token API protection |
 
 ### Application Roles
 
@@ -270,7 +336,7 @@ eshop
 | `sam.support` | `Support123!` | `support` |
 | `anna.admin` | `Admin123!` | `admin` |
 
-These users and passwords are intended only for local development.
+These users and passwords are intended only for local development and automated testing.
 
 Detailed identity documentation is available in:
 
@@ -295,13 +361,22 @@ The system does not trust customer identifiers from:
 
 The previous local-development `X-Customer-Id` mechanism is not used as production authentication.
 
-Orders Service forwards the original bearer token when it calls Basket Service. Basket Service then validates the same token independently.
+Orders Service forwards the original bearer token when it calls Basket Service. Basket Service validates the same token independently and derives the customer identity from it.
 
 ## Messaging Architecture
 
 RabbitMQ is used for asynchronous communication between services.
 
-The messaging flow is based on durable topic exchanges, quorum queues and explicit routing keys.
+The messaging topology uses:
+
+- durable topic exchanges
+- explicit routing keys
+- durable quorum queues
+- publisher confirmations
+- manual consumer acknowledgements
+- dead-letter exchanges
+- dead-letter queues
+- bounded delivery attempts
 
 ```mermaid
 sequenceDiagram
@@ -312,28 +387,79 @@ sequenceDiagram
     participant Inventory
     participant InventoryDb
     participant Payments
+    participant PaymentsDb
     participant Notifications
 
     Client->>Orders: Create order
-    Orders->>OrdersDb: Order + outbox message
+    Orders->>OrdersDb: Save order and outbox message
     Orders-->>Client: Order accepted
 
-    Orders->>RabbitMQ: OrderCreated
-    RabbitMQ->>Inventory: OrderCreated
+    Orders->>RabbitMQ: Publish order-created event
+    RabbitMQ->>Inventory: Deliver order-created event
 
-    Inventory->>InventoryDb: Reserve stock + outbox message
-    Inventory->>RabbitMQ: StockReserved
+    Inventory->>InventoryDb: Reserve stock and save outbox result
+    Inventory->>RabbitMQ: Publish stock result
+    RabbitMQ->>Orders: Deliver stock result
 
-    RabbitMQ->>Orders: StockReserved
-    Orders->>OrdersDb: Update order + payment request outbox
+    Orders->>OrdersDb: Update order and save payment request
+    Orders->>RabbitMQ: Publish payment request
+    RabbitMQ->>Payments: Deliver payment request
 
-    Orders->>RabbitMQ: PaymentRequested
-    RabbitMQ->>Payments: PaymentRequested
+    Payments->>PaymentsDb: Save payment and outbox result
+    Payments->>RabbitMQ: Publish payment result
+    RabbitMQ->>Orders: Deliver payment result
 
-    Payments->>RabbitMQ: Payment result
-    RabbitMQ->>Orders: Payment result
-    RabbitMQ->>Notifications: Business events
+    RabbitMQ->>Notifications: Deliver business events
 ```
+
+## Checkout Workflow
+
+### Successful Checkout
+
+```text
+PendingStockReservation
+  → PendingPayment
+  → Confirmed
+```
+
+The workflow is:
+
+1. Orders Service creates the order and its initial outbox message.
+2. Inventory Service reserves stock.
+3. Orders Service requests payment processing.
+4. Payments Service returns a successful result.
+5. Orders Service marks the order as `Confirmed`.
+6. Notifications Service records customer notifications.
+
+### Insufficient Stock
+
+```text
+PendingStockReservation
+  → StockReservationFailed
+```
+
+The workflow stops before payment processing when Inventory Service cannot reserve all requested items.
+
+### Failed Payment and Compensation
+
+```text
+PendingStockReservation
+  → PendingPayment
+  → PaymentFailed
+  → Cancelled
+```
+
+`PaymentFailed` is an intermediate state.
+
+After payment fails:
+
+1. Orders Service records the failed payment result.
+2. Orders Service requests release of the reserved stock.
+3. Inventory Service releases the reservation.
+4. Inventory Service publishes the release result.
+5. Orders Service marks the order as `Cancelled`.
+
+This is a saga-style compensation flow implemented through asynchronous events rather than a distributed database transaction.
 
 ## Transactional Outbox
 
@@ -341,25 +467,29 @@ Services do not publish business events directly inside database transactions.
 
 Instead, a service stores:
 
-1. the domain state change
+1. the business state change
 2. the outgoing message
 
-in the same database transaction.
+in the same local PostgreSQL transaction.
 
-A background worker later claims and publishes pending outbox messages.
+A background worker later claims and publishes pending messages.
 
 Outbox processing includes:
 
-- status transitions
 - batch claiming
-- claim ownership
+- explicit claim ownership
+- claim timestamps
 - stale claim recovery
-- retry handling
+- retry tracking
 - publisher confirmations
-- cleanup of old published messages
-- protection against parallel publication
+- published timestamps
+- cleanup of old published records
+- protection against concurrent publication
+- structured logs
+- tracing spans
+- metrics
 
-Typical states:
+Typical outbox states are:
 
 ```text
 Pending
@@ -368,11 +498,13 @@ Published
 Failed
 ```
 
+The pattern prevents a successful database commit from losing the corresponding outgoing event.
+
 ## Idempotent Consumers
 
-RabbitMQ can deliver the same message more than once.
+RabbitMQ provides at-least-once delivery, so the same message can be delivered more than once.
 
-Consumers therefore store processed-message records with a unique key based on:
+Consumers store processed-message records with a unique business-processing key based on:
 
 - message ID
 - event type
@@ -386,57 +518,69 @@ This provides effectively-once business processing on top of at-least-once messa
 
 Permanent failures and messages exceeding their delivery limit are moved to dead-letter queues.
 
-The integration tests cover:
+Dead-letter behavior covers:
+
+- invalid event data
+- unsupported business transitions
+- unknown business entities
+- delivery-limit exhaustion
+- non-retryable consumer failures
+
+Integration tests verify:
 
 - transient consumer failure
 - permanent business failure
 - delivery-limit exhaustion
 - dead-letter routing
-- duplicate message handling
-- RabbitMQ outage and recovery
+- duplicate delivery handling
+- broker outage recovery
 
 ## Failure Handling
 
-The messaging implementation distinguishes between:
+The messaging implementation distinguishes between transient and permanent failures.
 
-### Transient failure
+### Transient Failure
 
-Examples:
+Examples include:
 
-- temporary database connectivity issue
-- broker outage
-- concurrent database update
-- temporary dependency failure
+- temporary PostgreSQL connectivity issues
+- temporary RabbitMQ outages
+- concurrent database updates
+- retryable `DbUpdateException`
+- temporary dependency failures
 
-The message is retried.
+Transient failures are retried according to the consumer or outbox policy.
 
-### Permanent failure
+### Permanent Failure
 
-Examples:
+Examples include:
 
-- unknown business entity
+- unknown business entities
 - invalid event data
-- unsupported business transition
+- malformed messages
+- unsupported state transitions
+- non-retryable business-rule violations
 
-The message is rejected and dead-lettered without unnecessary retry loops.
+Permanent failures are rejected and dead-lettered without unnecessary retry loops.
 
 ## Eventual Consistency
 
-Order creation is not completed by one distributed database transaction.
+Order creation is not completed by one distributed transaction.
 
-Instead, the order progresses asynchronously through states such as:
+Each service commits only its own local transaction and communicates state changes through events.
+
+An order can pass through the following states:
 
 ```text
 PendingStockReservation
-StockReserved
 StockReservationFailed
-PaymentPending
-Paid
+PendingPayment
 PaymentFailed
+Confirmed
 Cancelled
 ```
 
-Each service commits only its own database transaction and communicates state changes using events.
+The API and frontend expose intermediate states so that the asynchronous workflow remains visible to the customer.
 
 ## Optimistic Concurrency
 
@@ -446,9 +590,10 @@ When concurrent operations modify the same inventory item:
 
 1. one transaction succeeds
 2. another detects a concurrency conflict
-3. the failed operation reloads or retries according to the configured policy
+3. the failed operation is classified as retryable
+4. the state is reloaded or processing is retried according to policy
 
-The database remains the final authority for stock availability.
+PostgreSQL remains the final authority for stock availability.
 
 ## Observability
 
@@ -460,7 +605,10 @@ It includes:
 - correlation IDs
 - W3C trace context
 - distributed tracing
-- custom messaging spans
+- HTTP client instrumentation
+- ASP.NET Core instrumentation
+- Entity Framework Core instrumentation
+- custom messaging activities
 - application metrics
 - health checks
 - Aspire Dashboard integration
@@ -469,7 +617,8 @@ It includes:
 
 Trace context is propagated through:
 
-- HTTP requests
+- incoming HTTP requests
+- outgoing HTTP requests
 - transactional outbox records
 - RabbitMQ message headers
 - consumer activities
@@ -477,15 +626,17 @@ Trace context is propagated through:
 A complete trace can connect:
 
 ```text
-React
-→ API Gateway
-→ Orders Service
-→ outbox publisher
-→ RabbitMQ
-→ Inventory consumer
-→ Inventory outbox publisher
-→ Orders consumer
-→ Notifications consumer
+React frontend
+  → API Gateway
+  → Orders Service
+  → Orders outbox publisher
+  → RabbitMQ
+  → Inventory consumer
+  → Inventory outbox publisher
+  → Orders consumer
+  → Payments consumer
+  → Orders consumer
+  → Notifications consumer
 ```
 
 ### Custom Activities
@@ -506,7 +657,14 @@ The HTTP correlation header is:
 X-Correlation-Id
 ```
 
-Correlation information is included in structured logs and propagated between services.
+Correlation information is:
+
+- accepted from valid incoming requests
+- generated when missing
+- returned in responses
+- included in structured logs
+- propagated between services
+- stored with outgoing messages
 
 ## Health Checks
 
@@ -521,15 +679,43 @@ Health checks are used for:
 - local diagnostics
 - Docker readiness
 - integration-test startup coordination
+- E2E environment startup coordination
 - future orchestration probes
+
+The API Gateway also exposes health information for public infrastructure validation.
 
 ## Testing
 
-The project contains multiple test layers.
+The project uses multiple test layers so that business rules, infrastructure integrations, security boundaries, asynchronous workflows and browser behavior are verified independently.
 
-### API Gateway Integration Tests
+## Domain Unit Tests
 
-Tests verify:
+Domain unit tests cover business behavior without external infrastructure.
+
+Covered areas include:
+
+- order creation
+- order state transitions
+- invalid order transitions
+- stock reservation rules
+- insufficient stock handling
+- stock release behavior
+- optimistic inventory behavior
+- fake payment results
+- catalog product validation
+- basket behavior
+- notification state changes
+
+Run:
+
+```bash
+dotnet test \
+  tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj
+```
+
+## API Gateway Integration Tests
+
+API Gateway integration tests verify:
 
 - anonymous routes
 - protected routes
@@ -540,6 +726,9 @@ Tests verify:
 - admin role access
 - `/api/v1/auth/me`
 - YARP request forwarding
+- internal endpoint protection
+- unsupported HTTP methods
+- partitioned rate limiting
 
 The tests use:
 
@@ -556,25 +745,76 @@ dotnet test \
   tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
 ```
 
-### Messaging Integration Tests
+## Service API Integration Tests
 
-Tests use Testcontainers to start isolated:
+Service API integration tests exercise real infrastructure through Testcontainers and HTTP endpoints through `WebApplicationFactory`.
 
-- PostgreSQL
-- RabbitMQ
+Covered services include:
+
+- Basket Service with Redis
+- Catalog Service with PostgreSQL
+- Orders Service with PostgreSQL
+- Inventory Service with PostgreSQL
+- Payments Service with PostgreSQL
+- Notifications Service with PostgreSQL
+
+The suites verify areas such as:
+
+- request validation
+- authenticated and anonymous access
+- role-based authorization
+- customer ownership
+- persistence
+- duplicate resources
+- missing resources
+- database constraints
+- response serialization
+- timestamp precision
+- Redis basket behavior
+
+Run an individual suite:
+
+```bash
+dotnet test \
+  tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj
+```
+
+Available service integration-test projects:
+
+```text
+tests/backend/integration/BasketService.IntegrationTests
+tests/backend/integration/CatalogService.IntegrationTests
+tests/backend/integration/OrdersService.IntegrationTests
+tests/backend/integration/InventoryService.IntegrationTests
+tests/backend/integration/PaymentsService.IntegrationTests
+tests/backend/integration/NotificationsService.IntegrationTests
+```
+
+## Messaging Integration Tests
+
+Messaging integration tests use Testcontainers to start isolated PostgreSQL and RabbitMQ instances.
 
 Covered scenarios include:
 
 - end-to-end order messaging
-- outbox publication
+- transactional outbox publication
+- stock reservation
+- insufficient stock
+- payment processing
+- payment failure compensation
+- stock release
 - consumer idempotency
 - duplicate messages
 - transient failures
 - permanent failures
 - dead-letter queues
-- delivery limits
+- delivery-limit exhaustion
 - RabbitMQ outage recovery
+- recovered connection handling
 - stale outbox claim recovery
+- concurrent outbox processing
+- optimistic inventory concurrency
+- outbox cleanup
 
 Run:
 
@@ -583,18 +823,24 @@ dotnet test \
   tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj
 ```
 
-### Frontend Tests
+## Frontend Tests
 
-Frontend authentication tests cover:
+Frontend tests use Vitest and React Testing Library.
+
+Covered behavior includes:
 
 - anonymous route guards
 - role-denied states
 - authorized rendering
 - login initiation
 - bearer-token attachment
-- `401` handling
-- `403` handling
+- `401 Unauthorized` handling
+- `403 Forbidden` handling
 - `204 No Content` handling
+- product catalog behavior
+- basket interactions
+- checkout form behavior
+- order status rendering
 
 Run:
 
@@ -608,25 +854,197 @@ npm run test
 npm run build
 ```
 
-## CI
+## Full-Stack Checkout E2E Tests
 
-GitHub Actions runs independent backend and frontend jobs.
+Playwright tests exercise the complete application through Chromium.
 
-### Backend job
+The E2E environment uses:
 
-- restores .NET projects
+- PostgreSQL
+- Redis
+- RabbitMQ
+- Keycloak
+- React frontend
+- API Gateway
+- Catalog Service
+- Basket Service
+- Orders Service
+- Inventory Service
+- Payments Service
+- Notifications Service
+
+The startup script:
+
+- removes a previous isolated E2E environment
+- verifies that backend ports are available
+- starts clean Docker infrastructure
+- waits for Keycloak and the frontend
+- restores the local .NET tools
+- builds required backend projects
+- applies EF Core migrations
+- initializes RabbitMQ topology
+- seeds deterministic products and inventory
+- starts all backend processes
+- checks process liveness
+- waits for health endpoints
+- verifies a seeded product through the frontend proxy
+- writes backend logs under `artifacts/e2e`
+
+Covered browser scenarios:
+
+1. successful checkout reaches `Confirmed`
+2. insufficient stock reaches `StockReservationFailed`
+3. failed payment releases reserved stock and reaches `Cancelled`
+
+The browser scenarios:
+
+- authenticate through the real Keycloak login page
+- use the React UI
+- call services through the API Gateway
+- use real PostgreSQL, Redis and RabbitMQ infrastructure
+- run sequentially to avoid sharing one customer basket concurrently
+- collect traces, videos and screenshots on failure
+
+### Start the E2E Environment
+
+From the repository root:
+
+```bash
+./scripts/e2e/start-stack.sh
+```
+
+### Run All Browser Tests
+
+From the repository root:
+
+```bash
+npm test --prefix tests/e2e
+```
+
+Or from `tests/e2e`:
+
+```bash
+npm test
+```
+
+### Run Only Failure-Path Scenarios
+
+```bash
+npx playwright test \
+  tests/e2e/specs/checkout-failure-paths.spec.ts
+```
+
+When already inside `tests/e2e`:
+
+```bash
+npx playwright test \
+  specs/checkout-failure-paths.spec.ts
+```
+
+### Stop the E2E Environment
+
+```bash
+./scripts/e2e/stop-stack.sh
+```
+
+The stop script:
+
+- terminates tracked backend process trees
+- removes the E2E PID file
+- stops Docker Compose services
+- removes isolated E2E volumes
+- removes orphaned containers
+
+### E2E Diagnostics
+
+Playwright and service diagnostics are written under:
+
+```text
+artifacts/e2e/
+```
+
+The diagnostics can include:
+
+- Playwright HTML report
+- screenshots
+- videos
+- traces
+- error context
+- backend service logs
+
+## Continuous Integration
+
+GitHub Actions validates the repository through dependent quality stages.
+
+```text
+Backend ──┐
+          ├── Container images ── Checkout E2E
+Frontend ─┘
+```
+
+The workflow runs on:
+
+- pushes to `main`
+- pull requests targeting `main`
+- manual workflow dispatch
+
+Concurrent runs for the same branch are grouped and an older in-progress run can be cancelled when a newer commit is pushed.
+
+## Backend CI Job
+
+The backend job:
+
+- sets up the .NET SDK defined in `global.json`
+- verifies Docker availability
+- restores backend and test projects
 - builds in Release configuration
+- applies repository compiler and analyzer rules
+- runs domain unit tests
 - runs API Gateway integration tests
+- runs all service API integration tests
 - runs messaging integration tests
-- uploads test-result artifacts
+- produces `.trx` result files
+- uploads backend test-result artifacts
 
-### Frontend job
+## Frontend CI Job
 
+The frontend job:
+
+- sets up Node.js 24
 - installs dependencies with `npm ci`
 - runs TypeScript type checking
 - runs ESLint
 - runs Vitest
-- creates a production build
+- creates a production frontend build
+
+## Container Image CI Job
+
+The container job runs after successful backend and frontend jobs.
+
+It:
+
+- configures Docker Buildx
+- validates the Docker Compose configuration
+- validates the Docker Bake definition
+- builds all application container images
+- verifies Linux-compatible and reproducible builds
+
+## Checkout E2E CI Job
+
+The Checkout E2E job runs after the previous quality gates.
+
+It:
+
+- installs the required .NET and Node.js versions
+- installs Playwright dependencies
+- installs Chromium
+- starts the isolated full-stack E2E environment
+- runs all checkout browser scenarios
+- always stops the environment
+- uploads Playwright diagnostics
+- uploads backend service logs
+
+A cancelled browser-installation step caused by a newer workflow run is an infrastructure cancellation, not an application E2E failure.
 
 ## Prerequisites
 
@@ -638,42 +1056,79 @@ Install:
 - Node.js 24
 - Git
 
-Optional:
+Optional tools:
 
 - Visual Studio 2022 or newer
+- Visual Studio Code
 - DBeaver
 - Git Bash
 - PowerShell
+
+The E2E shell scripts support Linux and Git Bash on Windows.
 
 ## Repository Structure
 
 ```text
 .
+├── .config
+│   └── dotnet-tools.json
 ├── .github
 │   └── workflows
+│       └── ci.yml
 ├── docs
 ├── infrastructure
 │   ├── keycloak
 │   └── postgres
 ├── scripts
+│   └── e2e
+│       ├── start-stack.sh
+│       └── stop-stack.sh
 ├── src
 │   ├── backend
 │   │   ├── gateways
+│   │   │   └── ApiGateway
 │   │   ├── services
+│   │   │   ├── BasketService
+│   │   │   ├── CatalogService
+│   │   │   ├── InventoryService
+│   │   │   ├── NotificationsService
+│   │   │   ├── OrdersService
+│   │   │   └── PaymentsService
 │   │   ├── shared
 │   │   └── tools
+│   │       └── RabbitMq.TopologyInitializer
 │   └── frontend
 ├── tests
-│   └── backend
-│       └── integration
-├── docker-compose.yml
+│   ├── backend
+│   │   ├── integration
+│   │   └── unit
+│   ├── e2e
+│   │   ├── specs
+│   │   │   ├── checkout-failure-paths.spec.ts
+│   │   │   └── checkout-success.spec.ts
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   └── playwright.config.ts
+│   └── frontend
+├── .dockerignore
+├── .editorconfig
+├── .env.example
+├── .gitattributes
+├── .gitignore
+├── Directory.Build.props
+├── Dockerfile
 ├── Eshop.slnx
+├── README.md
+├── docker-bake.hcl
+├── docker-compose.e2e.yml
+├── docker-compose.yml
+├── eshop-realm.json
 └── global.json
 ```
 
 ## Local Infrastructure
 
-Docker Compose provides:
+Docker Compose provides the following local components:
 
 | Component | Host port |
 |---|---:|
@@ -686,6 +1141,8 @@ Docker Compose provides:
 | OTLP gRPC | `4317` |
 | OTLP HTTP | `4318` |
 | React frontend | `5173` |
+
+Backend services use ports `5080` through `5086` when started locally.
 
 ## Initial Setup
 
@@ -702,7 +1159,7 @@ Validate Docker Compose:
 docker compose config --quiet
 ```
 
-Start the infrastructure:
+Start the infrastructure required by locally running backend services:
 
 ```bash
 docker compose up -d \
@@ -719,17 +1176,27 @@ Check container status:
 docker compose ps
 ```
 
+To build and start the complete Compose environment:
+
+```bash
+docker compose up -d --build
+```
+
 ## Keycloak Realm Import
 
-Keycloak imports the local `eshop` realm from:
+Keycloak imports the local `eshop` realm from the repository infrastructure configuration.
 
-```text
-infrastructure/keycloak/eshop-realm.json
-```
+The realm defines:
+
+- frontend and API clients
+- application roles
+- local development users
+- redirect URIs
+- audience configuration
 
 The import runs only when the realm does not already exist.
 
-After changing the realm JSON, delete only the application realm and restart Keycloak. Do not delete the shared PostgreSQL volume solely to refresh Keycloak configuration.
+After changing the realm definition, delete the application realm and restart Keycloak. Do not delete the shared PostgreSQL volume solely to refresh Keycloak configuration unless a completely clean environment is required.
 
 See:
 
@@ -751,45 +1218,67 @@ The PostgreSQL initialization scripts create separate databases for:
 
 Database-per-service ownership is maintained even though local development uses one PostgreSQL container.
 
+Each service has its own:
+
+- connection string
+- EF Core DbContext
+- migration history
+- entity model
+- persistence lifecycle
+
 ## Running the Backend
 
-The backend can be started from Visual Studio using the solution:
+The backend can be started from Visual Studio using:
 
 ```text
 Eshop.slnx
 ```
 
-Alternatively, run services individually:
+Services can also be started individually.
+
+### Catalog Service
 
 ```bash
 dotnet run \
   --project src/backend/services/CatalogService/CatalogService.csproj
 ```
 
+### Basket Service
+
 ```bash
 dotnet run \
   --project src/backend/services/BasketService/BasketService.csproj
 ```
+
+### Orders Service
 
 ```bash
 dotnet run \
   --project src/backend/services/OrdersService/OrdersService.csproj
 ```
 
+### Inventory Service
+
 ```bash
 dotnet run \
   --project src/backend/services/InventoryService/InventoryService.csproj
 ```
+
+### Payments Service
 
 ```bash
 dotnet run \
   --project src/backend/services/PaymentsService/PaymentsService.csproj
 ```
 
+### Notifications Service
+
 ```bash
 dotnet run \
   --project src/backend/services/NotificationsService/NotificationsService.csproj
 ```
+
+### API Gateway
 
 ```bash
 dotnet run \
@@ -823,7 +1312,7 @@ http://localhost:5173
 
 ### RabbitMQ
 
-URL:
+Management UI:
 
 ```text
 http://localhost:15672
@@ -861,7 +1350,7 @@ The local dashboard allows anonymous access and must not be exposed as-is in pro
 
 ## Build
 
-Restore:
+Restore the backend solution:
 
 ```bash
 dotnet restore Eshop.slnx
@@ -870,10 +1359,13 @@ dotnet restore Eshop.slnx
 Build:
 
 ```bash
-dotnet build Eshop.slnx --no-restore
+dotnet build \
+  Eshop.slnx \
+  --configuration Release \
+  --no-restore
 ```
 
-Frontend validation:
+Validate the frontend:
 
 ```bash
 cd src/frontend
@@ -885,38 +1377,68 @@ npm run test
 npm run build
 ```
 
+Validate Docker Compose:
+
+```bash
+docker compose config --quiet
+```
+
+Validate Docker Bake:
+
+```bash
+docker buildx bake \
+  --file docker-bake.hcl \
+  --print
+```
+
+Build all application images:
+
+```bash
+docker buildx bake \
+  --file docker-bake.hcl
+```
+
 ## Run All Backend Tests
 
 ```bash
-dotnet test Eshop.slnx
+dotnet test \
+  Eshop.slnx \
+  --configuration Release
 ```
 
-The messaging integration tests require Docker.
+Testcontainers-based integration tests require a running Docker engine.
 
 ## Security Notes
 
-This repository is configured for local development.
+This repository is configured for local development and portfolio demonstration.
 
-Before production deployment:
+Before a production deployment:
 
 - use HTTPS everywhere
 - run Keycloak in production mode
-- replace development credentials
-- use secret management
+- replace all development credentials
+- use a secret-management service
 - disable anonymous Aspire Dashboard access
 - restrict public service ports
+- expose backend services only through trusted network boundaries
 - restrict Keycloak redirect URIs
 - configure production hostnames
-- configure reverse-proxy headers correctly
-- configure backup and recovery
+- configure reverse-proxy forwarded headers
+- configure database backup and recovery
 - configure monitoring and alerting
-- review token and session lifetimes
-- review rate limiting and abuse protection
+- review access-token and session lifetimes
+- review rate-limiting policies
+- apply dependency and container vulnerability scanning
+- configure production certificate management
+- define deployment rollback procedures
+
+The fake payment implementation must not be replaced by a real payment provider without additional security, compliance and idempotency controls.
 
 ## Documentation
 
 | Document | Purpose |
 |---|---|
+| `README.md` | Project overview, architecture, testing and local setup |
 | `docs/identity.md` | Authentication, authorization and Keycloak runbook |
 | `infrastructure/keycloak/README.md` | Local Keycloak realm operation |
 | `src/frontend/.env.example` | Frontend runtime configuration |
@@ -924,69 +1446,127 @@ Before production deployment:
 
 ## Design Decisions
 
-### Why database per service?
+### Why Database per Service?
 
-Each service owns its data model and persistence lifecycle. Other services interact through HTTP or events rather than direct table access.
+Each service owns its data model and persistence lifecycle.
+
+Other services interact through HTTP APIs or events rather than directly reading or modifying another service's tables.
+
+This preserves service autonomy and prevents a shared database from becoming an implicit monolith.
 
 ### Why RabbitMQ?
 
-RabbitMQ provides durable asynchronous communication and supports routing, retries, acknowledgements, quorum queues and dead-lettering.
+RabbitMQ provides durable asynchronous communication with support for:
 
-### Why transactional outbox?
+- topic routing
+- acknowledgements
+- publisher confirmations
+- quorum queues
+- bounded redelivery
+- dead-lettering
 
-A database transaction cannot atomically commit both PostgreSQL data and a RabbitMQ publish. The outbox stores the state change and outgoing event together, then publishes asynchronously.
+It allows order processing to continue through asynchronous service-owned transactions.
 
-### Why idempotent consumers?
+### Why Transactional Outbox?
 
-At-least-once delivery means duplicates are possible. Consumers must detect previously processed messages before applying business effects.
+A PostgreSQL transaction cannot atomically commit both database state and a RabbitMQ publish.
 
-### Why validate JWTs in downstream services?
+The transactional outbox stores the state change and outgoing message together. A background worker publishes the message after the transaction commits.
 
-Gateway validation alone is insufficient when service ports are reachable directly. Independent token validation provides defense in depth.
+### Why Idempotent Consumers?
 
-### Why use the JWT subject for ownership?
+At-least-once delivery means duplicates are possible.
 
-The `sub` claim is a stable identifier issued by the trusted identity provider. Usernames and emails may change and client-supplied identifiers can be forged.
+Consumers must detect previously processed messages before applying business effects such as:
+
+- reserving stock
+- creating a payment
+- changing an order state
+- creating a notification
+
+### Why Validate JWTs in Downstream Services?
+
+Gateway validation alone is insufficient when service ports are reachable directly or when internal network assumptions are violated.
+
+Independent validation in protected services provides defense in depth.
+
+### Why Use the JWT Subject for Ownership?
+
+The `sub` claim is a stable identifier issued by the trusted identity provider.
+
+Usernames and email addresses may change. Client-supplied identifiers can be forged.
 
 ### Why Authorization Code Flow with PKCE?
 
-The React application is a public browser client and cannot safely store a client secret. PKCE protects the authorization-code exchange without requiring confidential frontend credentials.
+The React application is a public browser client and cannot securely store a client secret.
 
-## Current Scope
+PKCE protects the authorization-code exchange without requiring a confidential frontend credential.
 
-This is a portfolio and learning project.
+### Why Eventual Consistency?
 
-Implemented:
+A distributed transaction across Orders, Inventory, Payments and Notifications would tightly couple services and infrastructure.
 
-- product catalog
-- Redis-backed basket
-- order creation
-- inventory reservation
-- fake payments
-- notifications
-- API Gateway
-- Keycloak authentication
-- role-based authorization
-- transactional outbox
-- idempotent consumers
-- dead-letter queues
-- optimistic concurrency
-- distributed tracing
-- metrics and structured logs
-- integration testing
-- frontend authentication tests
-- CI quality gates
+The system instead uses local transactions and asynchronous events, with explicit intermediate states and compensation.
 
-Potential future extensions:
+### Why Optimistic Concurrency?
 
-- product administration UI
-- support and admin frontend pages
-- distributed rate limiting
-- dedicated secret management
-- Kubernetes deployment
-- production Keycloak configuration
-- contract testing
-- load testing
-- end-to-end browser testing
-- deployment pipeline
-- BFF-based browser authentication
+Inventory writes are expected to be short and conflicts are exceptional.
+
+Optimistic concurrency avoids long-held distributed locks while ensuring that the database detects conflicting updates.
+
+### Why Full-Stack E2E Tests?
+
+Unit and integration tests validate components in isolation, but they do not fully prove that:
+
+- Keycloak login works in a browser
+- the frontend sends the correct bearer token
+- Gateway routing is correct
+- Redis basket state is connected to checkout
+- RabbitMQ events complete the order workflow
+- compensation reaches its final state
+
+Playwright tests cover these critical cross-component paths.
+
+## Project Status
+
+The planned portfolio scope of the project is complete.
+
+Implemented capabilities include:
+
+- database-per-service architecture
+- React single-page frontend
+- API Gateway with YARP
+- Keycloak authentication with Authorization Code Flow and PKCE
+- JWT validation in the Gateway and protected downstream services
+- customer, support and administrator authorization policies
+- partitioned API rate limiting
+- Redis-backed customer baskets
+- transactional outbox processing
+- idempotent RabbitMQ consumers
+- quorum queues and dead-letter queues
+- bounded retry and permanent-failure classification
+- order, inventory and payment saga-style workflow
+- stock compensation after payment failure
+- optimistic inventory concurrency
+- structured logging and correlation IDs
+- OpenTelemetry tracing and metrics
+- Aspire Dashboard integration
+- domain unit tests
+- API and infrastructure integration tests
+- messaging failure-path integration tests
+- full-stack Playwright checkout tests
+- Docker Compose validation
+- Docker image build validation
+- GitHub Actions quality gates
+
+The project is intended as a production-oriented portfolio demonstration.
+
+It does not include:
+
+- production deployment infrastructure
+- Kubernetes manifests
+- cloud-provider resources
+- real payment-provider integration
+- production secret management
+- production monitoring and alerting configuration
+- production disaster-recovery automation
