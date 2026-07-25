@@ -2,6 +2,7 @@ import {
   expect,
   test,
   type Page,
+  type Response,
 } from '@playwright/test';
 
 const productName =
@@ -14,6 +15,9 @@ const customerUsername =
 const customerPassword =
   process.env.E2E_CUSTOMER_PASSWORD
   ?? 'Alice123!';
+
+const customerEmail =
+  'alice.customer@eshop.local';
 
 async function signInAsCustomer(
   page: Page,
@@ -65,6 +69,71 @@ async function signInAsCustomer(
   ).toBeVisible();
 }
 
+async function refreshProducts(
+  page: Page,
+): Promise<void> {
+  const productsResponsePromise =
+    page.waitForResponse(
+      response =>
+        response
+          .url()
+          .includes(
+            '/api/v1/products',
+          )
+        && response
+          .request()
+          .method() === 'GET',
+    );
+
+  await page
+    .getByRole(
+      'button',
+      {
+        name:
+          'Refresh products',
+      },
+    )
+    .click();
+
+  const productsResponse =
+    await productsResponsePromise;
+
+  const productsResponseBody =
+    await productsResponse.text();
+
+  expect(
+    productsResponse.ok(),
+    [
+      'Catalog request failed.',
+      `Status: ${productsResponse.status()}`,
+      `URL: ${productsResponse.url()}`,
+      `Response: ${productsResponseBody}`,
+    ].join('\n'),
+  ).toBeTruthy();
+
+  expect(
+    productsResponseBody,
+  ).toContain(productName);
+}
+
+async function assertSuccessfulResponse(
+  response: Response,
+  errorTitle: string,
+): Promise<void> {
+  const responseBody =
+    await response.text();
+
+  expect(
+    response.ok(),
+    [
+      errorTitle,
+      `Status: ${response.status()}`,
+      `URL: ${response.url()}`,
+      `Response: ${responseBody}`,
+    ].join('\n'),
+  ).toBeTruthy();
+}
+
 test(
   'customer completes a successful checkout',
   async ({
@@ -84,56 +153,48 @@ test(
 
     await signInAsCustomer(page);
 
-const productsResponsePromise =
-  page.waitForResponse(
-    response =>
-      response
-        .url()
-        .includes('/api/v1/products')
-      && response
-        .request()
-        .method() === 'GET',
-  );
+    await refreshProducts(page);
 
-await page
-  .getByRole(
-    'button',
-    {
-      name: 'Refresh products',
-    },
-  )
-  .click();
+    const productHeading =
+      page.getByRole(
+        'heading',
+        {
+          name:
+            productName,
+        },
+      );
 
-const productsResponse =
-  await productsResponsePromise;
+    await expect(
+      productHeading,
+    ).toBeVisible();
 
-const productsResponseBody =
-  await productsResponse.text();
+    const productCard =
+      page.locator(
+        'article',
+        {
+          has:
+            productHeading,
+        },
+      );
 
-expect(
-  productsResponse.ok(),
-  [
-    'Catalog request failed.',
-    `Status: ${productsResponse.status()}`,
-    `URL: ${productsResponse.url()}`,
-    `Response: ${productsResponseBody}`,
-  ].join('\n'),
-).toBeTruthy();
+    await expect(
+      productCard,
+    ).toBeVisible();
 
-expect(
-  productsResponseBody,
-).toContain(productName);
+    const addToBasketResponsePromise =
+      page.waitForResponse(
+        response =>
+          response
+            .url()
+            .includes(
+              '/api/v1/basket/items',
+            )
+          && response
+            .request()
+            .method() === 'POST',
+      );
 
-await expect(
-  page.getByRole(
-    'heading',
-    {
-      name: productName,
-    },
-  ),
-).toBeVisible();
-
-    await page
+    await productCard
       .getByRole(
         'button',
         {
@@ -142,6 +203,14 @@ await expect(
         },
       )
       .click();
+
+    const addToBasketResponse =
+      await addToBasketResponsePromise;
+
+    await assertSuccessfulResponse(
+      addToBasketResponse,
+      'Add-to-basket request failed.',
+    );
 
     await expect(
       page.getByText(
@@ -201,9 +270,7 @@ await expect(
 
     await page
       .getByLabel('Email')
-      .fill(
-        'alice.customer@eshop.local',
-      );
+      .fill(customerEmail);
 
     await page
       .getByLabel(
@@ -211,6 +278,19 @@ await expect(
       )
       .selectOption(
         'test-success',
+      );
+
+    const createOrderResponsePromise =
+      page.waitForResponse(
+        response =>
+          response
+            .url()
+            .includes(
+              '/api/v1/orders',
+            )
+          && response
+            .request()
+            .method() === 'POST',
       );
 
     await page
@@ -223,28 +303,42 @@ await expect(
       )
       .click();
 
+    const createOrderResponse =
+      await createOrderResponsePromise;
+
+    await assertSuccessfulResponse(
+      createOrderResponse,
+      'Create-order request failed.',
+    );
+
     await expect(page).toHaveURL(
       /\/orders\/[0-9a-f-]{36}$/i,
     );
 
+    const currentStatusCard =
+      page
+        .getByRole(
+          'heading',
+          {
+            name:
+              'Current status',
+          },
+        )
+        .locator('..');
+
     await expect(
-      page.getByRole(
-        'heading',
-        {
-          name:
-            'Current status',
-        },
-      ),
+      currentStatusCard,
     ).toBeVisible();
 
     await expect(
-      page.getByText(
-        'Confirmed',
-        {
-          exact:
-            true,
-        },
-      ),
+      currentStatusCard
+        .getByText(
+          'Confirmed',
+          {
+            exact:
+              true,
+          },
+        ),
     ).toBeVisible({
       timeout:
         45_000,
@@ -252,7 +346,7 @@ await expect(
 
     await expect(
       page.getByText(
-        'alice.customer@eshop.local',
+        customerEmail,
         {
           exact:
             true,

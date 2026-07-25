@@ -14,12 +14,11 @@ import type { Order } from '../types/order';
 
 const terminalStatuses = new Set([
     'StockReservationFailed',
-    'PaymentFailed',
     'Confirmed',
     'Cancelled',
 ]);
 
-const maxPollingAttempts = 10;
+const maxPollingAttempts = 20;
 const pollingIntervalMilliseconds = 3_000;
 
 export function OrderDetailsPage() {
@@ -174,8 +173,7 @@ export function OrderDetailsPage() {
                             <strong>Waiting for stock reservation</strong>
 
                             <p>
-                                The durable order exists. Inventory event processing
-                                will be implemented in later messaging steps.
+                                Inventory Service is processing the stock reservation.
                             </p>
                         </div>
                     )}
@@ -183,6 +181,17 @@ export function OrderDetailsPage() {
                     {order.status === 'PendingPayment' && (
                         <div className="pending-note">
                             <strong>Waiting for fake payment authorization</strong>
+                        </div>
+                    )}
+
+                    {order.status === 'PaymentFailed' && (
+                        <div className="pending-note">
+                            <strong>Payment failed</strong>
+
+                            <p>
+                                Waiting for reserved stock to be released before the
+                                order is cancelled.
+                            </p>
                         </div>
                     )}
 

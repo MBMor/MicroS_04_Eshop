@@ -520,7 +520,7 @@ migrate_database \
   "src/backend/services/NotificationsService/NotificationsService.csproj" \
   "${NOTIFICATIONS_CONNECTION_STRING}"
 
-echo "Seeding deterministic E2E product..."
+echo "Seeding deterministic E2E products..."
 
 "${COMPOSE_COMMAND[@]}" exec \
   --no-TTY \
@@ -547,9 +547,33 @@ VALUES
     '10000000-0000-0000-0000-000000000001',
     'E2E Mechanical Keyboard',
     'E2E-KEYBOARD-001',
-    'Deterministic product used by the Playwright checkout suite.',
+    'Deterministic product for the successful checkout scenario.',
     'E2E',
     2500.00,
+    'CZK',
+    TRUE,
+    NOW(),
+    NULL
+),
+(
+    '10000000-0000-0000-0000-000000000002',
+    'E2E Out of Stock Keyboard',
+    'E2E-OUT-OF-STOCK-001',
+    'Deterministic product for the insufficient stock scenario.',
+    'E2E',
+    1200.00,
+    'CZK',
+    TRUE,
+    NOW(),
+    NULL
+),
+(
+    '10000000-0000-0000-0000-000000000003',
+    'E2E Payment Failure Keyboard',
+    'E2E-PAYMENT-FAILURE-001',
+    'Deterministic product for the payment compensation scenario.',
+    'E2E',
+    1800.00,
     'CZK',
     TRUE,
     NOW(),
@@ -582,6 +606,26 @@ VALUES
     '20000000-0000-0000-0000-000000000001',
     '10000000-0000-0000-0000-000000000001',
     'E2E-KEYBOARD-001',
+    10,
+    0,
+    TRUE,
+    NOW(),
+    NULL
+),
+(
+    '20000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000002',
+    'E2E-OUT-OF-STOCK-001',
+    0,
+    0,
+    TRUE,
+    NOW(),
+    NULL
+),
+(
+    '20000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000003',
+    'E2E-PAYMENT-FAILURE-001',
     10,
     0,
     TRUE,
@@ -645,7 +689,9 @@ start_service \
 start_service \
   "api-gateway" \
   "src/backend/gateways/ApiGateway/ApiGateway.csproj" \
-  "ASPNETCORE_URLS=http://0.0.0.0:5080"
+  "ASPNETCORE_URLS=http://0.0.0.0:5080" \
+  "RateLimiting__Checkout__PermitLimit=20" \
+  "RateLimiting__CustomerApi__PermitLimit=240"
 
 wait_for_service \
   "catalog-service" \
