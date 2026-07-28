@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-28. The approved oracle is implemented on `main`; GitHub Actions `CI #31` and TestRail runs `R30`/`R31` provide Passed shared evidence for the direct backend and frontend variants. QA-02 complete-workflow variants have Passed local evidence and await shared CI/TestRail publication.
+Accepted on 2026-07-28. The approved oracle is implemented on `main`; GitHub Actions `CI #33` and TestRail runs `R37`–`R40` provide Passed shared evidence for the direct backend/frontend and QA-02 complete-workflow variants.
 
 ## Context
 
@@ -67,7 +67,7 @@ Orders Service owns canonicalization and hashes normalized client-supplied busin
 
 Direct evidence covers malformed/missing keys, sequential and concurrent replay, changed-request conflict, customer scoping, changed-basket behavior, use of a new key and replay after basket-clear failure. The same variants passed on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc` in GitHub Actions `CI #31` and TestRail `R30`/`R31`.
 
-QA-02 adds sequential and synchronized-concurrent duplicate HTTP scenarios using real Orders, Inventory, Payments and Notifications hosts with PostgreSQL and RabbitMQ Testcontainers. Both require one creator and one replay of the same order and absolute `Location`; exactly one order/idempotency record, inventory reservation and authorized payment; four expected notifications; exact outbox/inbox cardinality; and empty workflow queues and DLQs. The full Messaging suite passed 12/12, Orders passed 17/17, and the concurrent variant passed five independent local runs. Shared CI/TestRail publication and scheduled repeat history remain required before release evidence can be considered complete.
+QA-02 adds sequential and synchronized-concurrent duplicate HTTP scenarios using real Orders, Inventory, Payments and Notifications hosts with PostgreSQL and RabbitMQ Testcontainers. Both require one creator and one replay of the same order and absolute `Location`; exactly one order/idempotency record, inventory reservation and authorized payment; four expected notifications; exact outbox/inbox cardinality; and empty workflow queues and DLQs. The full Messaging suite passed 12/12, Orders passed 17/17, and the concurrent variant passed five independent local runs. Commit `a1fba95` then passed GitHub Actions `CI #33` (run `30388080798`); `ESHOP-ORDER-002` and `ESHOP-E2E-001` both passed in TestRail backend run `R38`. Scheduled repeat history remains required before release evidence can be considered complete.
 
 ## Consequences
 

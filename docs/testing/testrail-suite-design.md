@@ -1,8 +1,8 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 1.3
-> **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents use governed Automation IDs, and the last shared baseline passed publication with `CI #31` / TestRail `R29`–`R32`; QA-02 bindings await publication
+> **Version:** 1.5
+> **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents use governed Automation IDs, the 192-selector baseline passed publication with `CI #33` / TestRail `R37`–`R40`, and one local GAP-001 selector awaits shared publication
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
@@ -175,7 +175,7 @@ Stores release scope, activation/applicability, complete required mapping/input 
 | Post-deployment completion | target digest/schema/config, ingress synthetic, health and telemetry |
 | Periodic operational | restore, alerts, runbooks, recovery objectives and other calendar-profile evidence |
 
-The audited CI does not yet implement these formal tiers. All 192 existing logical tests are currently scheduled on pull requests and `main`; target tiers are a maturity model, not current execution.
+The audited CI does not yet implement these formal tiers. All 193 current logical tests are scheduled on pull requests and `main`; target tiers are a maturity model, not current execution.
 
 ---
 
@@ -215,7 +215,7 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
 
-The repository runtime contract is now [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). The QA-02 working tree contains 31 automated TestIntents, 192 unique source selectors and 209 binding edges. Its two new messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`. TestRail case C60 is `Automated`, `Implemented`, `Approved`, native `Is Automated = Yes` and uses `Eshop.TestIntents.ESHOP-ORDER-002`. Commit `03518fe52c5d8105ee55628a868a70dd20ba14fc`, with the prior 190-selector/205-edge map, passed GitHub Actions `CI #31`; C60 received Passed aggregate results in backend run `R30` and frontend run `R31`. The QA-02 bindings retain those existing cases and await shared publication.
+The repository runtime contract is now [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the local GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. TestRail case C60 is `Automated`, `Implemented`, `Approved`, native `Is Automated = Yes` and uses `Eshop.TestIntents.ESHOP-ORDER-002`; its framework, environment, source and binding metadata include the messaging implementation. Commit `a1fba95` passed GitHub Actions `CI #33`; both QA-02 aggregates received Passed results in backend run `R38`. The GAP-001 selector remains local until its commit is published.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -229,6 +229,8 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.5 | 2026-07-28 | Added the local GAP-001 binding and reconciled the runtime contract to 193 selectors/211 edges while retaining CI #33 as the shared baseline. | Pending review |
+| 1.4 | 2026-07-28 | Recorded CI #33/TestRail R37–R40 acceptance for QA-02 and synchronized C60 messaging evidence metadata. | Pending review |
 | 1.3 | 2026-07-28 | Added QA-02 runtime bindings and recorded the 192-selector/209-edge working tree separately from the accepted CI #31 baseline. | Pending review |
 | 1.2 | 2026-07-28 | Recorded CI #31/TestRail R29–R32 acceptance for the committed 31-intent TECH-02 mapping and C60 shared evidence. | Pending review |
 | 1.1 | 2026-07-28 | Recorded approved TECH-02 automation, current 31-intent runtime-map reconciliation and external archival of import-only artefacts. | Pending review |

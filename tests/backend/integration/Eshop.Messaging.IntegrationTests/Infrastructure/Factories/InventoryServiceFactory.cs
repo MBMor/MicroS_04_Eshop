@@ -1,6 +1,7 @@
 using InventoryService;
 using InventoryService.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -11,19 +12,26 @@ public sealed class InventoryServiceFactory
 {
     private readonly MessagingSystemFixture _fixture;
 
+    private readonly SaveChangesInterceptor?
+        _saveChangesInterceptor;
+
     public InventoryServiceFactory(
         MessagingSystemFixture fixture,
-        bool suppressHostedServices = false)
+        bool suppressHostedServices = false,
+        SaveChangesInterceptor? saveChangesInterceptor = null,
+        string clientProvidedName =
+            "inventory-service-integration-tests")
         : base(
             fixture,
             connectionStringName: "InventoryDb",
             connectionString:
                 fixture.InventoryConnectionString,
-            clientProvidedName:
-                "inventory-service-integration-tests",
+            clientProvidedName,
             suppressHostedServices)
     {
         _fixture = fixture;
+        _saveChangesInterceptor =
+            saveChangesInterceptor;
     }
 
     protected override void ConfigureAdditionalServices(
@@ -47,6 +55,12 @@ public sealed class InventoryServiceFactory
                                 .GetName()
                                 .Name);
                     });
+
+                if (_saveChangesInterceptor is not null)
+                {
+                    options.AddInterceptors(
+                        _saveChangesInterceptor);
+                }
             });
     }
 }

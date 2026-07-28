@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Eshop.Messaging.IntegrationTests.Infrastructure.Factories;
 using Eshop.Messaging.RabbitMq;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using RabbitMQ.Client;
 using Testcontainers.PostgreSql;
@@ -67,6 +68,9 @@ public sealed class MessagingSystemFixture :
     private OrdersServiceFactory? _ordersFactory;
 
     private InventoryServiceFactory? _inventoryFactory;
+
+    private InventoryServiceFactory?
+        _secondaryInventoryFactory;
 
     private PaymentsServiceFactory? _paymentsFactory;
 
@@ -153,6 +157,69 @@ public sealed class MessagingSystemFixture :
         StartServiceHosts();
 
         await WaitForConsumersAsync(
+            cancellationToken);
+    }
+
+    public async Task UseTwoCoordinatedInventoryConsumersAsync(
+        SaveChangesInterceptor saveChangesInterceptor,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(
+            saveChangesInterceptor);
+
+        DisposeInventoryFactories();
+
+        await WaitForQueueConsumerCountAsync(
+            RabbitMqQueues.InventoryOrderCreatedV1,
+            expectedCount: 0,
+            cancellationToken);
+
+        _inventoryFactory =
+            new InventoryServiceFactory(
+                this,
+                saveChangesInterceptor:
+                    saveChangesInterceptor,
+                clientProvidedName:
+                    "inventory-concurrency-primary");
+
+        _secondaryInventoryFactory =
+            new InventoryServiceFactory(
+                this,
+                saveChangesInterceptor:
+                    saveChangesInterceptor,
+                clientProvidedName:
+                    "inventory-concurrency-secondary");
+
+        _ = InventoryFactory.Services;
+        _ = _secondaryInventoryFactory.Services;
+
+        await WaitForQueueConsumerCountAsync(
+            RabbitMqQueues.InventoryOrderCreatedV1,
+            expectedCount: 2,
+            cancellationToken);
+    }
+
+    public async Task RestoreSingleInventoryConsumerAsync(
+        CancellationToken cancellationToken = default)
+    {
+        DisposeInventoryFactories();
+
+        await WaitForQueueConsumerCountAsync(
+            RabbitMqQueues.InventoryOrderCreatedV1,
+            expectedCount: 0,
+            cancellationToken);
+
+        _inventoryFactory =
+            new InventoryServiceFactory(this);
+
+        _ = InventoryFactory.Services;
+
+        await WaitForConsumersAsync(
+            cancellationToken);
+
+        await WaitForQueueConsumerCountAsync(
+            RabbitMqQueues.InventoryOrderCreatedV1,
+            expectedCount: 1,
             cancellationToken);
     }
 
@@ -253,13 +320,55 @@ public sealed class MessagingSystemFixture :
     {
         _notificationsFactory?.Dispose();
         _paymentsFactory?.Dispose();
-        _inventoryFactory?.Dispose();
+        DisposeInventoryFactories();
         _ordersFactory?.Dispose();
 
         _notificationsFactory = null;
         _paymentsFactory = null;
-        _inventoryFactory = null;
         _ordersFactory = null;
+    }
+
+    private void DisposeInventoryFactories()
+    {
+        _secondaryInventoryFactory?.Dispose();
+        _inventoryFactory?.Dispose();
+
+        _secondaryInventoryFactory = null;
+        _inventoryFactory = null;
+    }
+
+    private async Task WaitForQueueConsumerCountAsync(
+        string queueName,
+        uint expectedCount,
+        CancellationToken cancellationToken)
+    {
+        ConnectionFactory connectionFactory =
+            RabbitMqTestTopology.CreateConnectionFactory(
+                this);
+
+        await using IConnection connection =
+            await connectionFactory.CreateConnectionAsync(
+                "messaging-integration-test-consumer-count",
+                cancellationToken);
+
+        await using IChannel channel =
+            await connection.CreateChannelAsync(
+                cancellationToken: cancellationToken);
+
+        await Eventually.UntilAsync(
+            async token =>
+            {
+                uint consumerCount =
+                    await channel.ConsumerCountAsync(
+                        queueName,
+                        token);
+
+                return consumerCount == expectedCount;
+            },
+            $"Queue '{queueName}' should have exactly " +
+            $"{expectedCount} consumers.",
+            timeout: TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken);
     }
 
     private async Task WaitForConsumersAsync(

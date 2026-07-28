@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The QA-02 working tree maps 192 unique source selectors through 209 binding edges to 31 automated TestIntents. GitHub Actions `CI #31` on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc`, whose map had 190 selectors and 205 edges, remains the latest accepted shared publication.
+The current working tree maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the added GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #33` on commit `a1fba95`, which published the preceding 192-selector/209-edge baseline, is the latest accepted shared publication.
 
 ## Identity contract
 
@@ -93,11 +93,11 @@ The run areas intentionally overlap where several automation layers support the 
 
 ## Latest shared evidence
 
-GitHub Actions run [`30381746424`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30381746424) (`CI #31`) completed successfully on July 28, 2026. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
+GitHub Actions run [`30388080798`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30388080798) (`CI #33`) completed successfully on July 28, 2026. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
 
-- `R29` / Backend Unit: 12 TestIntent results;
-- `R30` / Backend Integration: 28 TestIntent results;
-- `R31` / Frontend Unit: 3 TestIntent results;
-- `R32` / Checkout E2E: 4 TestIntent results.
+- `R37` / Backend Unit: 12 TestIntent results;
+- `R38` / Backend Integration: 28 TestIntent results;
+- `R39` / Frontend Unit: 3 TestIntent results;
+- `R40` / Checkout E2E: 4 TestIntent results.
 
-The 47 aggregate rows deliberately overlap. `ESHOP-ORDER-002` passed in both `R30` and `R31`, proving the backend and frontend bindings were resolved without creating a new case. This record promotes the named TECH-01/TECH-02 variants to shared evidence; it does not activate a Future gate. The two new QA-02 backend selectors support both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; their local results do not become shared evidence until the exact commit is published, and scheduled history remains separate.
+The 47 aggregate rows deliberately overlap. The two QA-02 backend selectors support both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; both aggregates passed in `R38` without creating a new case. This promotes the exact QA-02 variants to shared evidence but does not activate a Future gate or replace scheduled history.
