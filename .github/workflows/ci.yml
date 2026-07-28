@@ -199,6 +199,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=domain-unit-tests.trx"
+          --logger
+          "junit;LogFileName=domain-unit-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/unit
 
@@ -210,6 +212,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=api-gateway-integration-tests.trx"
+          --logger
+          "junit;LogFileName=api-gateway-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/api-gateway
 
@@ -221,6 +225,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=basket-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=basket-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/basket-service
 
@@ -232,6 +238,7 @@ jobs:
             --no-build \
             --logger "console;verbosity=detailed" \
             --logger "trx;LogFileName=messaging-integration-tests.trx" \
+            --logger "junit;LogFileName=messaging-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose" \
             --diag artifacts/test-results/messaging/vstest-diagnostic.log \
             --results-directory artifacts/test-results/messaging
 
@@ -243,6 +250,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=catalog-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=catalog-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/catalog-service
 
@@ -254,6 +263,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=orders-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=orders-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/orders-service
 
@@ -265,6 +276,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=inventory-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=inventory-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/inventory-service
 
@@ -276,6 +289,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=payments-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=payments-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/payments-service
 
@@ -287,6 +302,8 @@ jobs:
           --no-build
           --logger
           "trx;LogFileName=notifications-service-integration-tests.trx"
+          --logger
+          "junit;LogFileName=notifications-service-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
           --results-directory
           artifacts/test-results/notifications-service
 
@@ -295,7 +312,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: backend-test-results
-          path: artifacts/test-results/**/*.trx
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-results/**/*.junit.xml
           if-no-files-found: warn
           retention-days: 7
 
@@ -334,7 +353,16 @@ jobs:
         run: npm run lint
 
       - name: Run frontend tests
-        run: npm run test
+        run: npm run test:junit
+
+      - name: Upload frontend test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-test-results
+          path: artifacts/test-results/frontend/*.junit.xml
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build frontend
         run: npm run build
@@ -439,5 +467,140 @@ jobs:
         with:
           name: checkout-e2e-diagnostics
           path: artifacts/e2e/
+          if-no-files-found: warn
+          retention-days: 7
+
+  testrail:
+    name: Publish TestRail results (pilot)
+    needs:
+      - backend
+      - frontend
+      - e2e
+    if: ${{ always() && github.event_name != 'pull_request' && !cancelled() }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      TESTRAIL_HOST: ${{ vars.TESTRAIL_HOST }}
+      TESTRAIL_PROJECT: ${{ vars.TESTRAIL_PROJECT }}
+      TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
+      TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Validate TestRail configuration
+        shell: bash
+        run: |
+          missing=0
+          for variable in TESTRAIL_HOST TESTRAIL_PROJECT TESTRAIL_USERNAME TESTRAIL_API_KEY; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error::Required GitHub secret or variable is empty: ${variable}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install pinned TRCLI
+        run: python -m pip install --disable-pip-version-check --no-input trcli==1.15.1
+
+      - name: Download backend test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: backend-test-results
+          path: artifacts/download/backend
+
+      - name: Download frontend test results
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-test-results
+          path: artifacts/download/frontend
+
+      - name: Download Checkout E2E diagnostics
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: checkout-e2e-diagnostics
+          path: artifacts/download/e2e
+
+      - name: Aggregate raw results by TestIntent
+        run: >
+          python scripts/testrail/prepare_ci_results.py
+          --backend-root artifacts/download/backend
+          --frontend-root artifacts/download/frontend
+          --e2e-root artifacts/download/e2e
+          --output-dir artifacts/testrail
+
+      - name: Validate Automation IDs exist uniquely in TestRail
+        shell: bash
+        run: |
+          shopt -s nullglob
+          reports=(
+            artifacts/testrail/backend-unit.junit.xml
+            artifacts/testrail/backend-integration.junit.xml
+            artifacts/testrail/frontend-unit.junit.xml
+            artifacts/testrail/checkout-e2e.junit.xml
+          )
+          existing=()
+          for report in "${reports[@]}"; do
+            [[ -f "$report" ]] && existing+=("$report")
+          done
+          if (( ${#existing[@]} == 0 )); then
+            echo "::error::No aggregated JUnit reports are available for TestRail"
+            exit 1
+          fi
+          python scripts/testrail/validate_testrail_automation_ids.py \
+            --host "$TESTRAIL_HOST" \
+            --project "$TESTRAIL_PROJECT" \
+            --username "$TESTRAIL_USERNAME" \
+            --api-key "$TESTRAIL_API_KEY" \
+            "${existing[@]}"
+
+      - name: Publish separate TestRail runs
+        shell: bash
+        env:
+          TESTRAIL_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          publish_report() {
+            local report="$1"
+            local area="$2"
+            if [[ ! -f "$report" ]]; then
+              echo "::warning::${area}: aggregate report is absent; run skipped"
+              return 0
+            fi
+            trcli \
+              -y \
+              -n \
+              -h "$TESTRAIL_HOST" \
+              --project "$TESTRAIL_PROJECT" \
+              -u "$TESTRAIL_USERNAME" \
+              -k "$TESTRAIL_API_KEY" \
+              parse_junit \
+              -f "$report" \
+              --title "CI #${GITHUB_RUN_NUMBER} | ${area}" \
+              --run-description "GitHub Actions run: ${TESTRAIL_RUN_URL}" \
+              --close-run
+          }
+
+          publish_report artifacts/testrail/backend-unit.junit.xml "Backend Unit"
+          publish_report artifacts/testrail/backend-integration.junit.xml "Backend Integration"
+          publish_report artifacts/testrail/frontend-unit.junit.xml "Frontend Unit"
+          publish_report artifacts/testrail/checkout-e2e.junit.xml "Checkout E2E"
+
+      - name: Upload TestRail transformation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: testrail-junit-results
+          path: artifacts/testrail/
           if-no-files-found: warn
           retention-days: 7

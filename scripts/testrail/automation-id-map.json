@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "description": "Governed mapping from canonical raw test selectors to high-level TestRail TestIntent references.",
+  "intents": {
+    "ESHOP-AUTH-001": [
+      "RequireRole.shows the sign-in state when the user is not authenticated", "RequireRole.calls login when the sign-in button is clicked", "RequireRole.shows access denied when the user does not have the required role", "RequireRole.renders children when the user has the required role", "GatewayAuthorizationTests.AuthMeAnonymousReturnsUnauthorized", "GatewayAuthorizationTests.AuthMeAuthenticatedReturnsClaims"
+    ],
+    "ESHOP-BASKET-001": [
+      "BasketServiceIntegrationTests.GetBasketNewCustomerReturnsEmptyBasket", "BasketServiceIntegrationTests.AddItemActiveProductPersistsInRedisAndIsolatesCustomers", "BasketServiceIntegrationTests.RedisRepositorySetAndGetRoundTripsSerializedBasket", "ShoppingBasketTests.EmptyValidCustomerCreatesEmptyBasket", "ShoppingBasketTests.EmptyBlankCustomerThrows"
+    ],
+    "ESHOP-BASKET-003": [
+      "BasketServiceIntegrationTests.RedisRepositorySetAssignsExpectedAbsoluteExpiration", "BasketApplicationServiceTests.RemoveItemLastItemDeletesBasket", "BasketApplicationServiceTests.ClearExistingBasketDeletesBasket"
+    ],
+    "ESHOP-BASKET-004": [
+      "BasketServiceIntegrationTests.AddItemUnknownProductReturnsNotFound", "BasketServiceIntegrationTests.AddItemInactiveProductReturnsBadRequest", "BasketServiceIntegrationTests.BasketMutationFlowUpdateRemoveAndClearPersistsChanges", "BasketApplicationServiceTests.AddItemProductNotFoundReturnsNotFound", "BasketApplicationServiceTests.AddItemInactiveProductReturnsValidationFailure", "BasketApplicationServiceTests.AddItemActiveProductPersistsUpdatedBasket", "BasketApplicationServiceTests.AddItemInvalidQuantityDoesNotPersistBasket", "BasketApplicationServiceTests.UpdateQuantityMissingItemReturnsNotFound", "ShoppingBasketTests.TryAddOrIncreaseNewItemAddsItem", "ShoppingBasketTests.TryAddOrIncreaseExistingItemIncreasesQuantity", "ShoppingBasketTests.TryAddOrIncreaseNonPositiveQuantityFailsWithoutMutation", "ShoppingBasketTests.TryAddOrIncreaseQuantityAboveMaximumFails", "ShoppingBasketTests.TryUpdateQuantityExistingItemUpdatesQuantity", "ShoppingBasketTests.TryUpdateQuantityMissingItemFails", "ShoppingBasketTests.TryUpdateQuantityInvalidQuantityFailsWithoutMutation", "ShoppingBasketTests.TryRemoveExistingItemRemovesItem", "ShoppingBasketTests.TryRemoveMissingItemFailsWithoutMutation"
+    ],
+    "ESHOP-CATALOG-002": [
+      "CatalogServiceIntegrationTests.GetProductsDefaultReturnsOnlyActiveProducts", "CatalogServiceIntegrationTests.GetProductsIncludeInactiveReturnsAllProducts", "CatalogServiceIntegrationTests.GetProductByIdUnknownProductReturnsNotFound", "CatalogServiceIntegrationTests.CreateProductValidRequestPersistsNormalizedProduct", "CatalogServiceIntegrationTests.UpdateProductValidRequestPersistsNewValues", "CatalogServiceIntegrationTests.DeleteProductExistingProductDeactivatesProduct", "CatalogServiceIntegrationTests.DeleteProductUnknownProductReturnsNotFound", "ProductTests.CreateValidDataNormalizesValues", "ProductTests.CreateEmptyIdThrows", "ProductTests.CreateNonPositivePriceThrows", "ProductTests.UpdateValidDataUpdatesAndNormalizesValues", "ProductTests.UpdateInvalidSkuThrowsWithoutPartialMutation", "ProductTests.DeactivateActiveProductDeactivatesProduct"
+    ],
+    "ESHOP-DATA-001": ["MessagingInfrastructureSmokeTests.InfrastructureAndServiceHostsAreAvailable"],
+    "ESHOP-DATA-002": [
+      "CatalogServiceIntegrationTests.CreateProductDuplicateSkuReturnsConflict", "CatalogServiceIntegrationTests.UpdateProductDuplicateSkuReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateProductIdReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateNormalizedSkuReturnsConflict"
+    ],
+    "ESHOP-DATA-004": [
+      "CatalogServiceIntegrationTests.CreateProductInvalidRequestReturnsBadRequest", "OrdersServiceIntegrationTests.CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence", "OrdersServiceIntegrationTests.CreateOrderMultipleCurrenciesReturnsBadRequest", "OrdersServiceIntegrationTests.CreateOrderInvalidEmailReturnsBadRequest"
+    ],
+    "ESHOP-DEPLOY-002": [
+      "GatewayAuthorizationTests.RootAnonymousReturnsOk", "MessagingInfrastructureSmokeTests.InfrastructureAndServiceHostsAreAvailable"
+    ],
+    "ESHOP-E2E-001": [
+      "OrderHappyPathMessagingTests.CreateOrderHappyPathConfirmsOrder", "OrderTests.MarkStockReservedPendingOrderMovesToPendingPayment", "OrderTests.MarkPaymentAuthorizedPendingPaymentConfirmsOrder", "OrderTests.MarkPaymentAuthorizedBeforeStockReservationThrowsWithoutMutation", "checkout-success.spec.customer completes a successful checkout"
+    ],
+    "ESHOP-E2E-002": [
+      "OrderStockFailureMessagingTests.CreateOrderWithInsufficientStockMarksReservationAsFailed", "OrderTests.MarkStockReservationFailedPendingOrderStoresNormalizedReason", "checkout failure paths.order fails when inventory has insufficient stock"
+    ],
+    "ESHOP-E2E-003": [
+      "OrderPaymentFailureCompensationTests.CreateOrderWhenPaymentFailsReleasesStockAndCancelsOrder", "OrderTests.PaymentFailureThenCancellationRecordsBothTransitions", "OrderTests.CancelConfirmedOrderThrowsWithoutMutation", "checkout failure paths.failed payment releases stock and cancels the order"
+    ],
+    "ESHOP-FRONTEND-001": [
+      "apiRequest.adds the bearer token to an authenticated request", "apiRequest.does not add Authorization when no token exists", "apiRequest.preserves caller headers", "apiRequest.returns undefined for a 204 response", "apiRequest.uses problem detail for an unauthorized response", "apiRequest.uses fallback message for a non-JSON forbidden response"
+    ],
+    "ESHOP-FRONTEND-002": [
+      "checkout-success.spec.customer completes a successful checkout", "checkout failure paths.order fails when inventory has insufficient stock", "checkout failure paths.failed payment releases stock and cancels the order"
+    ],
+    "ESHOP-GW-001": [
+      "GatewayAuthorizationTests.CatalogAnonymousForwardsRequest", "GatewayAuthorizationTests.BasketAnonymousReturnsUnauthorized", "GatewayAuthorizationTests.BasketCustomerForwardsRequest", "GatewayAuthorizationTests.OrdersCustomerForwardsRequest", "GatewayAuthorizationTests.NotificationsCustomerForwardsRequest", "GatewayAuthorizationTests.BasketSupportReturnsForbidden", "GatewayAuthorizationTests.OrdersAdminWithoutCustomerRoleReturnsForbidden", "GatewayAuthorizationTests.InventoryCustomerReturnsForbidden", "GatewayAuthorizationTests.InventorySupportForwardsRequest", "GatewayAuthorizationTests.InventoryAdminForwardsRequest", "GatewayAuthorizationTests.PaymentsSupportForwardsRequest", "GatewayAuthorizationTests.PaymentsAdminForwardsRequest", "BasketServiceIntegrationTests.BasketAnonymousRequestReturnsUnauthorized", "BasketServiceIntegrationTests.BasketSupportUserReturnsForbidden", "InventoryServiceIntegrationTests.InventoryAnonymousRequestReturnsUnauthorized", "InventoryServiceIntegrationTests.InventoryCustomerUserReturnsForbidden", "NotificationsServiceIntegrationTests.NotificationsAnonymousRequestReturnsUnauthorized", "NotificationsServiceIntegrationTests.NotificationsSupportUserReturnsForbidden", "OrdersServiceIntegrationTests.OrdersAnonymousRequestReturnsUnauthorized", "OrdersServiceIntegrationTests.OrdersSupportUserReturnsForbidden", "PaymentsServiceIntegrationTests.PaymentsAnonymousRequestReturnsUnauthorized", "PaymentsServiceIntegrationTests.PaymentsCustomerUserReturnsForbidden", "PaymentsServiceIntegrationTests.GetPaymentsOperationalRoleReturnsOk"
+    ],
+    "ESHOP-GW-002": [
+      "GatewayRateLimitingTests.CatalogAnonymousClientExceedsLimitReturnsTooManyRequests", "GatewayRateLimitingTests.BasketSameCustomerExceedsLimitReturnsTooManyRequests", "GatewayRateLimitingTests.CheckoutSameCustomerExceedsLimitReturnsTooManyRequests", "GatewayRateLimitingTests.CheckoutDifferentCustomersHaveIndependentLimits", "GatewayRateLimitingTests.OperationalEndpointSameUserExceedsLimitReturnsTooManyRequests", "GatewayRateLimitingTests.CrossOriginPreflightDoesNotGrantCorsAccess"
+    ],
+    "ESHOP-INVENTORY-001": [
+      "InventoryServiceIntegrationTests.CreateInventoryItemSupportUserPersistsNormalizedItem", "InventoryServiceIntegrationTests.GetInventoryItemByProductIdReturnsPersistedItem", "InventoryServiceIntegrationTests.GetInventoryItemsDefaultQueryExcludesInactiveItems", "InventoryServiceIntegrationTests.UpdateInventoryItemValidRequestPersistsChanges", "InventoryServiceIntegrationTests.AdjustInventoryStockValidDeltaPersistsNewQuantity", "InventoryServiceIntegrationTests.AdjustInventoryStockZeroDeltaReturnsValidationProblem", "InventoryServiceIntegrationTests.AdjustInventoryStockBelowReservedQuantityReturnsBadRequestWithoutMutation", "InventoryServiceIntegrationTests.MissingInventoryItemOperationsReturnNotFound", "InventoryServiceIntegrationTests.InventoryRowVersionConcurrentUpdatesRejectStaleWrite", "InventoryItemTests.CreateValidDataNormalizesSkuAndCalculatesAvailability", "InventoryItemTests.TryReserveActiveItemWithAvailableStockReservesQuantity", "InventoryItemTests.TryReserveInactiveItemReturnsFalseWithoutMutation", "InventoryItemTests.TryReserveInsufficientAvailableStockReturnsFalse", "InventoryItemTests.UpdateOnHandBelowReservedQuantityThrowsWithoutMutation", "InventoryItemTests.AdjustOnHandQuantityResultBelowReservedQuantityThrows", "InventoryItemTests.AdjustOnHandQuantityValidIncreaseUpdatesAvailability", "InventoryItemTests.ReleaseReservationReservedStockReturnsItToAvailability", "InventoryItemTests.CommitReservationReservedStockDecreasesOnHandQuantity", "InventoryItemTests.ReleaseReservationMoreThanReservedThrowsWithoutMutation"
+    ],
+    "ESHOP-INVENTORY-002": ["InventoryServiceIntegrationTests.InventoryRowVersionConcurrentUpdatesRejectStaleWrite"],
+    "ESHOP-MSG-001": [
+      "MalformedMessageDeadLetterTests.StockReservedConsumerInvalidJsonDeadLettersMessageWithoutSideEffects", "PermanentBusinessFailureDeadLetterTests.StockReservedConsumerUnknownOrderDeadLettersMessageWithoutRetry"
+    ],
+    "ESHOP-MSG-002": [
+      "DeliveryLimitDeadLetterTests.QuorumQueueDeliveryLimitExceededDeadLettersMessage", "TransientConsumerRetryTests.StockReservationFailedConsumerTransientFailureRequeuesAndProcessesMessage"
+    ],
+    "ESHOP-MSG-003": [
+      "DuplicateMessageDeliveryTests.StockReservationFailedConsumerDuplicateDeliveryAppliesSideEffectsOnce", "NotificationTests.MarkAsReadAlreadyReadNotificationIsIdempotent"
+    ],
+    "ESHOP-NOTIFICATION-001": [
+      "NotificationsServiceIntegrationTests.GetNotificationsNewCustomerReturnsEmptyCollection", "NotificationsServiceIntegrationTests.GetNotificationsReturnsOnlyCurrentCustomerInDescendingOrder", "NotificationsServiceIntegrationTests.GetNotificationsUnreadOnlyReturnsOnlyUnreadNotifications", "NotificationsServiceIntegrationTests.GetNotificationsOrderFilterReturnsMatchingOrder", "NotificationsServiceIntegrationTests.GetNotificationsLimitIsAppliedAfterDescendingOrdering", "NotificationsServiceIntegrationTests.GetNotificationsInvalidLimitReturnsBadRequest", "NotificationsServiceIntegrationTests.GetNotificationsEmptyOrderIdReturnsBadRequest", "NotificationsServiceIntegrationTests.GetUnreadCountReturnsOnlyCurrentCustomersUnreadCount", "NotificationsServiceIntegrationTests.GetNotificationByIdOwnerReturnsPersistedNotification", "NotificationsServiceIntegrationTests.GetNotificationByIdOtherCustomerReturnsNotFound", "NotificationTests.CreateValidDataCreatesUnreadNotification", "NotificationTests.CreateEmptyIdThrows", "NotificationTests.CreateUnsupportedTypeThrows", "NotificationTests.CreateEmptyOptionalOrderIdThrows", "NotificationTests.CreateBlankTitleThrows", "NotificationTests.CreateTitleAboveMaximumLengthThrows", "NotificationTests.CreateMessageAboveMaximumLengthThrows", "NotificationTests.MarkAsReadUnreadNotificationMarksNotificationRead"
+    ],
+    "ESHOP-ORDER-001": [
+      "OrdersServiceIntegrationTests.CreateOrderValidBasketPersistsOrderHistoryAndOutbox", "ShoppingBasketTests.BasketItemLineTotalMultipliesPriceAndQuantity", "OrderTests.CreateValidItemsCreatesPendingOrderAndInitialHistory", "OrderTests.CreateItemsUsingDifferentCurrenciesThrows", "OrderTests.CreateItemBelongingToDifferentOrderThrows"
+    ],
+    "ESHOP-ORDER-003": [
+      "OrdersServiceIntegrationTests.GetOrdersReturnsOnlyAuthenticatedCustomersOrders", "OrdersServiceIntegrationTests.GetOrderOtherCustomersOrderReturnsNotFound"
+    ],
+    "ESHOP-OUTBOX-001": ["OrdersServiceIntegrationTests.CreateOrderValidBasketPersistsOrderHistoryAndOutbox"],
+    "ESHOP-OUTBOX-002": ["OrderHappyPathMessagingTests.CreateOrderHappyPathConfirmsOrder"],
+    "ESHOP-PAYMENT-001": [
+      "FakePaymentProcessorTests.TryProcessSuccessMethodReturnsAuthorizedDecision", "FakePaymentProcessorTests.TryProcessFailureMethodReturnsFailedDecision", "FakePaymentProcessorTests.TryProcessUnsupportedMethodReturnsFalse", "FakePaymentProcessorTests.TryProcessBlankMethodReturnsFalse", "PaymentTests.CreatePendingValidDataNormalizesValues", "PaymentTests.CreatePendingNonPositiveAmountThrows", "PaymentTests.AuthorizePendingPaymentMarksPaymentAuthorized", "PaymentTests.FailPendingPaymentNormalizesFailureReason", "PaymentTests.FailBlankReasonThrowsWithoutMutation", "PaymentTests.AuthorizeAlreadyAuthorizedPaymentThrows", "PaymentTests.FailAuthorizedPaymentThrowsWithoutMutation"
+    ],
+    "ESHOP-PAYMENT-002": [
+      "PaymentsServiceIntegrationTests.CreatePaymentSuccessMethodPersistsAuthorizedPayment", "PaymentsServiceIntegrationTests.CreatePaymentFailureMethodPersistsFailedPayment", "PaymentsServiceIntegrationTests.CreatePaymentDuplicateOrderReturnsConflict", "PaymentsServiceIntegrationTests.CreatePaymentUnsupportedMethodReturnsBadRequestWithoutPersistence", "PaymentsServiceIntegrationTests.CreatePaymentEmptyOrderIdReturnsValidationProblem", "PaymentsServiceIntegrationTests.GetPaymentsReturnsPersistedPayments", "PaymentsServiceIntegrationTests.GetPaymentByIdAndOrderReturnsPersistedPayment", "PaymentsServiceIntegrationTests.MissingPaymentQueriesReturnNotFound"
+    ],
+    "ESHOP-RESILIENCE-001": ["RabbitMqOutageRecoveryTests.OrdersOutboxRabbitMqOutageRetriesAndPublishesAfterRecovery"],
+    "ESHOP-RESILIENCE-003": [
+      "GatewayRateLimitingTests.HealthEndpointIsNotRateLimited", "BasketServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "InventoryServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "NotificationsServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "OrdersServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "PaymentsServiceIntegrationTests.HealthAnonymousRequestReturnsOk"
+    ]
+  }
+}

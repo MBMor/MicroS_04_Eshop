@@ -46,6 +46,13 @@ export default defineConfig({
           'never',
       },
     ],
+    [
+      'junit',
+      {
+        outputFile:
+          '../../artifacts/e2e/test-results/checkout-e2e.junit.xml',
+      },
+    ],
   ],
 
   use: {
