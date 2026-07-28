@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Eshop.Contracts.IntegrationEvents.V1;
 using InventoryService.Data;
 using InventoryService.Domain;
@@ -32,19 +33,25 @@ public sealed class OrderStockReservationService(
                     integrationEvent,
                     cancellationToken);
             }
-            catch (DbUpdateConcurrencyException)
-                when (attempt < MaximumConcurrencyAttempts)
+            catch (DbUpdateConcurrencyException exception)
             {
-                // Odstraní entity a Added outbox/inbox záznamy
-                // z neúspěšného pokusu.
+                // Remove tracked entities and Added outbox/inbox records
+                // left by the failed attempt.
                 dbContext.ChangeTracker.Clear();
+
+                if (attempt == MaximumConcurrencyAttempts)
+                {
+                    throw new DbUpdateConcurrencyException(
+                        $"Inventory reservation for order " +
+                        $"'{integrationEvent.OrderId}' could not be completed " +
+                        $"after {MaximumConcurrencyAttempts} concurrency attempts.",
+                        exception);
+                }
             }
         }
 
-        throw new DbUpdateConcurrencyException(
-            $"Inventory reservation for order " +
-            $"'{integrationEvent.OrderId}' could not be completed " +
-            $"after {MaximumConcurrencyAttempts} concurrency attempts.");
+        throw new UnreachableException(
+            "Inventory reservation retry loop completed unexpectedly.");
     }
 
     private async Task<ReserveOrderStockResult> ReserveCoreAsync(

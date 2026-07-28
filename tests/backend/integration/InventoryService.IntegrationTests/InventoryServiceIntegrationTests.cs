@@ -1,12 +1,17 @@
 using System.Net;
 using System.Net.Http.Json;
+using Eshop.Contracts.IntegrationEvents.V1;
+using Eshop.Messaging.RabbitMq;
 using Eshop.Security.Authorization;
+using InventoryService.Application;
 using InventoryService.Contracts;
 using InventoryService.Data;
 using InventoryService.Domain;
 using InventoryService.IntegrationTests.Infrastructure;
+using InventoryService.Outbox;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -570,6 +575,248 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
+        ConcurrentReservationsForLastUnitDoNotOversellAndRetryLoser()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 1);
+
+        OrderCreatedV1 firstOrder =
+            CreateOrderCreatedEvent(
+                (created.ProductId, 1));
+
+        OrderCreatedV1 secondOrder =
+            CreateOrderCreatedEvent(
+                (created.ProductId, 1));
+
+        CoordinatedFirstSaveInterceptor coordinator =
+            new(requiredParticipants: 2);
+
+        ReserveOrderStockResult[] results =
+            await ExecuteConcurrentReservationsAsync(
+                coordinator,
+                firstOrder,
+                secondOrder);
+
+        Assert.Equal(
+            1,
+            results.Count(result =>
+                result.Status
+                    == ReserveOrderStockStatus.Reserved));
+
+        Assert.Equal(
+            1,
+            results.Count(result =>
+                result.Status
+                    == ReserveOrderStockStatus.Failed));
+
+        Assert.Equal(2, coordinator.FirstWaveArrivals);
+        Assert.Equal(3, coordinator.SaveAttemptCount);
+
+        await using AsyncServiceScope verificationScope =
+            fixture.Factory.Services.CreateAsyncScope();
+
+        InventoryDbContext verificationContext =
+            verificationScope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryItem persisted =
+            await verificationContext.InventoryItems
+                .AsNoTracking()
+                .SingleAsync(
+                    item => item.Id == created.Id,
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, persisted.OnHandQuantity);
+        Assert.Equal(1, persisted.ReservedQuantity);
+        Assert.Equal(0, persisted.AvailableQuantity);
+
+        Assert.Equal(
+            2,
+            await verificationContext.ProcessedMessages
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
+
+        string[] routingKeys =
+            await verificationContext.OutboxMessages
+                .AsNoTracking()
+                .OrderBy(message => message.RoutingKey)
+                .Select(message => message.RoutingKey)
+                .ToArrayAsync(Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [
+                RabbitMqRoutingKeys.StockReservationFailedV1,
+                RabbitMqRoutingKeys.StockReservedV1
+            ],
+            routingKeys);
+    }
+
+    [Fact]
+    public async Task
+        ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder()
+    {
+        InventoryItemResponse constrainedItem =
+            await CreateInventoryItemAsync(
+                sku: "CONSTRAINED-SKU",
+                initialOnHandQuantity: 1);
+
+        InventoryItemResponse sharedItem =
+            await CreateInventoryItemAsync(
+                sku: "SHARED-SKU",
+                initialOnHandQuantity: 2);
+
+        OrderCreatedV1 firstOrder =
+            CreateOrderCreatedEvent(
+                (constrainedItem.ProductId, 1),
+                (sharedItem.ProductId, 1));
+
+        OrderCreatedV1 secondOrder =
+            CreateOrderCreatedEvent(
+                (constrainedItem.ProductId, 1),
+                (sharedItem.ProductId, 1));
+
+        CoordinatedFirstSaveInterceptor coordinator =
+            new(requiredParticipants: 2);
+
+        ReserveOrderStockResult[] results =
+            await ExecuteConcurrentReservationsAsync(
+                coordinator,
+                firstOrder,
+                secondOrder);
+
+        Assert.Equal(
+            1,
+            results.Count(result =>
+                result.Status
+                    == ReserveOrderStockStatus.Reserved));
+
+        Assert.Equal(
+            1,
+            results.Count(result =>
+                result.Status
+                    == ReserveOrderStockStatus.Failed));
+
+        Assert.Equal(2, coordinator.FirstWaveArrivals);
+        Assert.Equal(3, coordinator.SaveAttemptCount);
+
+        await using AsyncServiceScope verificationScope =
+            fixture.Factory.Services.CreateAsyncScope();
+
+        InventoryDbContext verificationContext =
+            verificationScope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryItem[] persistedItems =
+            await verificationContext.InventoryItems
+                .AsNoTracking()
+                .OrderBy(item => item.Sku)
+                .ToArrayAsync(Xunit.TestContext.Current.CancellationToken);
+
+        InventoryItem persistedConstrainedItem =
+            Assert.Single(
+                persistedItems,
+                item =>
+                    item.ProductId
+                        == constrainedItem.ProductId);
+
+        InventoryItem persistedSharedItem =
+            Assert.Single(
+                persistedItems,
+                item =>
+                    item.ProductId
+                        == sharedItem.ProductId);
+
+        Assert.Equal(
+            1,
+            persistedConstrainedItem.ReservedQuantity);
+
+        Assert.Equal(
+            0,
+            persistedConstrainedItem.AvailableQuantity);
+
+        Assert.Equal(1, persistedSharedItem.ReservedQuantity);
+        Assert.Equal(1, persistedSharedItem.AvailableQuantity);
+
+        Assert.Equal(
+            2,
+            await verificationContext.ProcessedMessages
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            2,
+            await verificationContext.OutboxMessages
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task
+        ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 1);
+
+        AlwaysConcurrencyConflictInterceptor interceptor =
+            new();
+
+        await using InventoryDbContext context =
+            CreateInventoryDbContext(interceptor);
+
+        OrderStockReservationService service =
+            new(
+                context,
+                new InventoryOutboxWriter(),
+                TimeProvider.System);
+
+        OrderCreatedV1 orderCreated =
+            CreateOrderCreatedEvent(
+                (created.ProductId, 1));
+
+        DbUpdateConcurrencyException exception =
+            await Assert.ThrowsAsync<
+                DbUpdateConcurrencyException>(
+                () => service.ReserveAsync(
+                    orderCreated,
+                    Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Contains(
+            "after 3 concurrency attempts",
+            exception.Message,
+            StringComparison.Ordinal);
+
+        Assert.Equal(3, interceptor.SaveAttemptCount);
+
+        await using AsyncServiceScope verificationScope =
+            fixture.Factory.Services.CreateAsyncScope();
+
+        InventoryDbContext verificationContext =
+            verificationScope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryItem persisted =
+            await verificationContext.InventoryItems
+                .AsNoTracking()
+                .SingleAsync(
+                    item => item.Id == created.Id,
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, persisted.OnHandQuantity);
+        Assert.Equal(0, persisted.ReservedQuantity);
+        Assert.Equal(1, persisted.AvailableQuantity);
+
+        Assert.Equal(
+            0,
+            await verificationContext.ProcessedMessages
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            0,
+            await verificationContext.OutboxMessages
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task
         InventoryRowVersionConcurrentUpdatesRejectStaleWrite()
     {
         InventoryItemResponse created =
@@ -630,6 +877,156 @@ public sealed class InventoryServiceIntegrationTests(
                 Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(11, persisted.OnHandQuantity);
+    }
+
+    private async Task<ReserveOrderStockResult[]>
+        ExecuteConcurrentReservationsAsync(
+            SaveChangesInterceptor interceptor,
+            OrderCreatedV1 firstOrder,
+            OrderCreatedV1 secondOrder)
+    {
+        await using InventoryDbContext firstContext =
+            CreateInventoryDbContext(interceptor);
+
+        await using InventoryDbContext secondContext =
+            CreateInventoryDbContext(interceptor);
+
+        OrderStockReservationService firstService =
+            new(
+                firstContext,
+                new InventoryOutboxWriter(),
+                TimeProvider.System);
+
+        OrderStockReservationService secondService =
+            new(
+                secondContext,
+                new InventoryOutboxWriter(),
+                TimeProvider.System);
+
+        Task<ReserveOrderStockResult> firstReservation =
+            firstService.ReserveAsync(
+                firstOrder,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Task<ReserveOrderStockResult> secondReservation =
+            secondService.ReserveAsync(
+                secondOrder,
+                Xunit.TestContext.Current.CancellationToken);
+
+        return await Task.WhenAll(
+            firstReservation,
+            secondReservation);
+    }
+
+    private InventoryDbContext CreateInventoryDbContext(
+        SaveChangesInterceptor interceptor)
+    {
+        DbContextOptions<InventoryDbContext> options =
+            new DbContextOptionsBuilder<InventoryDbContext>()
+                .UseNpgsql(
+                    fixture.PostgresConnectionString)
+                .AddInterceptors(interceptor)
+                .Options;
+
+        return new InventoryDbContext(options);
+    }
+
+    private static OrderCreatedV1 CreateOrderCreatedEvent(
+        params (Guid ProductId, int Quantity)[] items)
+    {
+        DateTimeOffset occurredAtUtc =
+            DateTimeOffset.UtcNow;
+
+        return new OrderCreatedV1(
+            EventId: Guid.NewGuid(),
+            OccurredAtUtc: occurredAtUtc,
+            CorrelationId: Guid.NewGuid(),
+            OrderId: Guid.NewGuid(),
+            CustomerId: $"customer-{Guid.NewGuid():N}",
+            TotalAmount: items.Sum(item =>
+                item.Quantity * 10m),
+            Currency: "CZK",
+            Items: items
+                .Select(item =>
+                    new OrderCreatedItemV1(
+                        item.ProductId,
+                        ProductName:
+                            $"Product-{item.ProductId:N}",
+                        item.Quantity,
+                        UnitPrice: 10m))
+                .ToArray());
+    }
+
+    private sealed class CoordinatedFirstSaveInterceptor(
+        int requiredParticipants)
+        : SaveChangesInterceptor
+    {
+        private readonly TaskCompletionSource _release =
+            new(
+                TaskCreationOptions
+                    .RunContinuationsAsynchronously);
+
+        private int _firstWaveArrivals;
+        private int _saveAttemptCount;
+
+        public int FirstWaveArrivals =>
+            Volatile.Read(ref _firstWaveArrivals);
+
+        public int SaveAttemptCount =>
+            Volatile.Read(ref _saveAttemptCount);
+
+        public override async ValueTask<
+            InterceptionResult<int>> SavingChangesAsync(
+                DbContextEventData eventData,
+                InterceptionResult<int> result,
+                CancellationToken cancellationToken = default)
+        {
+            int saveAttempt =
+                Interlocked.Increment(
+                    ref _saveAttemptCount);
+
+            if (saveAttempt > requiredParticipants)
+            {
+                return result;
+            }
+
+            int arrivals =
+                Interlocked.Increment(
+                    ref _firstWaveArrivals);
+
+            if (arrivals == requiredParticipants)
+            {
+                _release.TrySetResult();
+            }
+
+            await _release.Task.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                cancellationToken);
+
+            return result;
+        }
+    }
+
+    private sealed class AlwaysConcurrencyConflictInterceptor
+        : SaveChangesInterceptor
+    {
+        private int _saveAttemptCount;
+
+        public int SaveAttemptCount =>
+            Volatile.Read(ref _saveAttemptCount);
+
+        public override ValueTask<InterceptionResult<int>>
+            SavingChangesAsync(
+                DbContextEventData eventData,
+                InterceptionResult<int> result,
+                CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(
+                ref _saveAttemptCount);
+
+            throw new DbUpdateConcurrencyException(
+                "Injected deterministic concurrency conflict.");
+        }
     }
 
     private async Task<InventoryItemResponse>

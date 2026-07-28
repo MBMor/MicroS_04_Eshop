@@ -30,6 +30,9 @@ public sealed class InventoryServiceFixture
         ?? throw new InvalidOperationException(
             "The Inventory Service factory has not been initialized.");
 
+    internal string PostgresConnectionString =>
+        _postgresContainer.GetConnectionString();
+
     public async ValueTask InitializeAsync()
     {
         await _postgresContainer.StartAsync();

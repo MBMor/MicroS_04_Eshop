@@ -1,11 +1,11 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 1.0  
-> **Effective from:** 2026-07-26 audit baseline  
-> **Baseline:** `main` / `bf3d1afbd7bc6bbfdb7ab8994ca3ad36e51e643c`  
+> **Version:** 1.1
+> **Effective from:** 2026-07-28 evidence refresh
+> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 working-tree changes
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Analysis date:** 2026-07-26 (Europe/Prague)
+> **Analysis date:** 2026-07-28 (Europe/Prague)
 
 Initial working tree was clean. Evidence cites repository-relative files and symbols. Gap severity is test-investment priority, separate from product risk. Cost: XS current isolated fixture; S small extension; M new fixture/container scenario; L substantial cross-service/environment work; XL major platform/architecture prerequisite.
 
@@ -15,8 +15,8 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 
 | Gap / priority | Risk and evidence gap | Oracle / controls / gates | Recommended direct evidence | Layer / cost / tier / sequencing |
 |---|---|---|---|---|
-| `GAP-001` Critical | `R-INVENTORY-001`; `InventoryReservationService.ReserveAsync`, `xmin`, three attempts; no two-worker limited-row proof. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` Partial; `GATE-INV-001` W2 activation prerequisite. | Barrier-start reservations exceeding availability; assert no oversell, one deterministic result/order, DB invariants, inbox/outbox uniqueness, no DLQ for retryable conflict; deterministic retry success/exhaustion, then repeat for flake detection. | Messaging/DB concurrency; existing PG/Rabbit + hook; M; Nightly+Release; hook first. |
-| `GAP-002` Critical | `R-ORDER-001`; no command idempotency column/index/test. | Oracle Decision required; `CTRL-ORDER-IDEMPOTENCY-001` Not implemented; contributes to `GATE-ORD-001`. | Concurrent/network-retried identical checkout with stable key; one order/outbox/payment, same resource response. | API+saga; architecture prerequisite; L; Release; approve/implement contract first. |
+| `GAP-001` Critical — implementation complete, shared evidence pending | `R-INVENTORY-001`; three deterministic PostgreSQL tests prove last-unit contention, multiline all-or-nothing and three-attempt exhaustion. Full Inventory passed 17/17 and five local repeats passed 15/15. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` strengthened but remains Partial until shared/scheduled evidence; `GATE-INV-001` W2 activation prerequisite. | Run the new tests in GitHub CI; establish scheduled repeat history and add a broker-delivery assertion including no DLQ for retryable conflict. | DB concurrency complete locally; remaining messaging/CI evidence S/M; Nightly+Release. |
+| `GAP-002` Critical | `R-ORDER-001`; no command idempotency column/index/test. | Oracle proposed in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); `CTRL-ORDER-IDEMPOTENCY-001` Not implemented; contributes to `GATE-ORD-001`. | Required stable key; sequential/concurrent/lost-response replay; changed-input conflict; one order/outbox/payment and same resource response. | API+saga; architecture prerequisite; L; Release; approve ADR before implementation. |
 | `GAP-003` High | `R-AUTH-001`; Catalog mutation actions lack direct auth boundary. | Network oracle Decision required; `CTRL-SEC-CATALOG-BOUNDARY-001` Missing; `GATE-SEC-001` W2 activation prerequisite. | From deployable network, direct POST/PUT/DELETE anonymously is unreachable or 401/403; gateway mutations no-route/not forwarded. | Security/deployment; M; PR service auth + Release network. |
 | `GAP-004` High | `R-RESILIENCE-001`; parameterless health checks/status-only tests preserve false-positive health. | Dependency list Decision required; `CTRL-OPS-READINESS-001` Not implemented; `GATE-OPS-001` W3 activation prerequisite. | `/live` and `/ready`; stop DB/Redis/Rabbit/downstream; live follows contract, ready 503 with dependency, then recovers. | Component/deployment; M; Main+Release; contract first. |
 | `GAP-005` High | `R-OUTBOX-001/002`; no concurrent claims, stale reclaim, crash window, max retry or cleanup assertions. | Oracles Approved; outbox/claim/publish controls Partial/Indirect; `GATE-MSG-001/004`. | Two publishers disjoint claims/one logical publish; kill after claim and advance time; reclaim; force Dead with attempts/error; cleanup only eligible rows; publish-before-mark recovery. | PG/Rabbit/injected time/hooks; M/L; Nightly→Release; deterministic hooks first. |
@@ -35,8 +35,8 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-018` Medium | `R-FRONTEND-001`; Chromium only, CI retry 1, no a11y/other engines. | Support matrix Decision required; `GATE-ACC-001`, `GATE-COMP-001` target. | Zero-retry repeat job; critical read-only Firefox/WebKit; keyboard/focus/axe; serialized unique payment mutations. | Browser; M; Nightly; deterministic seed/diagnostics first. |
 | `GAP-019` Medium | `R-GW-001`; remote IP behind proxy/multiple replicas unknown. | Ingress trust/distributed-limit Decision required; rate-limit control Partial. | Intended proxy + two gateways; trusted versus spoofed forwarded headers, independent subjects, attacker sharing/reset and documented replica behavior. | Security/performance ingress; L; Release; design first. |
 | `GAP-020` Medium | `R-DATA-001/R-ORDER-002`; several 400 tests are status-only. | Approved negative behavior; controls unaffected. | Assert ProblemDetails fields/trace and zero product/order/history/outbox writes; unchanged basket. | Existing API fixtures; XS; PR/Main; immediate. |
-| `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; late/reordered and multi-line partial failure absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; mixed lines; no partial stock, correct ack/DLQ, terminal immutability, no extra outbox. | Messaging; M; Nightly; late policy first. |
-| `GAP-022` Medium | All; no formal tiering—177 tests on PR/main. | Governance approved; not a product control reduction alone. | Split PR deterministic, Main integrations/images/E2E, Nightly concurrency/outage/perf, Release migration/security/recovery; publish results and fail visible skips. | CI workflow; M; after suite tags/categories. |
+| `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; direct DB multiline atomicity is covered by TECH-01, but late/reordered broker delivery is absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; broker-delivered mixed lines; correct ack/DLQ, terminal immutability and no extra outbox. | Messaging; M; Nightly; late policy first. |
+| `GAP-022` Medium | All; no formal tiering—180 tests on PR/main. | Governance approved; not a product control reduction alone. | Split PR deterministic, Main integrations/images/E2E, Nightly concurrency/outage/perf, Release migration/security/recovery; publish results and fail visible skips. | CI workflow; M; after suite tags/categories. |
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
 | `GAP-024` Low | Test infrastructure uses delays/eventual polling/CI retry. | Determinism standard Approved; potential `DEV-*` only if unavoidable. | Observable readiness/queue/DB state; injected time; preserve first-attempt logs/trace/video; retry occurrence remains failure signal. | Infrastructure; S/M; PR/Main before Nightly expansion. |
 | `GAP-025` Low | .NET net10, Node CI24/local22, Chromium only; no support matrix. | Oracle Decision required. | Approve runtime/browser/OS versions; targeted Windows/Linux builds if supported, engine smoke and architecture check. | CI/platform; M; Nightly/Release after policy. |
@@ -60,4 +60,4 @@ All identified existing tests are scheduled by checked-in CI. Docker-heavy API, 
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
-
+| 1.1 | 2026-07-28 | Updated GAP-001 after local TECH-01 proof and linked proposed TECH-02 idempotency oracle. | Pending review |
