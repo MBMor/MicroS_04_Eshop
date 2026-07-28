@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The current committed baseline maps 190 unique source selectors through 205 binding edges to 31 automated TestIntents. GitHub Actions `CI #31` on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc` is the latest accepted shared publication.
+The QA-02 working tree maps 192 unique source selectors through 209 binding edges to 31 automated TestIntents. GitHub Actions `CI #31` on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc`, whose map had 190 selectors and 205 edges, remains the latest accepted shared publication.
 
 ## Identity contract
 
@@ -100,4 +100,4 @@ GitHub Actions run [`30381746424`](https://github.com/MBMor/MicroS_04_Eshop/acti
 - `R31` / Frontend Unit: 3 TestIntent results;
 - `R32` / Checkout E2E: 4 TestIntent results.
 
-The 47 aggregate rows deliberately overlap. `ESHOP-ORDER-002` passed in both `R30` and `R31`, proving the backend and frontend bindings were resolved without creating a new case. This record promotes the named TECH-01/TECH-02 variants to shared evidence; it does not activate a Future gate or satisfy the remaining scheduled and downstream-workflow variants.
+The 47 aggregate rows deliberately overlap. `ESHOP-ORDER-002` passed in both `R30` and `R31`, proving the backend and frontend bindings were resolved without creating a new case. This record promotes the named TECH-01/TECH-02 variants to shared evidence; it does not activate a Future gate. The two new QA-02 backend selectors support both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; their local results do not become shared evidence until the exact commit is published, and scheduled history remains separate.

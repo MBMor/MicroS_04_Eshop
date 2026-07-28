@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using Eshop.Messaging.IntegrationTests.Infrastructure;
+using Eshop.Messaging.IntegrationTests.Infrastructure.Fakes;
+using Eshop.Messaging.RabbitMq;
 using InventoryService.Data;
 using InventoryService.Domain;
-using Eshop.Messaging.RabbitMq;
 using Microsoft.EntityFrameworkCore;
 using NotificationsService.Data;
 using NotificationsService.Domain;
@@ -14,18 +16,12 @@ using PaymentsService.Application;
 using PaymentsService.Data;
 using PaymentsService.Domain;
 using Xunit;
-using Eshop.Messaging.IntegrationTests.Infrastructure.Fakes;
-
 using InventoryOutboxStatus =
     InventoryService.Outbox.OutboxMessageStatus;
-
 using OrdersOutboxStatus =
     OrdersService.Outbox.OutboxMessageStatus;
-
 using PaymentsOutboxStatus =
     PaymentsService.Outbox.OutboxMessageStatus;
-
-using Eshop.Messaging.IntegrationTests.Infrastructure;
 
 namespace Eshop.Messaging.IntegrationTests.Scenarios;
 
@@ -49,119 +45,155 @@ public sealed class OrderHappyPathMessagingTests(
     [Fact]
     public async Task CreateOrderHappyPathConfirmsOrder()
     {
-        {
-            Guid productId =
-                Guid.NewGuid();
+        CheckoutScenario scenario =
+            await ArrangeHappyPathAsync();
 
-            const int initialStock = 10;
-            const int orderedQuantity = 2;
-            const decimal unitPrice = 49.90m;
+        OrderResponse createdOrder =
+            await CreateOrderAsync();
 
-            await SeedInventoryAsync(
-                productId,
-                initialStock);
+        AssertInitialOrderResponse(createdOrder);
 
-            Fixture.OrdersFactory.BasketClient.SetBasket(
-                CustomerId,
-                    new BasketSnapshot(
-                    [
-                        new BasketItemSnapshot(
-                    ProductId: productId,
-                    ProductName: "Integration Test Product",
-                    UnitPrice: unitPrice,
-                    Currency: Currency,
-                    Quantity: orderedQuantity,
-                    LineTotal:
-                        unitPrice* orderedQuantity)
-                    ]));
+        Assert.True(
+            Fixture.OrdersFactory.BasketClient.WasCleared(
+                CustomerId));
 
-            OrderResponse createdOrder =
-                await CreateOrderAsync();
+        await AssertCompleteWorkflowAsync(
+            createdOrder,
+            scenario);
+    }
 
-            Assert.NotEqual(
-                Guid.Empty,
-                createdOrder.Id);
+    [Fact]
+    public Task DuplicateCheckoutReplayCreatesOneCompleteWorkflow()
+    {
+        return AssertDuplicateCheckoutCreatesOneCompleteWorkflowAsync(
+            concurrent: false);
+    }
 
-            Assert.Equal(
-                OrderStatus.PendingStockReservation.ToString(),
-                createdOrder.Status);
-
-            Assert.Single(
-                createdOrder.Items);
-
-            Assert.Single(
-                createdOrder.StatusHistory);
-
-            Assert.True(
-                Fixture.OrdersFactory.BasketClient.WasCleared(
-                    CustomerId));
-
-            await Eventually.SucceedsAsync(
-                async cancellationToken =>
-                {
-                    OrderSnapshot order =
-                    await LoadOrderAsync(
-                        createdOrder.Id,
-                        cancellationToken);
-
-                    Assert.Equal(
-                    OrderStatus.Confirmed,
-                    order.Status);
-
-                    Assert.Collection(
-                    order.StatusHistory,
-                    history =>
-                    {
-                    Assert.Null(
-                        history.FromStatus);
-
-                    Assert.Equal(
-                        OrderStatus.PendingStockReservation,
-                        history.ToStatus);
-                },
-                    history =>
-                    {
-                    Assert.Equal(
-                        OrderStatus.PendingStockReservation,
-                        history.FromStatus);
-
-                    Assert.Equal(
-                        OrderStatus.PendingPayment,
-                        history.ToStatus);
-                },
-                    history =>
-                    {
-                    Assert.Equal(
-                        OrderStatus.PendingPayment,
-                        history.FromStatus);
-
-                    Assert.Equal(
-                        OrderStatus.Confirmed,
-                        history.ToStatus);
-                });
-                },
-                $"Order '{createdOrder.Id}' should become confirmed.",
-                timeout: ScenarioTimeout);
-
-            await AssertInventoryReservationAsync(
-                productId,
-                initialStock,
-                orderedQuantity);
-
-            await AssertAuthorizedPaymentAsync(
-                createdOrder.Id,
-                unitPrice * orderedQuantity);
-
-            await AssertNotificationsAsync(
-                createdOrder.Id);
-
-            await AssertOutboxMessagesPublishedAsync();
-
-            await AssertMessagingQueuesAreEmptyAsync();
-        }
+    [Fact]
+    public Task ConcurrentDuplicateCheckoutCreatesOneCompleteWorkflow()
+    {
+        return AssertDuplicateCheckoutCreatesOneCompleteWorkflowAsync(
+            concurrent: true);
     }
 
     private async Task<OrderResponse> CreateOrderAsync()
+    {
+        CreateOrderHttpResult result =
+            await SendCreateOrderAsync(
+                Guid.NewGuid().ToString());
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            result.StatusCode);
+
+        Assert.False(result.IsReplay);
+
+        return result.Order;
+    }
+
+    private async Task AssertDuplicateCheckoutCreatesOneCompleteWorkflowAsync(
+        bool concurrent)
+    {
+        CheckoutScenario scenario =
+            await ArrangeHappyPathAsync();
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        CreateOrderHttpResult[] results;
+
+        if (concurrent)
+        {
+            Fixture.OrdersFactory.BasketClient
+                .SynchronizeNextBasketReads(
+                    CustomerId,
+                    participantCount: 2);
+
+            results = await Task.WhenAll(
+                SendCreateOrderAsync(idempotencyKey),
+                SendCreateOrderAsync(idempotencyKey));
+        }
+        else
+        {
+            results =
+            [
+                await SendCreateOrderAsync(idempotencyKey),
+                await SendCreateOrderAsync(idempotencyKey)
+            ];
+        }
+
+        Assert.Equal(
+            [HttpStatusCode.OK, HttpStatusCode.Created],
+            results
+                .Select(result => result.StatusCode)
+                .Order()
+                .ToArray());
+
+        CreateOrderHttpResult createdResult =
+            Assert.Single(
+                results,
+                result =>
+                    result.StatusCode
+                        == HttpStatusCode.Created);
+
+        CreateOrderHttpResult replayResult =
+            Assert.Single(
+                results,
+                result =>
+                    result.StatusCode
+                        == HttpStatusCode.OK);
+
+        Assert.False(createdResult.IsReplay);
+        Assert.True(replayResult.IsReplay);
+        Assert.Equal(createdResult.Order.Id, replayResult.Order.Id);
+
+        string createdLocation =
+            Assert.IsType<string>(createdResult.Location);
+
+        Assert.True(
+            Uri.TryCreate(
+                createdLocation,
+                UriKind.Absolute,
+                out _));
+
+        Assert.Equal(
+            createdLocation,
+            replayResult.Location);
+
+        Assert.Equal(
+            createdResult.Order.TotalAmount,
+            replayResult.Order.TotalAmount);
+
+        Assert.Equal(
+            createdResult.Order.Items,
+            replayResult.Order.Items);
+
+        AssertInitialOrderResponse(createdResult.Order);
+
+        Assert.True(
+            Fixture.OrdersFactory.BasketClient.WasCleared(
+                CustomerId));
+
+        Assert.Equal(
+            concurrent ? 2 : 1,
+            Fixture.OrdersFactory.BasketClient
+                .GetBasketCallCount(CustomerId));
+
+        Assert.Equal(
+            1,
+            Fixture.OrdersFactory.BasketClient
+                .GetClearCallCount(CustomerId));
+
+        await AssertOrderAndIdempotencyCardinalityAsync(
+            createdResult.Order.Id);
+
+        await AssertCompleteWorkflowAsync(
+            createdResult.Order,
+            scenario);
+    }
+
+    private async Task<CreateOrderHttpResult> SendCreateOrderAsync(
+        string idempotencyKey)
     {
         using HttpClient client =
             Fixture.OrdersFactory.CreateClient();
@@ -172,7 +204,7 @@ public sealed class OrderHappyPathMessagingTests(
 
         client.DefaultRequestHeaders.Add(
             OrderHeaders.IdempotencyKey,
-            Guid.NewGuid().ToString());
+            idempotencyKey);
 
         CreateOrderRequest request = new()
         {
@@ -186,16 +218,166 @@ public sealed class OrderHappyPathMessagingTests(
                 "/api/v1/orders",
                 request);
 
-        Assert.Equal(
-            HttpStatusCode.Created,
-            response.StatusCode);
-
         OrderResponse? order =
             await response.Content
                 .ReadFromJsonAsync<OrderResponse>();
 
-        return Assert.IsType<OrderResponse>(
-            order);
+        bool isReplay =
+            response.Headers.TryGetValues(
+                OrderHeaders.IdempotentReplayed,
+                out IEnumerable<string>? replayValues)
+            && string.Equals(
+                Assert.Single(replayValues),
+                bool.TrueString,
+                StringComparison.OrdinalIgnoreCase);
+
+        return new CreateOrderHttpResult(
+            response.StatusCode,
+            Assert.IsType<OrderResponse>(order),
+            response.Headers.Location?.ToString(),
+            isReplay);
+    }
+
+    private async Task<CheckoutScenario> ArrangeHappyPathAsync()
+    {
+        Guid productId =
+            Guid.NewGuid();
+
+        const int initialStock = 10;
+        const int orderedQuantity = 2;
+        const decimal unitPrice = 49.90m;
+
+        await SeedInventoryAsync(
+            productId,
+            initialStock);
+
+        Fixture.OrdersFactory.BasketClient.SetBasket(
+            CustomerId,
+            new BasketSnapshot(
+            [
+                new BasketItemSnapshot(
+                    ProductId: productId,
+                    ProductName: "Integration Test Product",
+                    UnitPrice: unitPrice,
+                    Currency: Currency,
+                    Quantity: orderedQuantity,
+                    LineTotal:
+                        unitPrice * orderedQuantity)
+            ]));
+
+        return new CheckoutScenario(
+            productId,
+            initialStock,
+            orderedQuantity,
+            unitPrice);
+    }
+
+    private static void AssertInitialOrderResponse(
+        OrderResponse order)
+    {
+        Assert.NotEqual(Guid.Empty, order.Id);
+
+        Assert.Equal(
+            OrderStatus.PendingStockReservation.ToString(),
+            order.Status);
+
+        Assert.Single(order.Items);
+        Assert.Single(order.StatusHistory);
+    }
+
+    private async Task AssertCompleteWorkflowAsync(
+        OrderResponse createdOrder,
+        CheckoutScenario scenario)
+    {
+        await Eventually.SucceedsAsync(
+            async cancellationToken =>
+            {
+                OrderSnapshot order =
+                    await LoadOrderAsync(
+                        createdOrder.Id,
+                        cancellationToken);
+
+                Assert.Equal(
+                    OrderStatus.Confirmed,
+                    order.Status);
+
+                Assert.Collection(
+                    order.StatusHistory,
+                    history =>
+                    {
+                        Assert.Null(history.FromStatus);
+
+                        Assert.Equal(
+                            OrderStatus.PendingStockReservation,
+                            history.ToStatus);
+                    },
+                    history =>
+                    {
+                        Assert.Equal(
+                            OrderStatus.PendingStockReservation,
+                            history.FromStatus);
+
+                        Assert.Equal(
+                            OrderStatus.PendingPayment,
+                            history.ToStatus);
+                    },
+                    history =>
+                    {
+                        Assert.Equal(
+                            OrderStatus.PendingPayment,
+                            history.FromStatus);
+
+                        Assert.Equal(
+                            OrderStatus.Confirmed,
+                            history.ToStatus);
+                    });
+            },
+            $"Order '{createdOrder.Id}' should become confirmed.",
+            timeout: ScenarioTimeout);
+
+        await AssertInventoryReservationAsync(
+            scenario.ProductId,
+            scenario.InitialStock,
+            scenario.OrderedQuantity);
+
+        await AssertAuthorizedPaymentAsync(
+            createdOrder.Id,
+            scenario.UnitPrice
+                * scenario.OrderedQuantity);
+
+        await AssertNotificationsAsync(
+            createdOrder.Id);
+
+        await AssertOutboxMessagesPublishedAsync();
+
+        await AssertInboxMessagesProcessedOnceAsync();
+
+        await AssertMessagingQueuesAreEmptyAsync();
+    }
+
+    private Task AssertOrderAndIdempotencyCardinalityAsync(
+        Guid orderId)
+    {
+        return DatabaseTestScope.ExecuteAsync<
+            OrdersDbContext>(
+            Fixture.OrdersFactory.Services,
+            async (dbContext, cancellationToken) =>
+            {
+                Guid persistedOrderId =
+                    await dbContext.Orders
+                        .AsNoTracking()
+                        .Select(order => order.Id)
+                        .SingleAsync(cancellationToken);
+
+                Guid idempotentOrderId =
+                    await dbContext.OrderIdempotencyRecords
+                        .AsNoTracking()
+                        .Select(record => record.OrderId)
+                        .SingleAsync(cancellationToken);
+
+                Assert.Equal(orderId, persistedOrderId);
+                Assert.Equal(orderId, idempotentOrderId);
+            });
     }
 
     private Task SeedInventoryAsync(
@@ -478,6 +660,65 @@ public sealed class OrderHappyPathMessagingTests(
             timeout: ScenarioTimeout);
     }
 
+    private Task AssertInboxMessagesProcessedOnceAsync()
+    {
+        return Eventually.SucceedsAsync(
+            async cancellationToken =>
+            {
+                Task<int> ordersCount =
+                    DatabaseTestScope.ExecuteAsync<
+                        OrdersDbContext,
+                        int>(
+                        Fixture.OrdersFactory.Services,
+                        (dbContext, token) =>
+                            dbContext.ProcessedMessages
+                                .CountAsync(token),
+                        cancellationToken);
+
+                Task<int> inventoryCount =
+                    DatabaseTestScope.ExecuteAsync<
+                        InventoryDbContext,
+                        int>(
+                        Fixture.InventoryFactory.Services,
+                        (dbContext, token) =>
+                            dbContext.ProcessedMessages
+                                .CountAsync(token),
+                        cancellationToken);
+
+                Task<int> paymentsCount =
+                    DatabaseTestScope.ExecuteAsync<
+                        PaymentsDbContext,
+                        int>(
+                        Fixture.PaymentsFactory.Services,
+                        (dbContext, token) =>
+                            dbContext.ProcessedMessages
+                                .CountAsync(token),
+                        cancellationToken);
+
+                Task<int> notificationsCount =
+                    DatabaseTestScope.ExecuteAsync<
+                        NotificationsDbContext,
+                        int>(
+                        Fixture.NotificationsFactory.Services,
+                        (dbContext, token) =>
+                            dbContext.ProcessedMessages
+                                .CountAsync(token),
+                        cancellationToken);
+
+                int[] counts = await Task.WhenAll(
+                    ordersCount,
+                    inventoryCount,
+                    paymentsCount,
+                    notificationsCount);
+
+                Assert.Equal(
+                    [2, 1, 1, 4],
+                    counts);
+            },
+            "Each happy-path event should produce one inbox record per consumer.",
+            timeout: ScenarioTimeout);
+    }
+
     private Task<OutboxSnapshot> LoadOrdersOutboxAsync(
         CancellationToken cancellationToken)
     {
@@ -611,28 +852,40 @@ public sealed class OrderHappyPathMessagingTests(
         OrderStatus Status,
         OrderStatusHistorySnapshot[] StatusHistory);
 
-private sealed record OrderStatusHistorySnapshot(
-    OrderStatus? FromStatus,
-    OrderStatus ToStatus,
-    string Reason);
+    private sealed record OrderStatusHistorySnapshot(
+        OrderStatus? FromStatus,
+        OrderStatus ToStatus,
+        string Reason);
 
-private sealed record InventorySnapshot(
-    int OnHandQuantity,
-    int ReservedQuantity)
-{
-    public int AvailableQuantity =>
-        OnHandQuantity - ReservedQuantity;
-}
+    private sealed record InventorySnapshot(
+        int OnHandQuantity,
+        int ReservedQuantity)
+    {
+        public int AvailableQuantity =>
+            OnHandQuantity - ReservedQuantity;
+    }
 
-private sealed record PaymentSnapshot(
-    PaymentStatus Status,
-    decimal Amount,
-    string Currency,
-    string PaymentMethod,
-    string? FailureReason);
+    private sealed record PaymentSnapshot(
+        PaymentStatus Status,
+        decimal Amount,
+        string Currency,
+        string PaymentMethod,
+        string? FailureReason);
 
-private sealed record OutboxSnapshot(
-    int Count,
-    int PublishedCount,
-    string[] RoutingKeys);
+    private sealed record OutboxSnapshot(
+        int Count,
+        int PublishedCount,
+        string[] RoutingKeys);
+
+    private sealed record CheckoutScenario(
+        Guid ProductId,
+        int InitialStock,
+        int OrderedQuantity,
+        decimal UnitPrice);
+
+    private sealed record CreateOrderHttpResult(
+        HttpStatusCode StatusCode,
+        OrderResponse Order,
+        string? Location,
+        bool IsReplay);
 }

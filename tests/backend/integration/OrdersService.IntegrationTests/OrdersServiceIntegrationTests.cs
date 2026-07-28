@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Eshop.Security.Authorization;
 using Eshop.Messaging.RabbitMq;
+using Eshop.Security.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -271,6 +271,11 @@ public sealed class OrdersServiceIntegrationTests(
             HttpStatusCode.Created,
             firstResponse.StatusCode);
 
+        Assert.NotNull(firstResponse.Headers.Location);
+
+        string firstLocation =
+            firstResponse.Headers.Location.ToString();
+
         OrderResponse firstOrder =
             await ReadOrderAsync(firstResponse);
 
@@ -298,10 +303,9 @@ public sealed class OrdersServiceIntegrationTests(
 
         Assert.NotNull(replayResponse.Headers.Location);
 
-        Assert.EndsWith(
-            $"/api/v1/orders/{firstOrder.Id}",
-            replayResponse.Headers.Location.ToString(),
-            StringComparison.Ordinal);
+        Assert.Equal(
+            firstLocation,
+            replayResponse.Headers.Location.ToString());
 
         OrderResponse replayedOrder =
             await ReadOrderAsync(replayResponse);

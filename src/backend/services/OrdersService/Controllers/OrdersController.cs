@@ -218,7 +218,7 @@ public sealed class OrdersController(
                 OrderResponse.FromOrder(order));
         }
 
-        string? location = Url.Action(
+        string? location = Url.ActionLink(
             nameof(GetOrderById),
             values: routeValues);
 

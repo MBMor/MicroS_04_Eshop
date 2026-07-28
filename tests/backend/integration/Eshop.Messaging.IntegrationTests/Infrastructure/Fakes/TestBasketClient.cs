@@ -13,6 +13,20 @@ public sealed class TestBasketClient : IBasketClient
         _clearedCustomers =
             new(StringComparer.Ordinal);
 
+    private readonly ConcurrentDictionary<string, int>
+        _getCallCounts =
+            new(StringComparer.Ordinal);
+
+    private readonly ConcurrentDictionary<string, int>
+        _clearCallCounts =
+            new(StringComparer.Ordinal);
+
+    private TaskCompletionSource? _basketReadGate;
+
+    private string? _gatedCustomerId;
+
+    private int _remainingGatedReads;
+
     public void SetBasket(
         string customerId,
         BasketSnapshot basket)
@@ -40,13 +54,56 @@ public sealed class TestBasketClient : IBasketClient
             customerId);
     }
 
+    public int GetBasketCallCount(
+        string customerId)
+    {
+        return _getCallCounts.TryGetValue(
+            customerId,
+            out int count)
+                ? count
+                : 0;
+    }
+
+    public int GetClearCallCount(
+        string customerId)
+    {
+        return _clearCallCounts.TryGetValue(
+            customerId,
+            out int count)
+                ? count
+                : 0;
+    }
+
+    public void SynchronizeNextBasketReads(
+        string customerId,
+        int participantCount)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            customerId);
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(
+            participantCount,
+            2);
+
+        _gatedCustomerId = customerId;
+        _remainingGatedReads = participantCount;
+        _basketReadGate = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
     public void Reset()
     {
         _baskets.Clear();
         _clearedCustomers.Clear();
+        _getCallCounts.Clear();
+        _clearCallCounts.Clear();
+        _basketReadGate?.TrySetResult();
+        _basketReadGate = null;
+        _gatedCustomerId = null;
+        _remainingGatedReads = 0;
     }
 
-    public Task<BasketSnapshot> GetBasketAsync(
+    public async Task<BasketSnapshot> GetBasketAsync(
         string customerId,
         CancellationToken cancellationToken)
     {
@@ -54,6 +111,11 @@ public sealed class TestBasketClient : IBasketClient
             customerId);
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        _getCallCounts.AddOrUpdate(
+            customerId,
+            addValue: 1,
+            static (_, current) => current + 1);
 
         if (!_baskets.TryGetValue(
                 customerId,
@@ -64,7 +126,32 @@ public sealed class TestBasketClient : IBasketClient
                 $"'{customerId}'.");
         }
 
-        return Task.FromResult(basket);
+        TaskCompletionSource? readGate =
+            _basketReadGate;
+
+        if (readGate is not null
+            && string.Equals(
+                customerId,
+                _gatedCustomerId,
+                StringComparison.Ordinal))
+        {
+            int remainingReads =
+                Interlocked.Decrement(
+                    ref _remainingGatedReads);
+
+            if (remainingReads == 0)
+            {
+                readGate.TrySetResult();
+            }
+
+            if (remainingReads >= 0)
+            {
+                await readGate.Task.WaitAsync(
+                    cancellationToken);
+            }
+        }
+
+        return basket;
     }
 
     public Task ClearBasketAsync(
@@ -75,6 +162,11 @@ public sealed class TestBasketClient : IBasketClient
             customerId);
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        _clearCallCounts.AddOrUpdate(
+            customerId,
+            addValue: 1,
+            static (_, current) => current + 1);
 
         _baskets.TryRemove(
             customerId,
