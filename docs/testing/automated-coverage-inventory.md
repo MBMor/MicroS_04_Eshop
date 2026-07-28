@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 1.2
+> **Version:** 1.3
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 and TECH-02 working-tree changes
+> **Baseline:** `main` / `03518fe52c5d8105ee55628a868a70dd20ba14fc`
 > **Analysis date:** 2026-07-28 (Europe/Prague)
 
 One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. There are **190 logical tests and 195 executable cases**; five two-row theories add five executable cases. All 190 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by checked-in CI. Current scheduling is PR and main events, not formal tiers.
 
-GitHub Actions `CI #28` supplied Valid, Passed evidence for the committed pre-TECH-01 suite and published four 100% Passed TestRail runs. Pending TECH-01 and TECH-02 changes have separate local evidence: Inventory passed 17/17, Orders passed 17/17 and frontend passed 13/13; both concurrency changes also passed five fresh repeated runs. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The legacy row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
+GitHub Actions `CI #31` supplied Valid, Passed evidence on the current baseline and published TestRail runs `R29`–`R32`, all 100% Passed. Inventory, Orders and frontend direct variants are therefore shared evidence; their five fresh local concurrency repeats remain supporting flake-smoke evidence. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership. Counts and executable identities are unchanged.
 
@@ -336,12 +336,13 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
 - No existing executable test was found outside current checked-in CI scheduling; no formal Nightly/Release tier exists.
-- TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants and passed a five-run local repeat; broker-delivery, shared CI and scheduled repeat history remain open.
-- TECH-02 closes the direct API/persistence and frontend key-lifecycle variants and passed a five-run local concurrency repeat; one complete downstream workflow assertion, shared CI and scheduled repeat history remain open.
+- TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants; CI #31/TestRail R30 passed and a five-run local repeat supports determinism. Broker-delivery/no-DLQ and scheduled repeat history remain open.
+- TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; CI #31/TestRail R30/R31 passed and a five-run local concurrency repeat supports determinism. One complete downstream workflow assertion and scheduled repeat history remain open.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.3 | 2026-07-28 | Recorded CI #31 and TestRail R29–R32 as shared Passed/Valid evidence for the committed 190/195 baseline. | Pending review |
 | 1.2 | 2026-07-28 | Reconciled 190/195 tests and added approved TECH-02 Orders/frontend idempotency evidence and TestRail binding. | Pending review |
 | 1.1 | 2026-07-28 | Reconciled 180/184 tests, recorded CI #28/TestRail evidence and added three TECH-01 Inventory concurrency variants. | Pending review |

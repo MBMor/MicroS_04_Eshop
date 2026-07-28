@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The current TECH-02 working tree maps 190 unique source selectors through 205 binding edges to 31 automated TestIntents. The last accepted shared publication, `CI #28`, predates TECH-01/TECH-02 and therefore remains evidence for 30 automated TestIntents only.
+The current committed baseline maps 190 unique source selectors through 205 binding edges to 31 automated TestIntents. GitHub Actions `CI #31` on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc` is the latest accepted shared publication.
 
 ## Identity contract
 
@@ -90,3 +90,14 @@ The pilot was accepted on July 28, 2026 using GitHub Actions run `30356073486` (
 - `R20` / Checkout E2E: 4 TestIntent results.
 
 The run areas intentionally overlap where several automation layers support the same TestIntent. All individual result rows were assigned to governed suite cases, and the suite remained at 45 cases, confirming that `trcli -n` created no new cases. Following this acceptance, the job-level pilot `continue-on-error` setting was removed and TestRail publication became a blocking quality gate.
+
+## Latest shared evidence
+
+GitHub Actions run [`30381746424`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30381746424) (`CI #31`) completed successfully on July 28, 2026. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
+
+- `R29` / Backend Unit: 12 TestIntent results;
+- `R30` / Backend Integration: 28 TestIntent results;
+- `R31` / Frontend Unit: 3 TestIntent results;
+- `R32` / Checkout E2E: 4 TestIntent results.
+
+The 47 aggregate rows deliberately overlap. `ESHOP-ORDER-002` passed in both `R30` and `R31`, proving the backend and frontend bindings were resolved without creating a new case. This record promotes the named TECH-01/TECH-02 variants to shared evidence; it does not activate a Future gate or satisfy the remaining scheduled and downstream-workflow variants.

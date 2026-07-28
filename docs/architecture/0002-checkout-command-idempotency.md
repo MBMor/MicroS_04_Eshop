@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-28. The approved oracle is implemented in the current TECH-02 working tree; promotion to shared CI evidence is still pending.
+Accepted on 2026-07-28. The approved oracle is implemented on `main`; GitHub Actions `CI #31` and TestRail runs `R30`/`R31` provide Passed shared evidence for the direct backend and frontend variants.
 
 ## Context
 
@@ -65,7 +65,7 @@ TECH-02 adds `order_idempotency_records` with a unique PostgreSQL index on `(cus
 
 Orders Service owns canonicalization and hashes normalized client-supplied business fields with SHA-256. Equality is defined by those normalized fields, not raw JSON bytes. The frontend creates one UUID per checkout intent, retains it across retryable transport failures and replaces it when the customer changes an input or begins a new successful submission.
 
-Direct local evidence covers malformed/missing keys, sequential and concurrent replay, changed-request conflict, customer scoping, changed-basket behavior, use of a new key and replay after basket-clear failure. Cross-service proof that a duplicate HTTP submission produces exactly one complete payment/inventory workflow remains required before release evidence can be considered complete.
+Direct evidence covers malformed/missing keys, sequential and concurrent replay, changed-request conflict, customer scoping, changed-basket behavior, use of a new key and replay after basket-clear failure. The same variants passed on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc` in GitHub Actions `CI #31` and TestRail `R30`/`R31`. Cross-service proof that a duplicate HTTP submission produces exactly one complete payment/inventory workflow and scheduled repeat history remain required before release evidence can be considered complete.
 
 ## Consequences
 

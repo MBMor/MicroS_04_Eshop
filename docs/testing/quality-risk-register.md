@@ -2,7 +2,7 @@
 
 > **Document type:** Authoritative risk and control registry  
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Version:** 1.1
+> **Version:** 1.2
 > **Status:** Point-in-time assessed baseline — pending governance approval  
 > **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval  
 > **Last reviewed:** 2026-07-28
@@ -107,9 +107,9 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | `CTRL-BASKET-CUSTOMERKEY-001` | Use normalized customer-scoped Redis keys and safe serialization | Implemented | Direct | R-BASKET-002 | Basket Engineering owner | Basket Engineering | Direct sampled isolation; edge/fuzz variants remain. |
 | `CTRL-BASKET-CONCURRENCY-001` | Preserve concurrent basket updates under an approved merge/conflict policy | Not implemented | Missing | R-BASKET-001 | Basket Engineering owner | Basket Engineering | Concurrency oracle and atomic mechanism are not approved or implemented. |
 | `CTRL-BASKET-EXPIRY-001` | Apply basket TTL and post-order clear with defined recovery | Partially implemented | Partial | R-BASKET-003 | Checkout workflow owner | Basket and Orders Engineering | TTL and best-effort clear exist; real outage/repeat-checkout behavior is absent. |
-| `CTRL-ORDER-IDEMPOTENCY-001` | Create one order per logical checkout command | Implemented | Direct | R-ORDER-001, R-BASKET-003 | Orders Engineering owner | Orders Engineering | Direct local API/frontend variants cover required key, atomic PostgreSQL persistence, replay/conflict and client key lifecycle; shared CI, scheduled history and one complete downstream-workflow proof remain. |
+| `CTRL-ORDER-IDEMPOTENCY-001` | Create one order per logical checkout command | Implemented | Direct | R-ORDER-001, R-BASKET-003 | Orders Engineering owner | Orders Engineering | Required key, atomic PostgreSQL persistence, replay/conflict and client key lifecycle passed in CI #31/TestRail R30/R31; scheduled history and one complete downstream-workflow proof remain. |
 | `CTRL-ORDER-PRICE-001` | Apply an approved fresh or quoted price and decimal policy | Partially implemented | Partial | R-ORDER-002 | Product owner | Orders and Catalog Engineering | Freshness, quote expiry and rounding policy are unresolved. |
-| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Direct | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | Direct local variants prove synchronized last-unit contention, multiline atomicity and retry exhaustion; shared CI, broker delivery and scheduled history remain. |
+| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Direct | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | Synchronized last-unit contention, multiline atomicity and retry exhaustion passed in CI #31/TestRail R30; broker delivery and scheduled history remain. |
 | `CTRL-INVENTORY-LIFECYCLE-001` | Commit, release and age inventory reservations exactly once | Partially implemented | Indirect | R-INVENTORY-002 | Inventory Engineering owner | Inventory, Orders and Product | Domain methods exist but no active complete workflow owns fulfillment/aging. |
 | `CTRL-PAY-UNIQUE-001` | Produce one transactional payment decision per order across operational/asynchronous paths | Implemented | Partial | R-PAYMENT-001 | Payments Engineering owner | Payments and Checkout Engineering | Unique OrderId exists; collision/result-event semantics are unproved. |
 | `CTRL-MSG-INBOX-001` | Process delivered messages idempotently with durable inbox state | Implemented | Partial | R-MSG-001 | Shared Messaging owner | Consumer Engineering teams | One consumer duplicate is directly tested; complete matrix is absent. |
@@ -139,10 +139,10 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | R-BASKET-001 | Missing | deterministic simultaneous mutation under approved policy; Nightly |
 | R-BASKET-002 | Direct | key-normalization/boundary fuzz; Main |
 | R-BASKET-003 | Partial | Redis loss, real clear failure and repeat checkout; Nightly |
-| R-ORDER-001 | Direct | shared CI, scheduled repeat history and one downstream payment/inventory workflow under duplicate HTTP delivery; Nightly + Release |
+| R-ORDER-001 | Direct | scheduled repeat history and one downstream payment/inventory workflow under duplicate HTTP delivery; Nightly + Release |
 | R-ORDER-002 | Partial | price policy, quote expiry and decimal/rounding matrix; Main + Release |
 | R-ORDER-SEC-001 | Direct | route exhaustiveness and side-channel review; Main |
-| R-INVENTORY-001 | Direct | shared CI, broker-delivery/no-DLQ variant and scheduled repeat history; Nightly + Release |
+| R-INVENTORY-001 | Direct | broker-delivery/no-DLQ variant and scheduled repeat history; Nightly + Release |
 | R-INVENTORY-002 | Indirect | fulfillment/commit contract and aged recovery; Release |
 | R-PAYMENT-001 | Partial | async duplicates, operational collision and publisher outcome; Nightly + Release |
 | R-MSG-001 | Partial | all side-effecting consumers/concurrent duplicate/commit-before-ack; Nightly |
@@ -172,4 +172,5 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.2 | 2026-07-28 | Promoted TECH-01/TECH-02 direct controls to shared CI/TestRail evidence without changing residual risk scores or gate state. | Pending review |
 | 1.1 | 2026-07-28 | Recorded approved TECH-02 idempotency control and direct local TECH-01/TECH-02 evidence without reducing residual risk scores. | Pending review |

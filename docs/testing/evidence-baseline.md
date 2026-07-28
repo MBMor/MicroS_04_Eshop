@@ -1,27 +1,27 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 1.1
+> **Version:** 1.2
 > **As of:** 2026-07-28 (Europe/Prague)  
-> **Repository baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab`  
-> **Working-tree scope:** pending TECH-01 inventory-concurrency and TECH-02 checkout-idempotency changes
+> **Repository baseline:** `main` / `03518fe52c5d8105ee55628a868a70dd20ba14fc`
+> **Working-tree scope:** documentation-only evidence refresh; TECH-01 and TECH-02 are committed
 
-This record separates committed CI evidence from local evidence produced by the pending change. It does not activate or pass any future quality gate.
+This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
 ## Committed CI and TestRail evidence
 
-GitHub Actions run `30356073486` (`CI #28`) on commit `b0efb0c3d62b6044e59059f29687449778f572a0` completed successfully on 2026-07-28. TestRail received four closed runs, all 100% Passed:
+GitHub Actions run [`30381746424`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30381746424) (`CI #31`) on commit `03518fe52c5d8105ee55628a868a70dd20ba14fc` completed successfully on 2026-07-28. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. TestRail received four closed runs, all 100% Passed:
 
 | TestRail run | Area | TestIntent results | Result |
 |---|---|---:|---|
-| `R17` | Backend Unit | 12 | Passed |
-| `R18` | Backend Integration | 27 | Passed |
-| `R19` | Frontend Unit | 2 | Passed |
-| `R20` | Checkout E2E | 4 | Passed |
+| `R29` | Backend Unit | 12 | Passed |
+| `R30` | Backend Integration | 28 | Passed |
+| `R31` | Frontend Unit | 3 | Passed |
+| `R32` | Checkout E2E | 4 | Passed |
 
-The 45-case suite did not grow. The automation map contains 30 automated TestIntents; deliberate overlap between execution areas produced 45 aggregate result rows across the four runs. Planned/manual cases remained in the governed suite without synthetic results.
+The 45-case suite did not grow. The automation map contains 31 automated TestIntents; deliberate overlap between execution areas produced 47 aggregate result rows across the four runs. Planned/manual cases remained in the governed suite without synthetic results. `ESHOP-ORDER-002` passed in both `R30` and `R31`.
 
-Evidence validity is **Valid** for the exact commit, environment and variants exercised by CI #28. It is not evidence for the later TECH-01 tests.
+Evidence validity is **Valid** for the exact commit, environment and variants exercised by CI #31. The earlier `CI #28` / `R17`–`R20` record remains the historical acceptance of the TestRail publication mechanism.
 
 ## Current source baseline
 
@@ -40,7 +40,7 @@ After TECH-01 and TECH-02, the repository contains:
 
 Every logical test has exactly one unique source selector. Multiple TestIntent bindings are allowed and explain the difference between selectors and edges.
 
-## TECH-01 local evidence
+## TECH-01 evidence
 
 The full `InventoryService.IntegrationTests` project was run in Debug against a disposable PostgreSQL 18 Testcontainer on 2026-07-28:
 
@@ -63,9 +63,9 @@ The three added direct tests prove these named variants:
 | `ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder` | one winning two-line reservation; the losing order reserves neither constrained nor shared stock |
 | `ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged` | three deterministic conflicts; contextual terminal exception; inventory, inbox and outbox remain unchanged |
 
-This is valid local first-attempt and five-run repeat evidence for the named variants. Promotion to shared evidence still requires a GitHub Actions run after commit; scheduled repeat history and the broker-delivery path remain open.
+The committed variants passed in the Backend job of CI #31 and aggregate `ESHOP-INVENTORY-002` passed in TestRail `R30`. The local 17/17 project run and five-run repeat remain supporting flake-smoke evidence. Scheduled repeat history and the broker-delivery/no-DLQ path remain open.
 
-## TECH-02 local evidence
+## TECH-02 evidence
 
 The approved checkout-command oracle is implemented in Orders Service, its PostgreSQL migration, the React checkout client and the TestRail automation map. On 2026-07-28:
 
@@ -77,18 +77,19 @@ The approved checkout-command oracle is implemented in Orders Service, its Postg
 
 JUnit provenance: `artifacts/test-results/orders-tech02/orders-tech02.junit.xml` and `artifacts/test-results/frontend/frontend-unit-tests.junit.xml` (generated evidence, intentionally not source artifacts).
 
-The ten new logical tests directly prove header propagation, key lifecycle, invalid input, replay without a basket reload, changed-request conflict without side effects, concurrent uniqueness, customer scoping, current-basket use under a new key and replay after a failed basket clear. This is Valid local evidence for those named variants. It does not yet prove a single downstream payment/inventory workflow under duplicate HTTP delivery, nor does it replace shared CI or scheduled Nightly history.
+The ten new logical tests directly prove header propagation, key lifecycle, invalid input, replay without a basket reload, changed-request conflict without side effects, concurrent uniqueness, customer scoping, current-basket use under a new key and replay after a failed basket clear. The variants passed in CI #31; aggregate `ESHOP-ORDER-002` passed in TestRail backend run `R30` and frontend run `R31`. The local 17/17 Orders run, 13/13 frontend run and deterministic 5/5 concurrency repeat remain supporting evidence. A single downstream payment/inventory workflow under duplicate HTTP delivery and scheduled Nightly history are still unproved.
 
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
-- TECH-01 implementation is locally verified and is pending shared CI evidence.
-- TECH-02 is approved and locally verified for the named API/frontend variants; shared CI, scheduled repeat history and the downstream one-workflow assertion remain pending.
+- TECH-01 implementation and its named direct variants have Passed/Valid shared CI evidence; scheduled repeat history and broker-delivery/no-DLQ evidence remain pending.
+- TECH-02 is approved and has Passed/Valid shared CI evidence for the named API/frontend variants; scheduled repeat history and the downstream one-workflow assertion remain pending.
 - Formal Nightly and Release tiers remain future work; all checked-in tests are still scheduled by the current PR/main workflow.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.2 | 2026-07-28 | Promoted TECH-01/TECH-02 named variants to shared evidence after CI #31 and TestRail R29–R32 passed on commit `03518fe`. | Pending review |
 | 1.1 | 2026-07-28 | Recorded TECH-02 approval, 190/195 reconciled source counts, local Orders/frontend evidence, five concurrency repeats and TestRail C60 synchronization. | Pending review |
 | 1.0 | 2026-07-28 | Created QA-01 executable evidence baseline and recorded TECH-01 local proof separately from CI #28. | Pending review |

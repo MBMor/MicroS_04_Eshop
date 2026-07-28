@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 1.2
+> **Version:** 1.3
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 and TECH-02 working-tree changes
+> **Baseline:** `main` / `03518fe52c5d8105ee55628a868a70dd20ba14fc`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-28 (Europe/Prague)
 
@@ -15,8 +15,8 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 
 | Gap / priority | Risk and evidence gap | Oracle / controls / gates | Recommended direct evidence | Layer / cost / tier / sequencing |
 |---|---|---|---|---|
-| `GAP-001` Critical — implementation complete, shared evidence pending | `R-INVENTORY-001`; three deterministic PostgreSQL tests prove last-unit contention, multiline all-or-nothing and three-attempt exhaustion. Full Inventory passed 17/17 and five local repeats passed 15/15. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` strengthened but remains Partial until shared/scheduled evidence; `GATE-INV-001` W2 activation prerequisite. | Run the new tests in GitHub CI; establish scheduled repeat history and add a broker-delivery assertion including no DLQ for retryable conflict. | DB concurrency complete locally; remaining messaging/CI evidence S/M; Nightly+Release. |
-| `GAP-002` Critical — implementation complete, shared workflow evidence pending | `R-ORDER-001`; ten direct API/frontend tests prove key propagation/lifecycle, validation, sequential/concurrent replay, changed-input conflict, customer scope, basket change/new intent and clear-failure replay. Orders passed 17/17, frontend 13/13 and five fresh concurrency repeats passed 5/5 locally. | Oracle Approved in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); PostgreSQL uniqueness and atomic order/history/outbox/idempotency persistence implemented; `CTRL-ORDER-IDEMPOTENCY-001` is Direct for the named local variants and contributes to `GATE-ORD-001`. | Run the new selectors in GitHub CI; add a duplicate-HTTP messaging scenario proving exactly one `OrderCreatedV1`, payment and inventory workflow; establish scheduled repeat history. | Direct API/frontend complete locally; remaining saga/CI evidence M; Nightly+Release. |
+| `GAP-001` Critical — direct implementation and shared evidence complete; messaging/scheduled residual | `R-INVENTORY-001`; three deterministic PostgreSQL tests prove last-unit contention, multiline all-or-nothing and three-attempt exhaustion. CI #31 passed and `ESHOP-INVENTORY-002` passed in TestRail `R30`; local project and five-run repeat evidence also passed. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` is Direct for the named variants; `GATE-INV-001` W2 activation prerequisite remains Future. | Establish scheduled repeat history and add a broker-delivery assertion including no DLQ for retryable conflict. | Remaining messaging/scheduled evidence S/M; Nightly+Release. |
+| `GAP-002` Critical — direct implementation and shared evidence complete; workflow/scheduled residual | `R-ORDER-001`; ten direct API/frontend tests prove key propagation/lifecycle, validation, sequential/concurrent replay, changed-input conflict, customer scope, basket change/new intent and clear-failure replay. CI #31 passed; `ESHOP-ORDER-002` passed in TestRail `R30` and `R31`; local project/repeat evidence also passed. | Oracle Approved in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); PostgreSQL uniqueness and atomic order/history/outbox/idempotency persistence implemented; `CTRL-ORDER-IDEMPOTENCY-001` is Direct for the named variants and contributes to Future `GATE-ORD-001`. | Add a duplicate-HTTP messaging scenario proving exactly one `OrderCreatedV1`, payment and inventory workflow; establish scheduled repeat history. | Remaining saga/scheduled evidence M; Nightly+Release. |
 | `GAP-003` High | `R-AUTH-001`; Catalog mutation actions lack direct auth boundary. | Network oracle Decision required; `CTRL-SEC-CATALOG-BOUNDARY-001` Missing; `GATE-SEC-001` W2 activation prerequisite. | From deployable network, direct POST/PUT/DELETE anonymously is unreachable or 401/403; gateway mutations no-route/not forwarded. | Security/deployment; M; PR service auth + Release network. |
 | `GAP-004` High | `R-RESILIENCE-001`; parameterless health checks/status-only tests preserve false-positive health. | Dependency list Decision required; `CTRL-OPS-READINESS-001` Not implemented; `GATE-OPS-001` W3 activation prerequisite. | `/live` and `/ready`; stop DB/Redis/Rabbit/downstream; live follows contract, ready 503 with dependency, then recovers. | Component/deployment; M; Main+Release; contract first. |
 | `GAP-005` High | `R-OUTBOX-001/002`; no concurrent claims, stale reclaim, crash window, max retry or cleanup assertions. | Oracles Approved; outbox/claim/publish controls Partial/Indirect; `GATE-MSG-001/004`. | Two publishers disjoint claims/one logical publish; kill after claim and advance time; reclaim; force Dead with attempts/error; cleanup only eligible rows; publish-before-mark recovery. | PG/Rabbit/injected time/hooks; M/L; Nightly→Release; deterministic hooks first. |
@@ -60,5 +60,6 @@ All identified existing tests are scheduled by checked-in CI. Docker-heavy API, 
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.3 | 2026-07-28 | Promoted GAP-001/GAP-002 named variants to shared evidence after CI #31 and TestRail R30/R31 passed; retained only messaging/workflow and scheduled residuals. | Pending review |
 | 1.2 | 2026-07-28 | Updated GAP-002 after TECH-02 approval, implementation, local direct evidence and TestRail synchronization; narrowed GAP-014 residual scope. | Pending review |
 | 1.1 | 2026-07-28 | Updated GAP-001 after local TECH-01 proof and linked proposed TECH-02 idempotency oracle. | Pending review |
