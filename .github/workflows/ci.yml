@@ -471,13 +471,12 @@ jobs:
           retention-days: 7
 
   testrail:
-    name: Publish TestRail results (pilot)
+    name: Publish TestRail results
     needs:
       - backend
       - frontend
       - e2e
     if: ${{ always() && github.event_name != 'pull_request' && !cancelled() }}
-    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -1,10 +1,10 @@
-# Proposed TestRail Suite Design
+# TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
 > **Version:** 1.0  
-> **Status:** Proposed — pending governance approval; full 45-case browser-UI catalogue import verified, no TestRail API or execution result used  
-> **Effective from:** Not effective as governance; the personal-instance catalogue is an evaluation implementation only  
-> **Baseline:** `main` / `bf3d1afbd7bc6bbfdb7ab8994ca3ad36e51e643c`  
+> **Status:** Implemented — the 45-case catalogue is live, 30 automated TestIntents use governed Automation IDs, and CI result publication was accepted with run `CI #28` on July 28, 2026
+> **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
+> **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-26 (Europe/Prague)
 

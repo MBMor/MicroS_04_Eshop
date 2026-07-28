@@ -72,8 +72,19 @@ Four independent runs are created when their artifacts exist:
 - `CI #<number> | Frontend Unit`
 - `CI #<number> | Checkout E2E`
 
-## Pilot and failure handling
+## Production failure handling
 
-The TestRail job currently has `continue-on-error: true`. This is intentional for the pilot: missing configuration, mapping drift, TestRail outage or TRCLI failure remains visible but does not change the main CI conclusion. Remove that job-level setting only after several successful main-branch/workflow-dispatch runs and agreement that TestRail publication is a blocking quality gate.
+TestRail publication is a blocking CI job. Missing configuration, mapping drift, a TestRail outage or a TRCLI failure therefore changes the workflow conclusion to failed. Individual artifact downloads remain tolerant so that a skipped upstream area does not prevent publication of available reports; an absent area creates no empty TestRail run.
 
-For the first pilot, run the workflow manually, verify that no cases were created, inspect all produced runs and compare their result counts with the aggregate JUnit artifacts. TestRail outage recovery is a workflow re-run; the job does not retry blindly and never reuses a partial run.
+TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run.
+
+## Initial production acceptance
+
+The pilot was accepted on July 28, 2026 using GitHub Actions run `30356073486` (`CI #28`). The live TestRail verification found zero open and four newly completed runs, all linked to the originating workflow and closed at 100% Passed:
+
+- `R17` / Backend Unit: 12 TestIntent results;
+- `R18` / Backend Integration: 27 TestIntent results;
+- `R19` / Frontend Unit: 2 TestIntent results;
+- `R20` / Checkout E2E: 4 TestIntent results.
+
+The run areas intentionally overlap where several automation layers support the same TestIntent. All individual result rows were assigned to governed suite cases, and the suite remained at 45 cases, confirming that `trcli -n` created no new cases. Following this acceptance, the job-level pilot `continue-on-error` setting was removed and TestRail publication became a blocking quality gate.
