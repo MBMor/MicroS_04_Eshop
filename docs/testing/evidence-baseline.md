@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 1.0  
+> **Version:** 1.1
 > **As of:** 2026-07-28 (Europe/Prague)  
 > **Repository baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab`  
-> **Working-tree scope:** pending TECH-01 inventory-concurrency changes
+> **Working-tree scope:** pending TECH-01 inventory-concurrency and TECH-02 checkout-idempotency changes
 
 This record separates committed CI evidence from local evidence produced by the pending change. It does not activate or pass any future quality gate.
 
@@ -25,17 +25,18 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-After TECH-01, the repository contains:
+After TECH-01 and TECH-02, the repository contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
-| Logical tests | 180 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
-| Executable cases | 184 | logical tests plus four additional Theory rows |
-| xUnit logical / executable | 167 / 171 | 163 Facts and four two-row Theories |
-| Frontend Vitest | 10 | executable tests |
+| Logical tests | 190 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
+| Executable cases | 195 | logical tests plus five additional Theory rows |
+| xUnit logical / executable | 174 / 179 | 169 Facts and five two-row Theories |
+| Frontend Vitest | 13 | executable tests |
 | Playwright | 3 | executable scenarios |
-| TestRail source selectors | 180 | unique selectors in `automation-id-map.json` |
-| TestRail binding edges | 190 | selector-to-TestIntent mappings; ten are deliberate multi-intent overlaps |
+| TestRail automated TestIntents | 31 | aggregate IDs in `automation-id-map.json` |
+| TestRail source selectors | 190 | unique selectors in `automation-id-map.json` |
+| TestRail binding edges | 205 | selector-to-TestIntent mappings; fifteen are deliberate multi-intent overlaps |
 
 Every logical test has exactly one unique source selector. Multiple TestIntent bindings are allowed and explain the difference between selectors and edges.
 
@@ -64,15 +65,30 @@ The three added direct tests prove these named variants:
 
 This is valid local first-attempt and five-run repeat evidence for the named variants. Promotion to shared evidence still requires a GitHub Actions run after commit; scheduled repeat history and the broker-delivery path remain open.
 
+## TECH-02 local evidence
+
+The approved checkout-command oracle is implemented in Orders Service, its PostgreSQL migration, the React checkout client and the TestRail automation map. On 2026-07-28:
+
+- the complete `OrdersService.IntegrationTests` project passed **17/17 executable cases**, with zero failures and zero skips, against a disposable PostgreSQL 18 Testcontainer;
+- the complete frontend Vitest suite passed **13/13**;
+- the direct concurrent-identical-request test then passed **5/5 fresh Testcontainer runs**, with zero failures and zero skips;
+- the TestRail transformer tests passed **7/7**, and result preparation resolved all selectors without an unknown binding;
+- TestRail case `C60` was synchronized to `Automated`, `Implemented`, `Approved`, native `Is Automated = Yes` and `Eshop.TestIntents.ESHOP-ORDER-002`.
+
+JUnit provenance: `artifacts/test-results/orders-tech02/orders-tech02.junit.xml` and `artifacts/test-results/frontend/frontend-unit-tests.junit.xml` (generated evidence, intentionally not source artifacts).
+
+The ten new logical tests directly prove header propagation, key lifecycle, invalid input, replay without a basket reload, changed-request conflict without side effects, concurrent uniqueness, customer scoping, current-basket use under a new key and replay after a failed basket clear. This is Valid local evidence for those named variants. It does not yet prove a single downstream payment/inventory workflow under duplicate HTTP delivery, nor does it replace shared CI or scheduled Nightly history.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
 - TECH-01 implementation is locally verified and is pending shared CI evidence.
-- TECH-02 remains a proposed oracle in [`ADR 0002`](../architecture/0002-checkout-command-idempotency.md); no idempotency coverage may be reported until the oracle is approved and implemented.
+- TECH-02 is approved and locally verified for the named API/frontend variants; shared CI, scheduled repeat history and the downstream one-workflow assertion remain pending.
 - Formal Nightly and Release tiers remain future work; all checked-in tests are still scheduled by the current PR/main workflow.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.1 | 2026-07-28 | Recorded TECH-02 approval, 190/195 reconciled source counts, local Orders/frontend evidence, five concurrency repeats and TestRail C60 synchronization. | Pending review |
 | 1.0 | 2026-07-28 | Created QA-01 executable evidence baseline and recorded TECH-01 local proof separately from CI #28. | Pending review |

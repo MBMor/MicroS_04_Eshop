@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 1.1
+> **Version:** 1.2
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 working-tree changes
+> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 and TECH-02 working-tree changes
 > **Analysis date:** 2026-07-28 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. There are **180 logical tests and 184 executable cases**; four two-row theories add four executable cases. All 180 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by checked-in CI. Current scheduling is PR and main events, not formal tiers.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. There are **190 logical tests and 195 executable cases**; five two-row theories add five executable cases. All 190 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by checked-in CI. Current scheduling is PR and main events, not formal tiers.
 
-GitHub Actions `CI #28` supplied Valid, Passed evidence for the committed pre-TECH-01 suite and published four 100% Passed TestRail runs. The pending TECH-01 change has separate local evidence: the full Inventory project passed 17/17 against PostgreSQL Testcontainers. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The legacy row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
+GitHub Actions `CI #28` supplied Valid, Passed evidence for the committed pre-TECH-01 suite and published four 100% Passed TestRail runs. Pending TECH-01 and TECH-02 changes have separate local evidence: Inventory passed 17/17, Orders passed 17/17 and frontend passed 13/13; both concurrency changes also passed five fresh repeated runs. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The legacy row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership. Counts and executable identities are unchanged.
 
@@ -22,15 +22,15 @@ Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust
 | `BasketService.IntegrationTests` / xUnit v3 | 10 | 10 | API/Redis | 10/0 | Main |
 | `CatalogService.IntegrationTests` / xUnit v3 | 10 | 10 | API/PostgreSQL | 10/0 | Main |
 | `InventoryService.IntegrationTests` / xUnit v3 | 17 | 17 | API/PostgreSQL | 17/0 | 14 Main; 3 Nightly + Release |
-| `OrdersService.IntegrationTests` / xUnit v3 | 9 | 9 | API/PostgreSQL | 9/0 | Main |
+| `OrdersService.IntegrationTests` / xUnit v3 | 16 | 17 | API/PostgreSQL | 16/0 | 9 Main; 7 Nightly + Release |
 | `PaymentsService.IntegrationTests` / xUnit v3 | 12 | 13 | API/PostgreSQL | 12/0 | Main |
 | `NotificationsService.IntegrationTests` / xUnit v3 | 13 | 14 | API/PostgreSQL | 13/0 | Main |
 | `Eshop.Messaging.IntegrationTests` / xUnit v2 | 10 | 10 | Cross-service messaging | 10/0 | 4 Main; 6 Nightly |
-| Frontend / Vitest | 10 | 10 | Component/unit | 10/0 | PR |
+| Frontend / Vitest | 13 | 13 | Component/unit | 13/0 | PR |
 | E2E / Playwright | 3 | 3 | Browser workflow | 3/0 | Main |
-| **Total** | **180** | **184** | 74 unit/component; 93 API; 10 messaging; 3 browser | **180/0** | **74 PR; 97 Main; 9 Nightly; 3 Release overlap** |
+| **Total** | **190** | **195** | 77 unit/component; 100 API; 10 messaging; 3 browser | **190/0** | **77 PR; 97 Main; 16 Nightly; 10 Release overlap** |
 
-xUnit totals are 167 logical/171 executable, plus 10 Vitest and 3 Playwright. Source inspection found 163 Facts and four Theories. Discovery reconciled these counts with 180 unique TestRail source selectors; the mapping has 190 edges because ten selectors intentionally support more than one TestIntent.
+xUnit totals are 174 logical/179 executable, plus 13 Vitest and 3 Playwright. Source inspection found 169 Facts and five Theories. Discovery reconciled these counts with 190 unique TestRail source selectors; the mapping has 205 edges because fifteen selectors intentionally support more than one TestIntent.
 
 ## Domain and application unit tests (64 logical / 66 executable)
 
@@ -225,16 +225,23 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged` | R-INVENTORY-001 | **Direct named variant:** deterministic three-conflict exhaustion; contextual failure and unchanged inventory/inbox/outbox |
 | `InventoryRowVersionConcurrentUpdatesRejectStaleWrite` | R-INVENTORY-001 | one save/stale conflict; not competing reservation |
 
-### Orders (9; PostgreSQL, fake Basket)
+### Orders (16 logical / 17 executable; PostgreSQL, fake Basket)
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
 | `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; DB-down absent |
 | `OrdersAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `OrdersSupportUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
-| `CreateOrderValidBasketPersistsOrderHistoryAndOutbox` | R-ORDER-002, R-OUTBOX-001 | 201/order/items/history/outbox/clear; no idempotency |
+| `CreateOrderValidBasketPersistsOrderHistoryAndOutbox` | R-ORDER-002, R-OUTBOX-001 | first-attempt 201/order/items/history/outbox/clear |
 | `CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence` | R-ORDER-001 | 400/no order/outbox |
 | `CreateOrderMultipleCurrenciesReturnsBadRequest` | R-ORDER-002 | **Partial:** status only, no no-write |
+| `CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence` (missing, whitespace) | R-ORDER-001 | two-row Theory; 400 ProblemDetails and zero order/outbox/idempotency rows |
+| `CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket` | R-ORDER-001 | same order/Location, 200 replay header, one durable effect and no second Basket load |
+| `CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects` | R-ORDER-001 | 409 typed ProblemDetails; original cardinalities retained and Basket untouched |
+| `ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox` | R-ORDER-001, R-DATA-001 | real PostgreSQL uniqueness; one 201, one 200 replay, one order/history/outbox/idempotency record |
+| `SameIdempotencyKeyIsScopedToAuthenticatedCustomer` | R-ORDER-001 | identical key is independent across authenticated customers |
+| `NewIdempotencyKeyUsesCurrentBasket` | R-ORDER-001 | deliberate new intent loads and persists the current basket |
+| `CommittedOrderReplaysWhenBasketClearFails` | R-ORDER-001, R-BASKET-003 | durable commit survives clear exception; retry resolves original order without re-clearing |
 | `GetOrdersReturnsOnlyAuthenticatedCustomersOrders` | R-ORDER-SEC-001 | owner only |
 | `GetOrderOtherCustomersOrderReturnsNotFound` | R-ORDER-SEC-001 | other customer receives 404 |
 | `CreateOrderInvalidEmailReturnsBadRequest` | R-ORDER-002 | **Partial:** status only, no no-write |
@@ -307,6 +314,9 @@ Inherited: `src/frontend`, Vitest/jsdom/Testing Library, mocked fetch/auth, no i
 | `RequireRole: calls login when sign-in clicked` | R-IDENTITY-001, R-FRONTEND-001 | login called |
 | `RequireRole: shows access denied when role missing` | R-IDENTITY-001 | denial/child absent |
 | `RequireRole: renders children when role present` | R-IDENTITY-001 | protected child |
+| `createOrder: sends the checkout idempotency key` | R-ORDER-001, R-FRONTEND-001 | exact `Idempotency-Key` header propagation |
+| `CheckoutPage idempotency: reuses the key after a retryable transport failure` | R-ORDER-001, R-FRONTEND-001 | UUID retained for the same retryable submit intent |
+| `CheckoutPage idempotency: creates a new key after the checkout input changes` | R-ORDER-001, R-FRONTEND-001 | changed input invalidates the previous command identity |
 
 ## Playwright browser scenarios (3)
 
@@ -327,9 +337,11 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
 - No existing executable test was found outside current checked-in CI scheduling; no formal Nightly/Release tier exists.
 - TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants and passed a five-run local repeat; broker-delivery, shared CI and scheduled repeat history remain open.
+- TECH-02 closes the direct API/persistence and frontend key-lifecycle variants and passed a five-run local concurrency repeat; one complete downstream workflow assertion, shared CI and scheduled repeat history remain open.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.2 | 2026-07-28 | Reconciled 190/195 tests and added approved TECH-02 Orders/frontend idempotency evidence and TestRail binding. | Pending review |
 | 1.1 | 2026-07-28 | Reconciled 180/184 tests, recorded CI #28/TestRail evidence and added three TECH-01 Inventory concurrency variants. | Pending review |

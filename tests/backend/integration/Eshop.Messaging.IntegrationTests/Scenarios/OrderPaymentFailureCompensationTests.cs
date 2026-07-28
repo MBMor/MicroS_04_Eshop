@@ -126,6 +126,10 @@ public sealed class OrderPaymentFailureCompensationTests(
             TestOrderOwnerProvider.CustomerIdHeaderName,
             CustomerId);
 
+        client.DefaultRequestHeaders.Add(
+            OrderHeaders.IdempotencyKey,
+            Guid.NewGuid().ToString());
+
         CreateOrderRequest request = new()
         {
             CustomerEmail = CustomerEmail,

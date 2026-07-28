@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed. Oracle workshop output; approval is required from Product, Orders Engineering, Security and QA before implementation.
+Accepted on 2026-07-28. The approved oracle is implemented in the current TECH-02 working tree; promotion to shared CI evidence is still pending.
 
 ## Context
 
-`POST /api/v1/orders` currently identifies the caller from the authenticated customer subject, loads the current basket, creates a new order and `OrderCreatedV1` outbox message in one database save, and then attempts to clear the basket.
+Before TECH-02, `POST /api/v1/orders` identified the caller from the authenticated customer subject, loaded the current basket, created a new order and `OrderCreatedV1` outbox message in one database save, and then attempted to clear the basket.
 
-The command has no stable client-supplied identity. A browser retry after a timeout, a double submit that reaches the server, or two concurrent identical requests can therefore create more than one order and more than one downstream checkout workflow. Disabling the frontend button reduces accidental duplicate clicks but is not a correctness control.
+The command had no stable client-supplied identity. A browser retry after a timeout, a double submit that reached the server, or two concurrent identical requests could therefore create more than one order and more than one downstream checkout workflow. Disabling the frontend button reduces accidental duplicate clicks but is not a correctness control.
 
 The current request contains only `customerEmail` and `paymentMethod`; the authoritative items and totals come from the Basket Service. The creator must persist that snapshot in the order, but a completed replay cannot safely reload it: the first successful execution normally clears the basket and the customer may later start a new basket.
 
@@ -19,7 +19,7 @@ The following decisions form the recommended oracle. Approval of this ADR approv
 | Decision | Recommended contract | Reason |
 |---|---|---|
 | `ORCL-ORD-IDEMP-001` Command identity | `Idempotency-Key` is required for `POST /api/v1/orders`. The frontend generates one UUID v4 when a checkout submission starts and reuses it for retries of that submission. A deliberate new submission generates a new key. | The identity survives HTTP retries and is independent of a server-generated order ID. |
-| `ORCL-ORD-IDEMP-002` Validation | Treat the key as an opaque, case-sensitive ASCII value of 1–128 characters. Reject a missing or malformed key with `400 application/problem+json`. Do not log the raw value; log a one-way digest or the resulting order ID. | Bounded opaque keys are interoperable and avoid putting customer data into logs or indexes. |
+| `ORCL-ORD-IDEMP-002` Validation | Treat the key as an opaque, case-sensitive value of 1–128 visible ASCII characters (no control characters or whitespace). Reject a missing or malformed key with `400 application/problem+json`. Do not log the raw value; log a one-way digest or the resulting order ID. | Bounded opaque keys are interoperable and avoid putting customer data into logs or indexes. |
 | `ORCL-ORD-IDEMP-003` Scope | Uniqueness is scoped by authenticated `customerId`, operation name `CreateOrder`, and key. A key used by another customer is unrelated. | Prevents cross-customer discovery and permits keys to be generated independently. |
 | `ORCL-ORD-IDEMP-004` Request fingerprint | The fingerprint covers normalized `customerEmail`, normalized `paymentMethod` and any future client-supplied command fields. The creator loads the basket exactly once and persists its snapshot in the order; the basket is not reloaded to validate a completed replay. | A replay must still work after the first execution clears the basket. A changed basket represents a new submit intent and therefore requires a new key. |
 | `ORCL-ORD-IDEMP-005` Same key and fingerprint | Create exactly one order, one initial status-history entry and one `OrderCreatedV1` outbox message. A completed replay returns that same order and `Location`, with status `200 OK` and `Idempotent-Replayed: true`; the first successful response remains `201 Created`. No replay clears the basket or emits another event. | The resource identity and downstream side effects are stable while the response makes replay observable. |
@@ -59,16 +59,18 @@ Same key after the email or payment method changes: `409 Conflict`, with no new 
 7. Logs and ProblemDetails contain correlation data but never the raw key, bearer token or customer basket.
 8. TestRail binds the new direct tests to `ESHOP-ORDER-002`; the release evidence includes first-attempt and repeat/flake results.
 
-## Implementation notes
+## Implementation record
 
-A dedicated idempotency table is preferred over storing only the key on `orders`: it can represent an in-progress claim, the request fingerprint and response metadata while keeping the order aggregate focused. The implementation must use PostgreSQL uniqueness as the cross-replica arbiter. A bounded wait must end in an explicit retryable response if the creator transaction cannot be resolved; it must never fall through to a second creation attempt.
+TECH-02 adds `order_idempotency_records` with a unique PostgreSQL index on `(customer_id, operation, idempotency_key)` and a unique order reference. A completed idempotency record, order, initial history and outbox event are committed by one `SaveChanges` transaction. PostgreSQL uniqueness is the cross-replica arbiter; a losing concurrent request resolves the committed winner and returns the replay response. The basket is cleared only by the creator and only after the durable commit.
 
-Canonicalization must be implemented once in Orders Service and tested with casing and normalization variants. Hashing is an implementation detail; equality is defined by the normalized client-supplied business fields above, not by raw JSON byte equality.
+Orders Service owns canonicalization and hashes normalized client-supplied business fields with SHA-256. Equality is defined by those normalized fields, not raw JSON bytes. The frontend creates one UUID per checkout intent, retains it across retryable transport failures and replaces it when the customer changes an input or begins a new successful submission.
+
+Direct local evidence covers malformed/missing keys, sequential and concurrent replay, changed-request conflict, customer scoping, changed-basket behavior, use of a new key and replay after basket-clear failure. Cross-service proof that a duplicate HTTP submission produces exactly one complete payment/inventory workflow remains required before release evidence can be considered complete.
 
 ## Consequences
 
 - Checkout retries become safe across browser, gateway and service replicas.
-- A changed basket under the same command key is visible as a conflict rather than silently creating an unexpected order.
+- A completed replay does not reload a changed basket; it returns the original order. A deliberate checkout of the current basket requires a new key.
 - Order creation gains additional persistence and concurrency paths that require migration, cleanup and observability work.
 - Clients that do not send `Idempotency-Key` become incompatible when the contract is activated; rollout must update the frontend and any API consumers together.
 
@@ -82,7 +84,7 @@ Canonicalization must be implemented once in Orders Service and tested with casi
 
 | Role | Decision | Name / reference | Date |
 |---|---|---|---|
-| Product | Pending | — | — |
-| Orders Engineering | Pending | — | — |
-| Security | Pending | — | — |
-| QA | Pending | — | — |
+| Product | Approved | User approval of TECH-02 proposal in Codex task | 2026-07-28 |
+| Orders Engineering | Approved | User approval of TECH-02 proposal in Codex task | 2026-07-28 |
+| Security | Approved | User approval of TECH-02 proposal in Codex task | 2026-07-28 |
+| QA | Approved | User approval of TECH-02 proposal in Codex task | 2026-07-28 |

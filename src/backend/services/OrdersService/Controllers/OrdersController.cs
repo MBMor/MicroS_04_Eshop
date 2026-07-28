@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using OrdersService.Application;
 using OrdersService.Contracts;
@@ -16,16 +17,36 @@ public sealed class OrdersController(
     IOrderOwnerProvider orderOwnerProvider) : ControllerBase
 {
     [HttpPost]
+    [EndpointSummary("Create an idempotent checkout order")]
+    [EndpointDescription(
+        "Idempotency-Key is required. The first committed request returns 201 Created. " +
+        "An identical replay returns the same order with 200 OK and " +
+        "Idempotent-Replayed: true; changed checkout data returns 409 Conflict.")]
     [Consumes("application/json")]
     [ProducesResponseType<OrderResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderResponse>> CreateOrder(
         CreateOrderRequest request,
+        [FromHeader(Name = OrderHeaders.IdempotencyKey)]
+        [Required]
+        [StringLength(128, MinimumLength = 1)]
+        string idempotencyKey,
         CancellationToken cancellationToken)
     {
+        if (!IsValidIdempotencyKey(idempotencyKey))
+        {
+            return BadRequest(CreateProblem(
+                StatusCodes.Status400BadRequest,
+                "Invalid idempotency key.",
+                "Idempotency-Key must contain 1 to 128 visible ASCII characters without whitespace.",
+                "urn:eshop:problem:invalid-idempotency-key"));
+        }
+
         string? customerId =
             orderOwnerProvider.GetCustomerId(HttpContext);
 
@@ -44,20 +65,16 @@ public sealed class OrdersController(
                     customerId,
                     request.CustomerEmail,
                     request.PaymentMethod,
+                    idempotencyKey,
                     cancellationToken);
 
             return result.Status switch
             {
                 CreateOrderStatus.Success
                     when result.Order is not null
-                    => CreatedAtAction(
-                        nameof(GetOrderById),
-                        new
-                        {
-                            version = RouteData.Values["version"],
-                            id = result.Order.Id
-                        },
-                        OrderResponse.FromOrder(result.Order)),
+                    => CreateSuccessResponse(
+                        result.Order,
+                        result.IsReplay),
 
                 CreateOrderStatus.EmptyBasket
                     => BadRequest(CreateProblem(
@@ -70,6 +87,13 @@ public sealed class OrdersController(
                         StatusCodes.Status400BadRequest,
                         "Checkout failed.",
                         result.Error)),
+
+                CreateOrderStatus.IdempotencyConflict
+                    => Conflict(CreateProblem(
+                        StatusCodes.Status409Conflict,
+                        "Idempotency key was reused.",
+                        result.Error,
+                        "urn:eshop:problem:idempotency-key-reused")),
 
                 _ => throw new InvalidOperationException(
                     "Unexpected create order result.")
@@ -164,13 +188,56 @@ public sealed class OrdersController(
     private static ProblemDetails CreateProblem(
         int status,
         string title,
-        string? detail)
+        string? detail,
+        string? type = null)
     {
         return new ProblemDetails
         {
             Status = status,
             Title = title,
-            Detail = detail
+            Detail = detail,
+            Type = type
         };
+    }
+
+    private ActionResult<OrderResponse> CreateSuccessResponse(
+        Order order,
+        bool isReplay)
+    {
+        object routeValues = new
+        {
+            version = RouteData.Values["version"],
+            id = order.Id
+        };
+
+        if (!isReplay)
+        {
+            return CreatedAtAction(
+                nameof(GetOrderById),
+                routeValues,
+                OrderResponse.FromOrder(order));
+        }
+
+        string? location = Url.Action(
+            nameof(GetOrderById),
+            values: routeValues);
+
+        if (location is not null)
+        {
+            Response.Headers.Location = location;
+        }
+
+        Response.Headers[OrderHeaders.IdempotentReplayed] =
+            bool.TrueString.ToLowerInvariant();
+
+        return Ok(OrderResponse.FromOrder(order));
+    }
+
+    private static bool IsValidIdempotencyKey(
+        string idempotencyKey)
+    {
+        return idempotencyKey.Length is >= 1 and <= 128
+            && idempotencyKey.All(character =>
+                character is >= '!' and <= '~');
     }
 }

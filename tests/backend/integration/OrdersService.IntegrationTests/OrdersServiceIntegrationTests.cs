@@ -107,6 +107,10 @@ public sealed class OrdersServiceIntegrationTests(
                 OrdersPath,
                 subject);
 
+        request.Headers.Add(
+            OrderHeaders.IdempotencyKey,
+            Guid.NewGuid().ToString());
+
         request.Content =
             JsonContent.Create(requestBody);
 
@@ -188,6 +192,457 @@ public sealed class OrdersServiceIntegrationTests(
             order.Id.ToString(),
             outboxMessage.Payload,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("invalid key")]
+    public async Task
+        CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence(
+            string? idempotencyKey)
+    {
+        string subject =
+            CreateSubject("invalid-idempotency-key");
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem());
+
+        using HttpRequestMessage request =
+            CreateCustomerRequest(
+                HttpMethod.Post,
+                OrdersPath,
+                subject);
+
+        if (idempotencyKey is not null)
+        {
+            request.Headers.TryAddWithoutValidation(
+                OrderHeaders.IdempotencyKey,
+                idempotencyKey);
+        }
+
+        request.Content = JsonContent.Create(
+            new CreateOrderRequest
+            {
+                CustomerEmail = "alice@example.com",
+                PaymentMethod = "test-success"
+            });
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
+            response.StatusCode);
+
+        Assert.Equal(
+            0,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        await AssertDatabaseIsEmptyAsync();
+    }
+
+    [Fact]
+    public async Task
+        CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket()
+    {
+        string subject =
+            CreateSubject("sequential-replay");
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem(
+                productName: "Original item",
+                unitPrice: 100m));
+
+        using HttpResponseMessage firstResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            firstResponse.StatusCode);
+
+        OrderResponse firstOrder =
+            await ReadOrderAsync(firstResponse);
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem(
+                productName: "Changed item",
+                unitPrice: 999m));
+
+        using HttpResponseMessage replayResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            replayResponse.StatusCode);
+
+        Assert.Equal(
+            "true",
+            Assert.Single(
+                replayResponse.Headers.GetValues(
+                    OrderHeaders.IdempotentReplayed)));
+
+        Assert.NotNull(replayResponse.Headers.Location);
+
+        Assert.EndsWith(
+            $"/api/v1/orders/{firstOrder.Id}",
+            replayResponse.Headers.Location.ToString(),
+            StringComparison.Ordinal);
+
+        OrderResponse replayedOrder =
+            await ReadOrderAsync(replayResponse);
+
+        Assert.Equal(firstOrder.Id, replayedOrder.Id);
+        Assert.Equal(firstOrder.TotalAmount, replayedOrder.TotalAmount);
+        Assert.Equal(firstOrder.Items.Length, replayedOrder.Items.Length);
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 1,
+            expectedOutboxMessages: 1,
+            expectedIdempotencyRecords: 1);
+    }
+
+    [Fact]
+    public async Task
+        CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects()
+    {
+        string subject =
+            CreateSubject("changed-request");
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem());
+
+        using HttpResponseMessage firstResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            firstResponse.StatusCode);
+
+        using HttpResponseMessage conflictResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "changed@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Conflict,
+            conflictResponse.StatusCode);
+
+        ProblemDetails? problem =
+            await conflictResponse.Content
+                .ReadFromJsonAsync<ProblemDetails>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+
+        Assert.Equal(
+            "urn:eshop:problem:idempotency-key-reused",
+            problem.Type);
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 1,
+            expectedOutboxMessages: 1,
+            expectedIdempotencyRecords: 1);
+    }
+
+    [Fact]
+    public async Task
+        ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox()
+    {
+        string subject =
+            CreateSubject("concurrent-replay");
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem());
+
+        fixture.BasketClient.SynchronizeNextBasketReads(
+            subject,
+            participantCount: 2);
+
+        Task<HttpResponseMessage> firstRequest =
+            SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Task<HttpResponseMessage> secondRequest =
+            SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        HttpResponseMessage[] responses =
+            await Task.WhenAll(
+                firstRequest,
+                secondRequest);
+
+        try
+        {
+            Assert.Equal(
+                [HttpStatusCode.OK, HttpStatusCode.Created],
+                responses
+                    .Select(response => response.StatusCode)
+                    .Order()
+                    .ToArray());
+
+            OrderResponse[] orders =
+                await Task.WhenAll(
+                    responses.Select(ReadOrderAsync));
+
+            Assert.Equal(orders[0].Id, orders[1].Id);
+
+            HttpResponseMessage replayResponse =
+                Assert.Single(
+                    responses,
+                    response =>
+                        response.StatusCode
+                            == HttpStatusCode.OK);
+
+            Assert.Equal(
+                "true",
+                Assert.Single(
+                    replayResponse.Headers.GetValues(
+                        OrderHeaders.IdempotentReplayed)));
+        }
+        finally
+        {
+            foreach (HttpResponseMessage response in responses)
+            {
+                response.Dispose();
+            }
+        }
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        Assert.Equal(
+            2,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 1,
+            expectedOutboxMessages: 1,
+            expectedIdempotencyRecords: 1);
+    }
+
+    [Fact]
+    public async Task
+        SameIdempotencyKeyIsScopedToAuthenticatedCustomer()
+    {
+        string firstSubject =
+            CreateSubject("scope-first");
+
+        string secondSubject =
+            CreateSubject("scope-second");
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        fixture.BasketClient.SetBasket(
+            firstSubject,
+            CreateBasketItem(productName: "First"));
+
+        fixture.BasketClient.SetBasket(
+            secondSubject,
+            CreateBasketItem(productName: "Second"));
+
+        using HttpResponseMessage firstResponse =
+            await SendCreateOrderAsync(
+                firstSubject,
+                "first@example.com",
+                idempotencyKey);
+
+        using HttpResponseMessage secondResponse =
+            await SendCreateOrderAsync(
+                secondSubject,
+                "second@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            firstResponse.StatusCode);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            secondResponse.StatusCode);
+
+        OrderResponse firstOrder =
+            await ReadOrderAsync(firstResponse);
+
+        OrderResponse secondOrder =
+            await ReadOrderAsync(secondResponse);
+
+        Assert.NotEqual(firstOrder.Id, secondOrder.Id);
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 2,
+            expectedOutboxMessages: 2,
+            expectedIdempotencyRecords: 2);
+    }
+
+    [Fact]
+    public async Task
+        NewIdempotencyKeyUsesCurrentBasket()
+    {
+        string subject =
+            CreateSubject("new-intent");
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem(
+                productName: "First",
+                unitPrice: 100m));
+
+        using HttpResponseMessage firstResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                Guid.NewGuid().ToString());
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            firstResponse.StatusCode);
+
+        OrderResponse firstOrder =
+            await ReadOrderAsync(firstResponse);
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem(
+                productName: "Second",
+                unitPrice: 250m,
+                quantity: 2));
+
+        using HttpResponseMessage secondResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                Guid.NewGuid().ToString());
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            secondResponse.StatusCode);
+
+        OrderResponse secondOrder =
+            await ReadOrderAsync(secondResponse);
+
+        Assert.NotEqual(firstOrder.Id, secondOrder.Id);
+        Assert.Equal(100m, firstOrder.TotalAmount);
+        Assert.Equal(500m, secondOrder.TotalAmount);
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 2,
+            expectedOutboxMessages: 2,
+            expectedIdempotencyRecords: 2);
+    }
+
+    [Fact]
+    public async Task
+        CommittedOrderReplaysWhenBasketClearFails()
+    {
+        string subject =
+            CreateSubject("clear-failure-replay");
+
+        string idempotencyKey =
+            Guid.NewGuid().ToString();
+
+        fixture.BasketClient.SetBasket(
+            subject,
+            CreateBasketItem());
+
+        fixture.BasketClient.FailBasketClear();
+
+        using HttpResponseMessage firstResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            firstResponse.StatusCode);
+
+        OrderResponse firstOrder =
+            await ReadOrderAsync(firstResponse);
+
+        using HttpResponseMessage replayResponse =
+            await SendCreateOrderAsync(
+                subject,
+                "alice@example.com",
+                idempotencyKey);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            replayResponse.StatusCode);
+
+        OrderResponse replayedOrder =
+            await ReadOrderAsync(replayResponse);
+
+        Assert.Equal(firstOrder.Id, replayedOrder.Id);
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        Assert.Equal(
+            1,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 1,
+            expectedOutboxMessages: 1,
+            expectedIdempotencyRecords: 1);
     }
 
     [Fact]
@@ -346,6 +801,10 @@ public sealed class OrdersServiceIntegrationTests(
                 OrdersPath,
                 subject);
 
+        request.Headers.Add(
+            OrderHeaders.IdempotencyKey,
+            Guid.NewGuid().ToString());
+
         request.Content = JsonContent.Create(
             new
             {
@@ -390,7 +849,9 @@ public sealed class OrdersServiceIntegrationTests(
     private async Task<HttpResponseMessage>
         SendCreateOrderAsync(
             string subject,
-            string email)
+            string email,
+            string? idempotencyKey = null,
+            string paymentMethod = "test-success")
     {
         using HttpRequestMessage request =
             CreateCustomerRequest(
@@ -402,13 +863,39 @@ public sealed class OrdersServiceIntegrationTests(
             new CreateOrderRequest
             {
                 CustomerEmail = email,
-                PaymentMethod = "test-success"
+                PaymentMethod = paymentMethod
             });
+
+        request.Headers.Add(
+            OrderHeaders.IdempotencyKey,
+            idempotencyKey ?? Guid.NewGuid().ToString());
 
         return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
     }
 
+    private static async Task<OrderResponse> ReadOrderAsync(
+        HttpResponseMessage response)
+    {
+        OrderResponse? order =
+            await response.Content
+                .ReadFromJsonAsync<OrderResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        return Assert.IsType<OrderResponse>(order);
+    }
+
     private async Task AssertDatabaseIsEmptyAsync()
+    {
+        await AssertDatabaseCountsAsync(
+            expectedOrders: 0,
+            expectedOutboxMessages: 0,
+            expectedIdempotencyRecords: 0);
+    }
+
+    private async Task AssertDatabaseCountsAsync(
+        int expectedOrders,
+        int expectedOutboxMessages,
+        int expectedIdempotencyRecords)
     {
         await using AsyncServiceScope scope =
             fixture.Factory.Services
@@ -419,12 +906,17 @@ public sealed class OrdersServiceIntegrationTests(
                 .GetRequiredService<OrdersDbContext>();
 
         Assert.Equal(
-            0,
+            expectedOrders,
             await dbContext.Orders.CountAsync(Xunit.TestContext.Current.CancellationToken));
 
         Assert.Equal(
-            0,
+            expectedOutboxMessages,
             await dbContext.OutboxMessages.CountAsync(Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            expectedIdempotencyRecords,
+            await dbContext.OrderIdempotencyRecords
+                .CountAsync(Xunit.TestContext.Current.CancellationToken));
     }
 
     private static BasketItemSnapshot CreateBasketItem(

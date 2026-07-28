@@ -2,6 +2,8 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
+The current TECH-02 working tree maps 190 unique source selectors through 205 binding edges to 31 automated TestIntents. The last accepted shared publication, `CI #28`, predates TECH-01/TECH-02 and therefore remains evidence for 30 automated TestIntents only.
+
 ## Identity contract
 
 TRCLI matches the standard JUnit identity `classname.name`. Aggregated reports always use:

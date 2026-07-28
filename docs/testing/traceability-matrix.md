@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 1.1
+> **Version:** 1.2
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 working-tree changes
+> **Baseline:** `main` / `a0c46a0ab74dd943ce055c578b2832757891d2ab` plus pending TECH-01 and TECH-02 working-tree changes
 > **Analysis date:** 2026-07-28 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-Existing CI schedules all existing tests on pull requests and `main`; target tiers are future governance. GitHub Actions `CI #28` and TestRail runs `R17`–`R20` provide Passed/Valid first-attempt evidence for the 30 automated TestIntents at the committed pre-TECH-01 baseline. The pending TECH-01 Inventory change has separate local 17/17 Passed evidence. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+Existing CI schedules all existing tests on pull requests and `main`; target tiers are future governance. GitHub Actions `CI #28` and TestRail runs `R17`–`R20` provide Passed/Valid first-attempt evidence for the 30 automated TestIntents at the committed pre-TECH-01 baseline. Pending TECH-01 has separate local Inventory 17/17 evidence. Approved TECH-02 has local Orders 17/17, frontend 13/13 and five-run concurrency evidence; TestRail case C60 is synchronized, bringing the local map to 31 automated TestIntents. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -25,7 +25,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Basket expiry, loss and clear recovery (`ESHOP-BASKET-003`) | R-BASKET-003 | CTRL-BASKET-EXPIRY-001 | Redis expiry/restart and clear failure after committed order | TTL exists; Orders catches clear failure; fake clear evidence | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Nightly | Checkout workflow owner | real Redis outage, repeat checkout and user/retry outcome |
 | Catalog price-source and product invariants (`ESHOP-CATALOG-002`) | R-ORDER-002 | CTRL-ORDER-PRICE-001 | list/detail/SKU/price/deactivation and current price input to checkout | Product/DbContext/controller; six unit and ten API tests | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Main | Catalog Engineering owner | checkout freshness, precision and rounding belong to order price policy |
 | Order creation and totals (`ESHOP-ORDER-001`) | R-ORDER-002 | CTRL-ORDER-PRICE-001 | basket snapshot to order/items/outbox with exact totals and initial state | application/domain/DbContext; unit/API/saga evidence | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Main + Release | Orders Engineering owner | approved reprice/quote policy and decimal/negative assertion matrix |
-| Checkout command idempotency (`ESHOP-ORDER-002`) | R-ORDER-001 | CTRL-ORDER-IDEMPOTENCY-001 | network-retried or concurrent identical checkout creates one logical order | proposed oracle in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); no stable key, index or automated test | Applicable | Decision required | Not implemented | Missing | Planned | Not run | Unknown | None | Nightly + Release | Orders Engineering owner | approve oracle, then implement persistence uniqueness, replay response and direct evidence |
+| Checkout command idempotency (`ESHOP-ORDER-002`) | R-ORDER-001 | CTRL-ORDER-IDEMPOTENCY-001 | network-retried or concurrent identical checkout creates one logical order | approved [ADR 0002](../architecture/0002-checkout-command-idempotency.md); required header, PostgreSQL uniqueness, atomic record/order/history/outbox, replay response and frontend key lifecycle; ten direct tests passed locally and concurrency passed 5/5 repeats | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Nightly + Release | Orders Engineering owner | shared CI, scheduled history and duplicate-HTTP proof of one complete downstream payment/inventory workflow |
 | Customer order isolation (`ESHOP-ORDER-003`) | R-ORDER-SEC-001 | CTRL-SEC-OWNERSHIP-001 | owner list/detail and equivalent routes do not disclose another order | subject predicates; owner/other-customer service integration tests | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Orders Engineering owner | route exhaustiveness, side-channel and large-dataset review |
 | Inventory persisted invariants (`ESHOP-INVENTORY-001`) | R-INVENTORY-001 | CTRL-DATA-CONCURRENCY-001 | CRUD, adjust, nonnegative, reserved and sequential consistency | entity/DbContext/migrations; ten unit and seventeen API tests; full Inventory passed locally 17/17 plus five TECH-01 repeats 15/15 | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main + Nightly | Inventory Engineering owner | direct strength is limited to named variants; shared CI and scheduled history pending for TECH-01 additions |
 | Concurrent inventory reservation (`ESHOP-INVENTORY-002`) | R-INVENTORY-001 | CTRL-DATA-CONCURRENCY-001 | competing OrderCreated handling using xmin and bounded retry never oversells or partially reserves | deterministic barrier tests cover last unit, multiline atomicity and retry exhaustion against PostgreSQL; five local repeats passed | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Nightly + Release | Inventory Engineering owner | broker-delivery/no-DLQ assertion, shared CI and scheduled repeat history remain |
@@ -66,7 +66,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 | CGM-005 | ESHOP-ORDER-003 | GATE-SEC-001 | Primary | cross-customer order isolation | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-006 | ESHOP-NOTIFICATION-001 | GATE-SEC-001 | Primary | cross-customer notification isolation | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-007 | ESHOP-ORDER-001 | GATE-ORD-001 | Supporting | creation, totals and initial transition | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
-| CGM-008 | ESHOP-ORDER-002 | GATE-ORD-001 | Primary | duplicate checkout command semantics | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Missing | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
+| CGM-008 | ESHOP-ORDER-002 | GATE-ORD-001 | Primary | duplicate checkout command semantics | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | LOCAL-TECH-02@2026-07-28 |
 | CGM-009 | ESHOP-INVENTORY-001 | GATE-INV-001 | Supporting | persisted sequential inventory invariants | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-010 | ESHOP-INVENTORY-002 | GATE-INV-001 | Primary | deterministic concurrent no-oversell | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | LOCAL-TECH-01@2026-07-28 |
 | CGM-011 | ESHOP-E2E-002 | GATE-INV-001 | Supporting | insufficient-stock workflow outcome | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
@@ -101,7 +101,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 - Critical `R-INVENTORY-001` resolves to `ESHOP-INVENTORY-001`, `ESHOP-INVENTORY-002`, `ESHOP-E2E-002` and `GATE-INV-001`.
 - Identity, gateway authorization, Catalog boundary, order ownership and notification ownership now use separate risk records.
 - All registered High risks have at least one resolving TestIntent; missing approved behavior remains `Missing` or `Decision required`.
-- Proposed `ESHOP-*` and `CGM-*` references in this matrix are unique. Example mappings in governance documents use placeholders.
+- Canonical `ESHOP-*` and `CGM-*` references in this matrix are unique. Example mappings in governance documents use placeholders.
 - Tenant isolation is intentionally absent; customer ownership remains applicable.
 - Risk acceptance, gate waiver and engineering deviation remain separate. No risk is represented as accepted and no gate as waived in this audit.
 - All gates are Future at version 2.1; current contribution evaluation is therefore `Not evaluated`, not `Not satisfied`.
@@ -110,4 +110,5 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.2 | 2026-07-28 | Recorded TECH-02 approval, implementation, local direct/repeat evidence and synchronized TestRail automation identity. | Pending review |
 | 1.1 | 2026-07-28 | Recorded CI #28/TestRail evidence, TECH-01 local concurrency proof and the proposed TECH-02 oracle. | Pending review |

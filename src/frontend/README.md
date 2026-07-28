@@ -39,6 +39,7 @@ Implemented:
 - remove basket item
 - clear basket
 - create durable order from basket
+- retry-safe checkout with one idempotency key per submit intent
 - display order status
 - short order-status polling
 - manual order-status refresh
@@ -258,6 +259,7 @@ The frontend sends only:
 
 - customer email
 - selected fake payment method
+- required `Idempotency-Key` header generated as a UUID for the current submit intent
 
 The frontend does not send order items or trusted prices.
 
@@ -277,9 +279,13 @@ OrdersService then:
 
 1. validates that the basket is not empty
 2. validates that all items use one currency
-3. creates a durable order
-4. stores the order in PostgreSQL
-5. attempts to clear the basket
+3. resolves a completed replay before loading the basket when the key is already known
+4. atomically stores the order, initial history, outbox event and idempotency record in PostgreSQL
+5. attempts to clear the basket only for the creator request
+
+The first successful submission returns `201 Created`. An identical retry returns the same order and `Location` with `200 OK` and `Idempotent-Replayed: true`. Reusing a key after changing email or payment method returns `409 Conflict` without another durable side effect.
+
+The Checkout page retains the key after a transport failure or retryable `408`, `425`, `429` or `5xx` response. It creates a new key when the customer changes a checkout input, after a non-retryable rejection, or for a new submission after success. A replay never uses the current basket as a replacement for the original committed snapshot.
 
 ## Orders
 

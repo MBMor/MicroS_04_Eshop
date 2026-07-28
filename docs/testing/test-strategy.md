@@ -2,11 +2,11 @@
 
 > **Document type:** Long-term quality and test strategy  
 > **Repository:** `MBMor/MicroS_04_Eshop`  
-> **Version:** 1.0  
+> **Version:** 1.1
 > **Status:** Draft — pending approval  
 > **Effective from:** Not effective; approval establishes the strategy, while every release gate requires a separate explicit activation record  
 > **Last approved:** Not yet approved  
-> **Last reviewed:** 2026-07-26  
+> **Last reviewed:** 2026-07-28
 > **Next scheduled review:** 2026-10-26  
 > **Supersedes:** 0.1 draft  
 > **Primary accountable owner:** QA Architecture  
@@ -169,7 +169,9 @@ Product/domain logic; APIs and middleware; gateway; frontend and accessibility; 
 
 ### 6.2 Decision required
 
-The following require approved contracts before direct testing: checkout idempotency; basket concurrent update semantics; price freshness; inventory fulfillment ownership; 404/403 disclosure; event compatibility/versioning; production ingress/API base; RTO/RPO; support matrix; DLQ replay; reconciliation and repair.
+Checkout idempotency is governed by the approved [`ADR 0002`](../architecture/0002-checkout-command-idempotency.md) and may be tested directly against that contract.
+
+The following still require approved contracts before direct testing: basket concurrent update semantics; price freshness; inventory fulfillment ownership; 404/403 disclosure; event compatibility/versioning; production ingress/API base; RTO/RPO; support matrix; DLQ replay; reconciliation and repair.
 
 An undecided required capability MUST NOT be `Passed`, `Direct` or `Not applicable`.
 
@@ -293,6 +295,7 @@ Review quarterly, after material incidents/findings or architecture changes, and
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.1 | 2026-07-28 | Removed checkout idempotency from undecided scope after approval of ADR 0002. | Pending review |
 
 
 ### Approval
@@ -304,4 +307,3 @@ Review quarterly, after material incidents/findings or architecture changes, and
 | Product |  |  |  |
 | Security |  |  |  |
 | Platform |  |  |  |
-

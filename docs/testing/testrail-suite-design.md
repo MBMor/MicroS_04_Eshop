@@ -1,8 +1,8 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 1.0  
-> **Status:** Implemented — the 45-case catalogue is live, 30 automated TestIntents use governed Automation IDs, and CI result publication was accepted with run `CI #28` on July 28, 2026
+> **Version:** 1.1
+> **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents use governed Automation IDs, and CI result publication was accepted with run `CI #28` on July 28, 2026
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
@@ -213,11 +213,13 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 ## 10. Import catalogue baseline
 
-The import source is [testrail/testrail-cases.csv](testrail/testrail-cases.csv), with its reviewable representation in [testrail/testrail-case-catalogue.md](testrail/testrail-case-catalogue.md). Version 1.1 contains 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associate the same executable with a distinct material subset of another TestIntent.
+The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
+
+The repository runtime contract is now [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). After approved TECH-02, it contains 31 automated TestIntents, 190 unique source selectors and 205 binding edges. TestRail case C60 is `Automated`, `Implemented`, `Approved`, native `Is Automated = Yes` and uses `Eshop.TestIntents.ESHOP-ORDER-002`. These working-tree bindings require a new successful shared CI publication before they become shared execution evidence.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
-The canonical CSV uses exactly the 28 source columns and repeated step-row model specified in [testrail/testrail-import-guide.md](testrail/testrail-import-guide.md). Generated upload transports add a 29th, derived `Is Automated` column. Evidence Strength, owner, test data, final durable oracle, diagnostics and cleanup remain explicit in Preconditions because the mandated source column set has no dedicated fields. On the verified instance, canonical Type `Smoke` maps explicitly to TestRail `Smoke & Sanity`; this transport adaptation does not change the canonical enum.
+The archived canonical CSV uses exactly 28 source columns and a repeated step-row model. Generated upload transports add a 29th, derived `Is Automated` column. Evidence Strength, owner, test data, final durable oracle, diagnostics and cleanup remain explicit in Preconditions because the mandated source column set has no dedicated fields. On the verified instance, canonical Type `Smoke` maps explicitly to TestRail `Smoke & Sanity`; this transport adaptation does not change the canonical enum.
 
 The browser-UI import was completed in the personal evaluation instance on 2026-07-27. Project 3 / single repository suite 7 contains all 21 roots, 66 total sections and 45 cases. A final export reconciled 186 step rows and 45 unique References with zero title, hierarchy, Type, step-count or automation-field drift. Eleven missing instance Type values and four missing Component values were added without changing the canonical catalogue. This proves import mechanics only; it is not execution evidence, oracle approval, risk acceptance, gate activation or governance approval.
 
@@ -227,3 +229,4 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.1 | 2026-07-28 | Recorded approved TECH-02 automation, current 31-intent runtime-map reconciliation and external archival of import-only artefacts. | Pending review |

@@ -13,6 +13,7 @@ public sealed class OrdersDbContext(
 
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
+    public DbSet<OrderIdempotencyRecord> OrderIdempotencyRecords => Set<OrderIdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
@@ -21,8 +22,74 @@ public sealed class OrdersDbContext(
         ConfigureOrder(modelBuilder.Entity<Order>());
         ConfigureOrderItem(modelBuilder.Entity<OrderItem>());
         ConfigureOrderStatusHistory(modelBuilder.Entity<OrderStatusHistory>());
+        ConfigureOrderIdempotencyRecord(modelBuilder.Entity<OrderIdempotencyRecord>());
         ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
         ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
+    }
+
+    private static void ConfigureOrderIdempotencyRecord(
+        EntityTypeBuilder<OrderIdempotencyRecord> record)
+    {
+        record.ToTable("order_idempotency_records");
+
+        record.HasKey(entity => entity.Id);
+
+        record.Property(entity => entity.Id)
+            .HasColumnName("id")
+            .ValueGeneratedNever();
+
+        record.Property(entity => entity.CustomerId)
+            .HasColumnName("customer_id")
+            .HasMaxLength(128)
+            .IsRequired();
+
+        record.Property(entity => entity.Operation)
+            .HasColumnName("operation")
+            .HasMaxLength(64)
+            .IsRequired();
+
+        record.Property(entity => entity.IdempotencyKey)
+            .HasColumnName("idempotency_key")
+            .HasMaxLength(128)
+            .IsRequired();
+
+        record.Property(entity => entity.RequestFingerprint)
+            .HasColumnName("request_fingerprint")
+            .HasMaxLength(64)
+            .IsRequired();
+
+        record.Property(entity => entity.OrderId)
+            .HasColumnName("order_id")
+            .IsRequired();
+
+        record.Property(entity => entity.Status)
+            .HasColumnName("status")
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        record.Property(entity => entity.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        record.HasIndex(entity => new
+            {
+                entity.CustomerId,
+                entity.Operation,
+                entity.IdempotencyKey
+            })
+            .HasDatabaseName(
+                OrderIdempotencyRecord.UniqueCommandIndexName)
+            .IsUnique();
+
+        record.HasIndex(entity => entity.OrderId)
+            .IsUnique();
+
+        record.HasOne<Order>()
+            .WithOne()
+            .HasForeignKey<OrderIdempotencyRecord>(
+                entity => entity.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     private static void ConfigureOrder(

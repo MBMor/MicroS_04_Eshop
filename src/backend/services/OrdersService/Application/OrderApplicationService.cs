@@ -1,4 +1,7 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using OrdersService.Data;
 using OrdersService.Domain;
 using OrdersService.Integration;
@@ -31,15 +34,44 @@ public sealed class OrderApplicationService(
         string customerId,
         string customerEmail,
         string paymentMethod,
+        string idempotencyKey,
         CancellationToken cancellationToken)
     {
+        string normalizedCustomerEmail =
+            customerEmail.Trim();
+
+        string normalizedPaymentMethod =
+            paymentMethod.Trim().ToLowerInvariant();
+
+        string requestFingerprint =
+            CreateRequestFingerprint(
+                normalizedCustomerEmail,
+                normalizedPaymentMethod);
+
+        CreateOrderResult? existingResult =
+            await ResolveExistingCommandAsync(
+                customerId,
+                idempotencyKey,
+                requestFingerprint,
+                cancellationToken);
+
+        if (existingResult is not null)
+        {
+            return existingResult;
+        }
+
         BasketSnapshot basket = await basketClient.GetBasketAsync(
             customerId,
             cancellationToken);
 
         if (basket.Items.Length == 0)
         {
-            return CreateOrderResult.EmptyBasket();
+            return await ResolveExistingCommandAsync(
+                    customerId,
+                    idempotencyKey,
+                    requestFingerprint,
+                    cancellationToken)
+                ?? CreateOrderResult.EmptyBasket();
         }
 
         string[] currencies = basket.Items
@@ -49,7 +81,12 @@ public sealed class OrderApplicationService(
 
         if (currencies.Length != 1)
         {
-            return CreateOrderResult.MultipleCurrencies();
+            return await ResolveExistingCommandAsync(
+                    customerId,
+                    idempotencyKey,
+                    requestFingerprint,
+                    cancellationToken)
+                ?? CreateOrderResult.MultipleCurrencies();
         }
 
         Guid orderId = Guid.NewGuid();
@@ -68,10 +105,10 @@ public sealed class OrderApplicationService(
         Order order = Order.Create(
             orderId,
             customerId,
-            customerEmail,
-            paymentMethod,
+            normalizedCustomerEmail,
+            normalizedPaymentMethod,
             orderItems,
-            DateTimeOffset.UtcNow);
+            timeProvider.GetUtcNow());
 
         Guid correlationId = Guid.NewGuid();
         DateTimeOffset occurredAtUtc = timeProvider.GetUtcNow();
@@ -96,10 +133,38 @@ public sealed class OrderApplicationService(
             orderCreated,
             RabbitMqRoutingKeys.OrderCreatedV1);
 
+        OrderIdempotencyRecord idempotencyRecord =
+            OrderIdempotencyRecord.CreateCompleted(
+                Guid.NewGuid(),
+                customerId,
+                idempotencyKey,
+                requestFingerprint,
+                order.Id,
+                occurredAtUtc);
+
         dbContext.Orders.Add(order);
         dbContext.OutboxMessages.Add(outboxMessage);
+        dbContext.OrderIdempotencyRecords.Add(
+            idempotencyRecord);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateIdempotencyCommand(exception))
+        {
+            dbContext.ChangeTracker.Clear();
+
+            return await ResolveExistingCommandAsync(
+                    customerId,
+                    idempotencyKey,
+                    requestFingerprint,
+                    cancellationToken)
+                ?? throw new InvalidOperationException(
+                    "The conflicting idempotency command could not be resolved.",
+                    exception);
+        }
 
         await TryClearBasketAsync(
             customerId,
@@ -108,6 +173,92 @@ public sealed class OrderApplicationService(
 
         return CreateOrderResult.Succeeded(order);
     }
+
+    private async Task<CreateOrderResult?>
+        ResolveExistingCommandAsync(
+            string customerId,
+            string idempotencyKey,
+            string requestFingerprint,
+            CancellationToken cancellationToken)
+    {
+        OrderIdempotencyRecord? record =
+            await dbContext.OrderIdempotencyRecords
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    candidate =>
+                        candidate.CustomerId == customerId
+                        && candidate.Operation
+                            == OrderIdempotencyRecord
+                                .CreateOrderOperation
+                        && candidate.IdempotencyKey
+                            == idempotencyKey,
+                    cancellationToken);
+
+        if (record is null)
+        {
+            return null;
+        }
+
+        if (!string.Equals(
+                record.RequestFingerprint,
+                requestFingerprint,
+                StringComparison.Ordinal))
+        {
+            return CreateOrderResult.IdempotencyConflict();
+        }
+
+        Order? order = await dbContext.Orders
+            .AsNoTracking()
+            .Include(candidate => candidate.Items)
+            .Include(candidate => candidate.StatusHistory)
+            .SingleOrDefaultAsync(
+                candidate =>
+                    candidate.Id == record.OrderId
+                    && candidate.CustomerId == customerId,
+                cancellationToken);
+
+        if (order is null)
+        {
+            throw new InvalidOperationException(
+                $"Completed idempotency record '{record.Id}' " +
+                "does not reference an accessible order.");
+        }
+
+        return CreateOrderResult.Succeeded(
+            order,
+            isReplay: true);
+    }
+
+    private static string CreateRequestFingerprint(
+        string customerEmail,
+        string paymentMethod)
+    {
+        byte[] canonicalRequest =
+            JsonSerializer.SerializeToUtf8Bytes(
+                new CanonicalCreateOrderRequest(
+                    customerEmail,
+                    paymentMethod));
+
+        return Convert.ToHexString(
+            SHA256.HashData(canonicalRequest));
+    }
+
+    private static bool IsDuplicateIdempotencyCommand(
+        DbUpdateException exception)
+    {
+        return exception.InnerException
+            is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName:
+                    OrderIdempotencyRecord
+                        .UniqueCommandIndexName
+            };
+    }
+
+    private sealed record CanonicalCreateOrderRequest(
+        string CustomerEmail,
+        string PaymentMethod);
 
     public Task<Order?> GetAsync(
         string customerId,

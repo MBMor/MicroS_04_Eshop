@@ -1,6 +1,7 @@
 import {
     type SubmitEvent,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 import {
@@ -9,6 +10,7 @@ import {
 } from 'react-router';
 
 import { getBasket } from '../api/basketApi';
+import { ApiError } from '../api/apiClient';
 import { createOrder } from '../api/ordersApi';
 import type { Basket } from '../types/basket';
 
@@ -24,6 +26,9 @@ export function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] =
         useState<string | null>(null);
+
+    const idempotencyKeyRef =
+        useRef<string | null>(null);
 
     useEffect(() => {
         async function loadBasket() {
@@ -50,14 +55,25 @@ export function CheckoutPage() {
         setIsSubmitting(true);
         setErrorMessage(null);
 
+        const idempotencyKey =
+            idempotencyKeyRef.current
+            ?? crypto.randomUUID();
+
+        idempotencyKeyRef.current =
+            idempotencyKey;
+
         try {
             const order = await createOrder({
                 customerEmail,
                 paymentMethod,
-            });
+            }, idempotencyKey);
 
             navigate(`/orders/${order.id}`);
         } catch (error) {
+            if (!isRetryableCheckoutError(error)) {
+                idempotencyKeyRef.current = null;
+            }
+
             setErrorMessage(getErrorMessage(error));
         } finally {
             setIsSubmitting(false);
@@ -126,6 +142,7 @@ export function CheckoutPage() {
                             maxLength={320}
                             value={customerEmail}
                             onChange={event => {
+                                idempotencyKeyRef.current = null;
                                 setCustomerEmail(event.target.value);
                             }}
                         />
@@ -137,6 +154,7 @@ export function CheckoutPage() {
                         <select
                             value={paymentMethod}
                             onChange={event => {
+                                idempotencyKeyRef.current = null;
                                 setPaymentMethod(event.target.value);
                             }}
                         >
@@ -213,4 +231,17 @@ function getErrorMessage(error: unknown): string {
     return error instanceof Error
         ? error.message
         : 'Unexpected checkout error.';
+}
+
+function isRetryableCheckoutError(
+    error: unknown,
+): boolean {
+    if (!(error instanceof ApiError)) {
+        return true;
+    }
+
+    return error.status === 408
+        || error.status === 425
+        || error.status === 429
+        || error.status >= 500;
 }

@@ -7,6 +7,7 @@ import { apiRequest } from './apiClient';
 
 export function createOrder(
     request: CreateOrderRequest,
+    idempotencyKey: string,
 ): Promise<Order> {
     return apiRequest<Order>(
         '/api/v1/orders',
@@ -14,6 +15,7 @@ export function createOrder(
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Idempotency-Key': idempotencyKey,
             },
             body: JSON.stringify(request),
         },

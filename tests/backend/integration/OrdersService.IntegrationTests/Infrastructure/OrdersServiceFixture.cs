@@ -66,6 +66,7 @@ public sealed class OrdersServiceFixture
         await dbContext.Database.ExecuteSqlRawAsync(
             """
             TRUNCATE TABLE
+                order_idempotency_records,
                 order_status_history,
                 order_items,
                 outbox_messages,

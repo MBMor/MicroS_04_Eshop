@@ -9,7 +9,7 @@
       "BasketServiceIntegrationTests.GetBasketNewCustomerReturnsEmptyBasket", "BasketServiceIntegrationTests.AddItemActiveProductPersistsInRedisAndIsolatesCustomers", "BasketServiceIntegrationTests.RedisRepositorySetAndGetRoundTripsSerializedBasket", "ShoppingBasketTests.EmptyValidCustomerCreatesEmptyBasket", "ShoppingBasketTests.EmptyBlankCustomerThrows"
     ],
     "ESHOP-BASKET-003": [
-      "BasketServiceIntegrationTests.RedisRepositorySetAssignsExpectedAbsoluteExpiration", "BasketApplicationServiceTests.RemoveItemLastItemDeletesBasket", "BasketApplicationServiceTests.ClearExistingBasketDeletesBasket"
+      "BasketServiceIntegrationTests.RedisRepositorySetAssignsExpectedAbsoluteExpiration", "BasketApplicationServiceTests.RemoveItemLastItemDeletesBasket", "BasketApplicationServiceTests.ClearExistingBasketDeletesBasket", "OrdersServiceIntegrationTests.CommittedOrderReplaysWhenBasketClearFails"
     ],
     "ESHOP-BASKET-004": [
       "BasketServiceIntegrationTests.AddItemUnknownProductReturnsNotFound", "BasketServiceIntegrationTests.AddItemInactiveProductReturnsBadRequest", "BasketServiceIntegrationTests.BasketMutationFlowUpdateRemoveAndClearPersistsChanges", "BasketApplicationServiceTests.AddItemProductNotFoundReturnsNotFound", "BasketApplicationServiceTests.AddItemInactiveProductReturnsValidationFailure", "BasketApplicationServiceTests.AddItemActiveProductPersistsUpdatedBasket", "BasketApplicationServiceTests.AddItemInvalidQuantityDoesNotPersistBasket", "BasketApplicationServiceTests.UpdateQuantityMissingItemReturnsNotFound", "ShoppingBasketTests.TryAddOrIncreaseNewItemAddsItem", "ShoppingBasketTests.TryAddOrIncreaseExistingItemIncreasesQuantity", "ShoppingBasketTests.TryAddOrIncreaseNonPositiveQuantityFailsWithoutMutation", "ShoppingBasketTests.TryAddOrIncreaseQuantityAboveMaximumFails", "ShoppingBasketTests.TryUpdateQuantityExistingItemUpdatesQuantity", "ShoppingBasketTests.TryUpdateQuantityMissingItemFails", "ShoppingBasketTests.TryUpdateQuantityInvalidQuantityFailsWithoutMutation", "ShoppingBasketTests.TryRemoveExistingItemRemovesItem", "ShoppingBasketTests.TryRemoveMissingItemFailsWithoutMutation"
@@ -19,7 +19,7 @@
     ],
     "ESHOP-DATA-001": ["MessagingInfrastructureSmokeTests.InfrastructureAndServiceHostsAreAvailable"],
     "ESHOP-DATA-002": [
-      "CatalogServiceIntegrationTests.CreateProductDuplicateSkuReturnsConflict", "CatalogServiceIntegrationTests.UpdateProductDuplicateSkuReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateProductIdReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateNormalizedSkuReturnsConflict"
+      "CatalogServiceIntegrationTests.CreateProductDuplicateSkuReturnsConflict", "CatalogServiceIntegrationTests.UpdateProductDuplicateSkuReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateProductIdReturnsConflict", "InventoryServiceIntegrationTests.CreateInventoryItemDuplicateNormalizedSkuReturnsConflict", "OrdersServiceIntegrationTests.ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox"
     ],
     "ESHOP-DATA-004": [
       "CatalogServiceIntegrationTests.CreateProductInvalidRequestReturnsBadRequest", "OrdersServiceIntegrationTests.CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence", "OrdersServiceIntegrationTests.CreateOrderMultipleCurrenciesReturnsBadRequest", "OrdersServiceIntegrationTests.CreateOrderInvalidEmailReturnsBadRequest"
@@ -37,7 +37,7 @@
       "OrderPaymentFailureCompensationTests.CreateOrderWhenPaymentFailsReleasesStockAndCancelsOrder", "OrderTests.PaymentFailureThenCancellationRecordsBothTransitions", "OrderTests.CancelConfirmedOrderThrowsWithoutMutation", "checkout failure paths.failed payment releases stock and cancels the order"
     ],
     "ESHOP-FRONTEND-001": [
-      "apiRequest.adds the bearer token to an authenticated request", "apiRequest.does not add Authorization when no token exists", "apiRequest.preserves caller headers", "apiRequest.returns undefined for a 204 response", "apiRequest.uses problem detail for an unauthorized response", "apiRequest.uses fallback message for a non-JSON forbidden response"
+      "apiRequest.adds the bearer token to an authenticated request", "apiRequest.does not add Authorization when no token exists", "apiRequest.preserves caller headers", "apiRequest.returns undefined for a 204 response", "apiRequest.uses problem detail for an unauthorized response", "apiRequest.uses fallback message for a non-JSON forbidden response", "createOrder.sends the checkout idempotency key", "CheckoutPage idempotency.reuses the key after a retryable transport failure", "CheckoutPage idempotency.creates a new key after the checkout input changes"
     ],
     "ESHOP-FRONTEND-002": [
       "checkout-success.spec.customer completes a successful checkout", "checkout failure paths.order fails when inventory has insufficient stock", "checkout failure paths.failed payment releases stock and cancels the order"
@@ -68,6 +68,9 @@
     ],
     "ESHOP-ORDER-001": [
       "OrdersServiceIntegrationTests.CreateOrderValidBasketPersistsOrderHistoryAndOutbox", "ShoppingBasketTests.BasketItemLineTotalMultipliesPriceAndQuantity", "OrderTests.CreateValidItemsCreatesPendingOrderAndInitialHistory", "OrderTests.CreateItemsUsingDifferentCurrenciesThrows", "OrderTests.CreateItemBelongingToDifferentOrderThrows"
+    ],
+    "ESHOP-ORDER-002": [
+      "OrdersServiceIntegrationTests.CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence", "OrdersServiceIntegrationTests.CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket", "OrdersServiceIntegrationTests.CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects", "OrdersServiceIntegrationTests.ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox", "OrdersServiceIntegrationTests.SameIdempotencyKeyIsScopedToAuthenticatedCustomer", "OrdersServiceIntegrationTests.NewIdempotencyKeyUsesCurrentBasket", "OrdersServiceIntegrationTests.CommittedOrderReplaysWhenBasketClearFails", "createOrder.sends the checkout idempotency key", "CheckoutPage idempotency.reuses the key after a retryable transport failure", "CheckoutPage idempotency.creates a new key after the checkout input changes"
     ],
     "ESHOP-ORDER-003": [
       "OrdersServiceIntegrationTests.GetOrdersReturnsOnlyAuthenticatedCustomersOrders", "OrdersServiceIntegrationTests.GetOrderOtherCustomersOrderReturnsNotFound"

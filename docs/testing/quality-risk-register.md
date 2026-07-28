@@ -2,10 +2,10 @@
 
 > **Document type:** Authoritative risk and control registry  
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Version:** 1.0  
+> **Version:** 1.1
 > **Status:** Point-in-time assessed baseline — pending governance approval  
 > **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval  
-> **Last reviewed:** 2026-07-26  
+> **Last reviewed:** 2026-07-28
 > **Next scheduled review:** 2026-10-26  
 > **Accountable owner:** QA Architecture
 
@@ -40,10 +40,10 @@ Canonical values are used in status columns. Score triplets are `Likelihood / Im
 | `R-BASKET-001` | Basket/Redis concurrency | Concurrent read-modify-write operations lose quantities or overwrite another accepted mutation. | BasketApplicationService; RedisBasketRepository whole-value Get/Set | 4/3/12 High | 4/3/12 High | Decision required | Decision required | Required / — |
 | `R-BASKET-002` | Basket ownership/storage | Key or serialization contamination exposes or mutates another customer basket. | BasketKeyFactory.Create; repository; isolation integration test | 2/4/8 Medium | 2/4/8 Medium | Decision required | Approved | Not required / — |
 | `R-BASKET-003` | Basket/checkout recovery | Redis loss, expiry or failed clear leaves a missing/stale basket and enables repeat checkout. | repository expiration; OrderApplicationService.CreateAsync catches clear failures | 3/4/12 High | 3/4/12 High | Decision required | Decision required | Required / — |
-| `R-ORDER-001` | Checkout command processing | Retry or double-submit creates multiple orders, outboxes or payment attempts because no idempotency contract or constraint exists. | OrderApplicationService.CreateAsync; OrdersDbContext; migrations | 4/4/16 High | 4/4/16 High | Decision required | Decision required | Required / — |
+| `R-ORDER-001` | Checkout command processing | Retry, double-submit or concurrent delivery bypasses the approved idempotency path and creates multiple orders, outboxes or downstream payment attempts. | approved ADR 0002; OrderApplicationService.CreateAsync; `order_idempotency_records`; composite uniqueness migration; direct API/frontend tests | 4/4/16 High | 4/4/16 High | Decision required | Approved | Required / — |
 | `R-ORDER-002` | Order totals/price freshness | Checkout trusts stale Redis prices or applies undefined decimal and rounding policy, producing incorrect persisted totals. | OrderApplicationService.CreateAsync; Order.Create currency and total invariants | 3/4/12 High | 3/4/12 High | Decision required | Decision required | Required / — |
 | `R-ORDER-SEC-001` | Order ownership | A customer enumerates or reads another customer order through list, detail or equivalent routes. | subject predicates; owner and other-customer service integration tests | 2/5/10 High | 2/5/10 High | Decision required | Approved | Required / — |
-| `R-INVENTORY-001` | Inventory reservation | Contention oversells inventory or mishandles optimistic-concurrency conflicts; retry behavior is unproved. | InventoryReservationService.ReserveAsync; xmin; stale-write test only | 4/5/20 Critical | 4/5/20 Critical | Decision required | Approved | Required / — |
+| `R-INVENTORY-001` | Inventory reservation | Contention oversells inventory or mishandles optimistic-concurrency conflicts. | InventoryReservationService.ReserveAsync; xmin; deterministic last-unit, multiline and retry-exhaustion PostgreSQL tests | 4/5/20 Critical | 4/5/20 Critical | Decision required | Approved | Required / — |
 | `R-INVENTORY-002` | Inventory lifecycle | Confirmed orders retain reserved stock because no active workflow commits, releases or ages reservations exactly once. | InventoryItem.CommitReservation; reservation service; bindings; happy path retains reservation | 3/4/12 High | 3/4/12 High | Decision required | Decision required | Required / — |
 | `R-PAYMENT-001` | Payment processing | Duplicate/conflicting operational and asynchronous processing corrupts payment or order state; operational POST emits no defined result event. | PaymentRequestedConsumer; processing/application services; unique OrderId | 3/5/15 High | 3/5/15 High | Decision required | Decision required | Required / — |
 | `R-MSG-001` | Consumer idempotency | Redelivery repeats state, notification, payment or inventory side effects. | inbox keys/transactions; one stock-failure duplicate test | 3/5/15 High | 3/5/15 High | Decision required | Approved | Required / — |
@@ -107,9 +107,9 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | `CTRL-BASKET-CUSTOMERKEY-001` | Use normalized customer-scoped Redis keys and safe serialization | Implemented | Direct | R-BASKET-002 | Basket Engineering owner | Basket Engineering | Direct sampled isolation; edge/fuzz variants remain. |
 | `CTRL-BASKET-CONCURRENCY-001` | Preserve concurrent basket updates under an approved merge/conflict policy | Not implemented | Missing | R-BASKET-001 | Basket Engineering owner | Basket Engineering | Concurrency oracle and atomic mechanism are not approved or implemented. |
 | `CTRL-BASKET-EXPIRY-001` | Apply basket TTL and post-order clear with defined recovery | Partially implemented | Partial | R-BASKET-003 | Checkout workflow owner | Basket and Orders Engineering | TTL and best-effort clear exist; real outage/repeat-checkout behavior is absent. |
-| `CTRL-ORDER-IDEMPOTENCY-001` | Create one order per logical checkout command | Not implemented | Missing | R-ORDER-001, R-BASKET-003 | Orders Engineering owner | Orders Engineering | Stable key, persistence constraint and response semantics are absent. |
+| `CTRL-ORDER-IDEMPOTENCY-001` | Create one order per logical checkout command | Implemented | Direct | R-ORDER-001, R-BASKET-003 | Orders Engineering owner | Orders Engineering | Direct local API/frontend variants cover required key, atomic PostgreSQL persistence, replay/conflict and client key lifecycle; shared CI, scheduled history and one complete downstream-workflow proof remain. |
 | `CTRL-ORDER-PRICE-001` | Apply an approved fresh or quoted price and decimal policy | Partially implemented | Partial | R-ORDER-002 | Product owner | Orders and Catalog Engineering | Freshness, quote expiry and rounding policy are unresolved. |
-| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Partial | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | xmin/checks exist; synchronized reservation contention is unproved. |
+| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Direct | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | Direct local variants prove synchronized last-unit contention, multiline atomicity and retry exhaustion; shared CI, broker delivery and scheduled history remain. |
 | `CTRL-INVENTORY-LIFECYCLE-001` | Commit, release and age inventory reservations exactly once | Partially implemented | Indirect | R-INVENTORY-002 | Inventory Engineering owner | Inventory, Orders and Product | Domain methods exist but no active complete workflow owns fulfillment/aging. |
 | `CTRL-PAY-UNIQUE-001` | Produce one transactional payment decision per order across operational/asynchronous paths | Implemented | Partial | R-PAYMENT-001 | Payments Engineering owner | Payments and Checkout Engineering | Unique OrderId exists; collision/result-event semantics are unproved. |
 | `CTRL-MSG-INBOX-001` | Process delivered messages idempotently with durable inbox state | Implemented | Partial | R-MSG-001 | Shared Messaging owner | Consumer Engineering teams | One consumer duplicate is directly tested; complete matrix is absent. |
@@ -139,10 +139,10 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | R-BASKET-001 | Missing | deterministic simultaneous mutation under approved policy; Nightly |
 | R-BASKET-002 | Direct | key-normalization/boundary fuzz; Main |
 | R-BASKET-003 | Partial | Redis loss, real clear failure and repeat checkout; Nightly |
-| R-ORDER-001 | Missing | concurrent/retried checkout after idempotency contract; Nightly + Release |
+| R-ORDER-001 | Direct | shared CI, scheduled repeat history and one downstream payment/inventory workflow under duplicate HTTP delivery; Nightly + Release |
 | R-ORDER-002 | Partial | price policy, quote expiry and decimal/rounding matrix; Main + Release |
 | R-ORDER-SEC-001 | Direct | route exhaustiveness and side-channel review; Main |
-| R-INVENTORY-001 | Partial | synchronized reservation race/retry exhaustion; Nightly + Release |
+| R-INVENTORY-001 | Direct | shared CI, broker-delivery/no-DLQ variant and scheduled repeat history; Nightly + Release |
 | R-INVENTORY-002 | Indirect | fulfillment/commit contract and aged recovery; Release |
 | R-PAYMENT-001 | Partial | async duplicates, operational collision and publisher outcome; Nightly + Release |
 | R-MSG-001 | Partial | all side-effecting consumers/concurrent duplicate/commit-before-ack; Nightly |
@@ -172,4 +172,4 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
-
+| 1.1 | 2026-07-28 | Recorded approved TECH-02 idempotency control and direct local TECH-01/TECH-02 evidence without reducing residual risk scores. | Pending review |
