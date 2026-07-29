@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.3
+> **Version:** 2.4
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `7e92102`; local TECH-04 evidence is separated from accepted TECH-03/GAP-020 evidence
+> **Baseline:** `main` / `b298107`; TECH-04 accepted in CI #45/#46 and TestRail R72
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
 One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted baseline has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
-GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime on merge commit `a41aa71`. TECH-03 then passed PR `CI #41` and Main `CI #42` on commit `c587eb9`; TestRail `R63`–`R66` retained the locked `12/22/3/4` cardinality and `ESHOP-DATA-004` passed in R64. QA-03 Nightly `R49` and Release `R50` remain the first accepted governed-tier executions. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
+GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime on merge commit `a41aa71`. TECH-03 passed PR `CI #41` and Main `CI #42`; TECH-04 then passed PR `CI #45` and Main `CI #46` on commit `b298107`. TestRail `R71`–`R74` retained the locked `12/22/3/4` cardinality and `ESHOP-DATA-004` passed in R72. QA-03 Nightly `R49` and Release `R50` remain the first accepted governed-tier executions. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -196,7 +196,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `GetProductsIncludeInactiveReturnsAllProducts` | R-ORDER-002 | direct functional API behavior; no authorization assertion |
 | `GetProductByIdUnknownProductReturnsNotFound` | R-ORDER-002 | 404 |
 | `CreateProductValidRequestPersistsNormalizedProduct` | R-AUTH-001 | 201/location/body/DB; auth unasserted |
-| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical `application/problem+json` ValidationProblemDetails fields/error/trace/request IDs and unchanged PostgreSQL product cardinality; media-type assertion is local pending shared acceptance |
+| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical `application/problem+json` ValidationProblemDetails fields/error/trace/request IDs and unchanged PostgreSQL product cardinality; accepted in CI #46/TestRail R72 |
 | `CreateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original retained |
 | `UpdateProductValidRequestPersistsNewValues` | R-ORDER-002 | response/DB |
 | `UpdateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original values |
@@ -346,6 +346,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.4 | 2026-07-29 | Accepted TECH-04 through PR CI #45 and Main CI #46/TestRail R72 with unchanged selectors, bindings and report cardinality. | Pending review |
 | 2.3 | 2026-07-29 | Added local TECH-04 Catalog `application/problem+json` evidence without changing selectors, bindings or report cardinality. | Pending review |
 | 2.2 | 2026-07-29 | Accepted TECH-03 through PR CI #41 and Main CI #42/TestRail R64; closed GAP-020 with unchanged bindings and cardinality. | Pending review |
 | 2.1 | 2026-07-29 | Strengthened the four ESHOP-DATA-004 selectors with traceable ProblemDetails, no-write and basket-retention evidence without changing counts or bindings. | Pending review |

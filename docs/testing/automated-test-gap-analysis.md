@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 2.3
+> **Version:** 2.4
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `7e92102`; local TECH-04 evidence is separated from accepted TECH-03/GAP-020 evidence
+> **Baseline:** `main` / `b298107`; TECH-04 accepted in CI #45/#46 and TestRail R72
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -34,7 +34,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-017` Medium | `R-FRONTEND-001`; pages/forms/loading/polling untested. | Core oracle Approved; session details Decision required; frontend control Partial. | Testing Library: quantities, disabled/loading, ProblemDetails, email, repeat submit, terminal/nonterminal polling, timeout/unmount using fake timers. | Frontend component/MSW; S/M; PR; page harness first. |
 | `GAP-018` Medium | `R-FRONTEND-001`; Chromium only, CI retry 1, no a11y/other engines. | Support matrix Decision required; `GATE-ACC-001`, `GATE-COMP-001` target. | Zero-retry repeat job; critical read-only Firefox/WebKit; keyboard/focus/axe; serialized unique payment mutations. | Browser; M; Nightly; deterministic seed/diagnostics first. |
 | `GAP-019` Medium | `R-GW-001`; remote IP behind proxy/multiple replicas unknown. | Ingress trust/distributed-limit Decision required; rate-limit control Partial. | Intended proxy + two gateways; trusted versus spoofed forwarded headers, independent subjects, attacker sharing/reset and documented replica behavior. | Security/performance ingress; L; Release; design first. |
-| `GAP-020` Closed — TECH-03 accepted | The four existing `ESHOP-DATA-004` selectors assert canonical ProblemDetails fields, trace/request correlation, zero Catalog/Orders persistence and retained basket state. PR `CI #41` and Main `CI #42` passed; TestRail R64 retained 22 Backend Integration aggregates and `[Negative mutations]` passed. Local TECH-04 additionally locks Catalog model validation to `application/problem+json`. | Negative atomic-rejection oracle Approved below; controls and risk scores remain unchanged because this strengthens evidence rather than the product price/migration controls. | No remaining GAP-020 implementation action. Promote the separate TECH-04 transport assertion through shared Main/TestRail acceptance. | Existing API fixtures; TECH-04 shared acceptance XS; Main. |
+| `GAP-020` Closed — TECH-03/TECH-04 accepted | The four existing `ESHOP-DATA-004` selectors assert canonical ProblemDetails fields, trace/request correlation, zero Catalog/Orders persistence and retained basket state. TECH-04 additionally locks Catalog model validation to `application/problem+json`; PR `CI #45`, Main `CI #46` and TestRail R72 passed with 22 Backend Integration aggregates. | Negative atomic-rejection oracle Approved below; controls and risk scores remain unchanged because this strengthens evidence rather than the product price/migration controls. | No remaining GAP-020 or TECH-04 implementation action. Retain the assertions; consider direct media-type coverage for other shared-error-handling consumers separately. | Existing API fixtures; complete; Main. |
 | `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; direct DB multiline atomicity is covered by TECH-01, but late/reordered broker delivery is absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; broker-delivered mixed lines; correct ack/DLQ, terminal immutability and no extra outbox. | Messaging; M; Nightly; late policy first. |
 | `GAP-022` Closed — PR/Main cutover accepted | All 193 selectors have a fail-closed primary classification (`PR=77`, `Main=97`, `Nightly=19`) and Release overlap (`13`). PR `CI #37` passed Quality policy, Backend and Frontend while Containers, E2E and TestRail were skipped. Main `CI #38` passed the cumulative runtime and published closed TestRail `R55`–`R58` with `12/22/3/4` Passed results. | Governance approved; direct-push-safe cumulative semantics satisfy the groomed contract below; no product control or gate state was changed. | No remaining GAP-022 implementation action. Monitor runtime/cardinality drift and preserve the fail-closed policy checks. | CI/TestRail workflow; complete. |
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
@@ -104,10 +104,13 @@ The accepted baseline narrows runtime by event without narrowing total governed 
 4. Targeted Catalog `1/1`, full Catalog `10/10`, Release solution build and governance tooling pass locally.
 5. The existing selector name, four `ESHOP-DATA-004` bindings, tier ownership and locked TestRail `12/22/3/4` cardinality do not change.
 
+**Accepted evidence:** PR CI #45 and Main CI #46 passed. Main commit `b298107` published closed TestRail R71–R74 at `12/22/3/4`; `[Negative mutations]` passed in R72. TECH-04 is complete without reopening GAP-020 or changing a gate lifecycle.
+
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.4 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72; removed the transport follow-up residual with unchanged cardinality. | Pending review |
 | 2.3 | 2026-07-29 | Groomed and implemented TECH-04 locally; retained shared Main/TestRail acceptance as the only transport follow-up residual. | Pending review |
 | 2.2 | 2026-07-29 | Closed GAP-020 after PR CI #41 and Main CI #42/TestRail R64 accepted TECH-03 with unchanged cardinality. | Pending review |
 | 2.1 | 2026-07-29 | Groomed and implemented TECH-03/GAP-020 locally while retaining shared Main/TestRail acceptance as the only residual. | Pending review |
