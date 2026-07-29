@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 2.6
+> **Version:** 2.7
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `daf835d`; TECH-05/GAP-026 accepted in CI #52 and TestRail R79
+> **Baseline:** `main` / `b259026`; QA-04/TECH-06 accepted in CI #56 and TestRail R82–R85
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-GitHub Actions PR `CI #37` accepts PR-owned execution without Docker, browser or TestRail publication; Main `CI #38` accepts cumulative execution and locked publication. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. The TECH-05 state governs 194 selectors (`PR=77`, `Main=98`, `Nightly=19`, `Release=13`; cumulative Main 175) and adds direct complete gateway-boundary evidence. Main CI #52 and TestRail R78–R81 accept the expanded `12/22/3/4` publication, including `ESHOP-GW-001` in R79. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+GitHub Actions PR `CI #37` accepts PR-owned execution without Docker, browser or TestRail publication; Main `CI #38` accepts cumulative execution and locked publication. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. The TECH-05 state governs 194 selectors (`PR=77`, `Main=98`, `Nightly=19`, `Release=13`; cumulative Main 175) and adds direct complete gateway-boundary evidence. QA-04/TECH-06 preserves those mappings while making successful upstream execution and an exact complete report set prerequisites for TestRail publication. Main CI #56 and TestRail R82–R85 accept that `12/22/3/4` path. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -111,6 +111,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 publication-integrity provenance through Main CI #56/TestRail R82–R85 without changing risk, control or gate state. | Pending review |
 | 2.6 | 2026-07-29 | Promoted TECH-05/CGM-002 to accepted CI #52/TestRail R79 evidence while keeping GATE-SEC-001 Future and unevaluated. | Pending review |
 | 2.5 | 2026-07-29 | Added local TECH-05 direct gateway authorization/non-forwarding traceability and CGM-002 evidence while keeping GATE-SEC-001 Future and unevaluated. | Pending review |
 | 2.4 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72 without changing the GAP-020 risk, control or gate state. | Pending review |
