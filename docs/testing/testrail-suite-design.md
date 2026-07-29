@@ -1,7 +1,7 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 1.7
+> **Version:** 1.8
 > **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents and 193 selectors passed `CI #35` / TestRail `R45`–`R48`; QA-03 Nightly `R49` and Release `R50` publication is accepted
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
@@ -175,7 +175,7 @@ Stores release scope, activation/applicability, complete required mapping/input 
 | Post-deployment completion | target digest/schema/config, ingress synthetic, health and telemetry |
 | Periodic operational | restore, alerts, runbooks, recovery objectives and other calendar-profile evidence |
 
-All 193 logical tests remain scheduled on pull requests and `main`. QA-03 adds an authoritative `PR=77`, `Main=97`, `Nightly=19`, `Release=13 overlap` policy plus a dedicated daily Nightly/manual Release workflow. Nightly `R49` and Release `R50` accepted the shared execution/publication contract; a separately groomed PR/Main cutover must preserve direct-push coverage before the broad baseline is narrowed.
+All 193 logical tests remain governed. QA-03 defines authoritative primary ownership `PR=77`, `Main=97`, `Nightly=19` plus `Release=13 overlap`. Nightly `R49` and Release `R50` accepted shared execution/publication. The local PR/Main cutover runs PR ownership alone on pull requests and cumulative PR+Main (`174`) for direct pushes/dispatch, while retaining compilation of integration projects on PR. Shared acceptance of both event paths remains pending.
 
 ---
 
@@ -229,6 +229,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.8 | 2026-07-29 | Implemented the cumulative PR/Main execution contract locally with fail-closed selector and TestRail report cardinality. | Pending review |
 | 1.7 | 2026-07-29 | Promoted the committed QA-03 contract through CI #35 and accepted Nightly R49 plus Release R50 publication. | Pending review |
 | 1.6 | 2026-07-29 | Promoted the 193-selector contract through CI #34/R41–R44 and recorded the local QA-03 tier implementation. | Pending review |
 | 1.5 | 2026-07-28 | Added the local GAP-001 binding and reconciled the runtime contract to 193 selectors/211 edges while retaining CI #33 as the shared baseline. | Pending review |

@@ -1,13 +1,13 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 1.8
+> **Version:** 1.9
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `1da2ccb`
+> **Baseline:** `main` / `fcd051b`; governed PR/Main cutover is local until shared acceptance
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The current working tree has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by the established PR/main CI. QA-03 adds governed Nightly/Release subsets without yet narrowing that shared baseline.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The current working tree has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined or conditionally returned. The local QA-03 cutover assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
 GitHub Actions `CI #35` supplied Valid, Passed evidence on the committed 193/198 baseline and published TestRail runs `R45`–`R48`, all 100% Passed. QA-03 then passed its first governed Nightly and Release executions in TestRail `R49` and `R50`. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
@@ -338,7 +338,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - The nine legacy Partially covered rows are six status-only health/migration smoke rows plus Catalog invalid create and two Orders validations.
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
-- No executable test is omitted from current PR/main CI. QA-03 now has accepted shared Nightly `R49` and Release `R50` publication; the governed PR/Main cutover remains separate.
+- No executable test is removed from the governed portfolio. The local cutover executes 77 logical/79 executable rows on PR, 174 logical/178 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 13 logical/14 executable Release-overlap rows.
 - TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants. The two-consumer broker-delivery/no-DLQ variant passed in CI #35/TestRail R46 and the governed tier runs; longitudinal scheduled history remains immature.
 - TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; QA-02 proves sequential and concurrent duplicate HTTP delivery produce one complete downstream workflow. The governed variants passed the first Nightly/Release runs; the five-run local concurrency smoke remains supporting determinism evidence.
 
@@ -346,6 +346,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.9 | 2026-07-29 | Recorded local cumulative PR=77/Main=174 runtime cutover and exact executable/report cardinality. | Pending review |
 | 1.8 | 2026-07-29 | Promoted commit `1da2ccb` through CI #35 and accepted QA-03 Nightly R49 plus Release R50 shared execution. | Pending review |
 | 1.7 | 2026-07-29 | Promoted the 193/198 GAP-001 baseline through CI #34/R41–R44 and recorded the local QA-03 tier contract. | Pending review |
 | 1.6 | 2026-07-28 | Added the GAP-001 broker-delivery/no-DLQ variant and reconciled the working tree to 193/198 tests and 193 selectors/211 edges. | Pending review |
