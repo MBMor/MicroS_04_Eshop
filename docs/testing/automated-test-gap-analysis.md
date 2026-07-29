@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 2.0
+> **Version:** 2.1
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `a41aa71`; governed PR/Main cutover accepted in CI #37/#38
+> **Baseline:** `main` / `07c5ec5`; TECH-03/GAP-020 strengthening is local until shared acceptance
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -34,7 +34,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-017` Medium | `R-FRONTEND-001`; pages/forms/loading/polling untested. | Core oracle Approved; session details Decision required; frontend control Partial. | Testing Library: quantities, disabled/loading, ProblemDetails, email, repeat submit, terminal/nonterminal polling, timeout/unmount using fake timers. | Frontend component/MSW; S/M; PR; page harness first. |
 | `GAP-018` Medium | `R-FRONTEND-001`; Chromium only, CI retry 1, no a11y/other engines. | Support matrix Decision required; `GATE-ACC-001`, `GATE-COMP-001` target. | Zero-retry repeat job; critical read-only Firefox/WebKit; keyboard/focus/axe; serialized unique payment mutations. | Browser; M; Nightly; deterministic seed/diagnostics first. |
 | `GAP-019` Medium | `R-GW-001`; remote IP behind proxy/multiple replicas unknown. | Ingress trust/distributed-limit Decision required; rate-limit control Partial. | Intended proxy + two gateways; trusted versus spoofed forwarded headers, independent subjects, attacker sharing/reset and documented replica behavior. | Security/performance ingress; L; Release; design first. |
-| `GAP-020` Medium | `R-DATA-001/R-ORDER-002`; several 400 tests are status-only. | Approved negative behavior; controls unaffected. | Assert ProblemDetails fields/trace and zero product/order/history/outbox writes; unchanged basket. | Existing API fixtures; XS; PR/Main; immediate. |
+| `GAP-020` Medium — TECH-03 locally complete; shared acceptance residual | The four existing `ESHOP-DATA-004` selectors now assert canonical ProblemDetails fields, trace/request correlation, zero Catalog/Orders persistence and retained basket state. Orders manually-created ProblemDetails now expose the same traceable envelope as model validation. | Negative atomic-rejection oracle Approved below; controls and risk scores remain unchanged because this strengthens evidence rather than the product price/migration controls. | Accept the unchanged four-selector aggregate in Main CI/TestRail, then retain the assertions as fail-fast regression evidence. | Existing API fixtures; remaining XS shared acceptance; Main. |
 | `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; direct DB multiline atomicity is covered by TECH-01, but late/reordered broker delivery is absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; broker-delivered mixed lines; correct ack/DLQ, terminal immutability and no extra outbox. | Messaging; M; Nightly; late policy first. |
 | `GAP-022` Closed — PR/Main cutover accepted | All 193 selectors have a fail-closed primary classification (`PR=77`, `Main=97`, `Nightly=19`) and Release overlap (`13`). PR `CI #37` passed Quality policy, Backend and Frontend while Containers, E2E and TestRail were skipped. Main `CI #38` passed the cumulative runtime and published closed TestRail `R55`–`R58` with `12/22/3/4` Passed results. | Governance approved; direct-push-safe cumulative semantics satisfy the groomed contract below; no product control or gate state was changed. | No remaining GAP-022 implementation action. Monitor runtime/cardinality drift and preserve the fail-closed policy checks. | CI/TestRail workflow; complete. |
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
@@ -50,11 +50,28 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 - Keep minimal liveness smoke per process; implement dependency readiness once per relevant component without multiplying status-only checks.
 - Indirect-only risk evidence: traces (`R-OBS-001`), outbox claims (`R-OUTBOX-002`), inventory fulfillment (`R-INVENTORY-002`), real basket-clear recovery (`R-BASKET-003`), production ingress (`R-DEPLOY-001`).
 
-Weak assertions retained from the audit: five service `HealthAnonymousRequestReturnsOk` rows plus messaging smoke are status-only; Catalog invalid create does not prove no write; two Orders validation tests do not prove no order/history/outbox; browser compensation title implies stock release without inventory assertion. No conditional return, skip, `.only`, disabled or quarantine marker was found.
+Weak assertions retained from the audit: five service `HealthAnonymousRequestReturnsOk` rows plus messaging smoke are status-only; browser compensation title implies stock release without inventory assertion. TECH-03/GAP-020 locally removes the Catalog/Orders status-only negative-mutation weakness. No conditional return, skip, `.only`, disabled or quarantine marker was found.
 
 ## CI findings
 
 The accepted baseline narrows runtime by event without narrowing total governed coverage: PR runs 77 logical selectors; Main runs the cumulative 174; Nightly retains 19. CI #37 and CI #38 accepted both shared event paths. Missing tests and accumulated scheduled evidence remain distinct concerns.
+
+## GAP-020 / TECH-03 groomed atomic-rejection contract
+
+**User outcome:** invalid Catalog and checkout mutations return actionable, correlatable errors and cannot leave partial business state or silently consume the customer basket.
+
+**Approved oracle:** every covered 400 response identifies the failed request with status, type, title, detail, instance, nonblank `traceId` and `requestId`. Model validation additionally identifies the rejected field and `model_validation_failed`. Rejection is atomic: Catalog product cardinality is unchanged; Orders creates no order, item, history, outbox, idempotency or inbox row; checkout never clears the basket and model validation never calls Basket service.
+
+**In scope:** the four existing selectors bound to `ESHOP-DATA-004`, Orders controller-created ProblemDetails metadata and direct fixture-state assertions. **Out of scope:** new validation rules, price freshness/rounding, migration risk reduction, global ProblemDetails media-type normalization, new TestRail cases, selector/tier changes and gate activation.
+
+**Acceptance criteria:**
+
+1. Catalog invalid create returns the canonical validation envelope, names `Name`, exposes correlation IDs and leaves the PostgreSQL product count unchanged.
+2. Empty-basket checkout returns traceable `Checkout failed.` detail, does not clear the basket and leaves all Orders persistence tables empty.
+3. Mixed-currency checkout returns traceable deterministic detail, preserves both original basket lines and leaves all Orders persistence tables empty.
+4. Invalid-email checkout returns the canonical validation envelope, names `CustomerEmail`, does not call Basket service, retains the basket and leaves all Orders persistence tables empty.
+5. Selector names, the four `ESHOP-DATA-004` bindings, PR/Main ownership and locked TestRail `12/22/3/4` report counts remain unchanged.
+6. Local targeted Catalog `1/1` and Orders `3/3` pass before shared Main/TestRail acceptance. The observed Catalog `application/json` media type is an adjacent transport-standardization finding, not silently folded into this atomic-rejection ticket.
 
 ## GAP-022 groomed PR/Main cutover contract
 
@@ -75,6 +92,7 @@ The accepted baseline narrows runtime by event without narrowing total governed 
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.1 | 2026-07-29 | Groomed and implemented TECH-03/GAP-020 locally while retaining shared Main/TestRail acceptance as the only residual. | Pending review |
 | 2.0 | 2026-07-29 | Closed GAP-022 after PR CI #37 and Main CI #38/R55–R58 satisfied every groomed acceptance criterion. | Pending review |
 | 1.9 | 2026-07-29 | Groomed and implemented cumulative PR/Main cutover locally; retained shared-event acceptance as the only GAP-022 residual. | Pending review |
 | 1.8 | 2026-07-29 | Accepted QA-03 Nightly R49 and Release R50; narrowed GAP-022 to the governed PR/Main rollout. | Pending review |

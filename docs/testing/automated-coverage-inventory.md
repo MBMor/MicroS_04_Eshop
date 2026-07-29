@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.0
+> **Version:** 2.1
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `a41aa71`; governed PR/Main cutover accepted in CI #37/#38
+> **Baseline:** `main` / `07c5ec5`; TECH-03/GAP-020 strengthening is local until shared acceptance
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
 One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted baseline has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
-GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime on merge commit `a41aa71`. Main published TestRail `R55`–`R58` with the locked `12/22/3/4` cardinality, all 100% Passed. QA-03 Nightly `R49` and Release `R50` remain the first accepted governed-tier executions. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
+GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime on merge commit `a41aa71`. Main published TestRail `R55`–`R58` with the locked `12/22/3/4` cardinality, all 100% Passed. QA-03 Nightly `R49` and Release `R50` remain the first accepted governed-tier executions. TECH-03 locally strengthens the existing four-selector `ESHOP-DATA-004` aggregate without changing inventory counts or bindings. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -196,7 +196,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `GetProductsIncludeInactiveReturnsAllProducts` | R-ORDER-002 | direct functional API behavior; no authorization assertion |
 | `GetProductByIdUnknownProductReturnsNotFound` | R-ORDER-002 | 404 |
 | `CreateProductValidRequestPersistsNormalizedProduct` | R-AUTH-001 | 201/location/body/DB; auth unasserted |
-| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Partial:** 400 only; no-write absent |
+| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical ValidationProblemDetails fields/error/trace/request IDs and unchanged PostgreSQL product cardinality |
 | `CreateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original retained |
 | `UpdateProductValidRequestPersistsNewValues` | R-ORDER-002 | response/DB |
 | `UpdateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original values |
@@ -233,8 +233,8 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `OrdersAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `OrdersSupportUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `CreateOrderValidBasketPersistsOrderHistoryAndOutbox` | R-ORDER-002, R-OUTBOX-001 | first-attempt 201/order/items/history/outbox/clear |
-| `CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence` | R-ORDER-001 | 400/no order/outbox |
-| `CreateOrderMultipleCurrenciesReturnsBadRequest` | R-ORDER-002 | **Partial:** status only, no no-write |
+| `CreateOrderEmptyBasketReturnsBadRequestWithoutPersistence` | R-ORDER-001 | traceable ProblemDetails; empty basket retained; zero order/item/history/outbox/idempotency/inbox rows |
+| `CreateOrderMultipleCurrenciesReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** traceable ProblemDetails; both currency lines retained; zero order/item/history/outbox/idempotency/inbox rows |
 | `CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence` (missing, whitespace) | R-ORDER-001 | two-row Theory; 400 ProblemDetails and zero order/outbox/idempotency rows |
 | `CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket` | R-ORDER-001 | same order/Location, 200 replay header, one durable effect and no second Basket load |
 | `CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects` | R-ORDER-001 | 409 typed ProblemDetails; original cardinalities retained and Basket untouched |
@@ -244,7 +244,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `CommittedOrderReplaysWhenBasketClearFails` | R-ORDER-001, R-BASKET-003 | durable commit survives clear exception; retry resolves original order without re-clearing |
 | `GetOrdersReturnsOnlyAuthenticatedCustomersOrders` | R-ORDER-SEC-001 | owner only |
 | `GetOrderOtherCustomersOrderReturnsNotFound` | R-ORDER-SEC-001 | other customer receives 404 |
-| `CreateOrderInvalidEmailReturnsBadRequest` | R-ORDER-002 | **Partial:** status only, no no-write |
+| `CreateOrderInvalidEmailReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical ValidationProblemDetails fields/error/trace/request IDs; Basket service not called, basket retained and all Orders tables empty |
 
 ### Payments (12 logical / 13 executable; PostgreSQL)
 
@@ -346,6 +346,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.1 | 2026-07-29 | Strengthened the four ESHOP-DATA-004 selectors with traceable ProblemDetails, no-write and basket-retention evidence without changing counts or bindings. | Pending review |
 | 2.0 | 2026-07-29 | Accepted PR CI #37 and cumulative Main CI #38 with TestRail R55–R58 at the locked `12/22/3/4` cardinality. | Pending review |
 | 1.9 | 2026-07-29 | Recorded local cumulative PR=77/Main=174 runtime cutover and exact executable/report cardinality. | Pending review |
 | 1.8 | 2026-07-29 | Promoted commit `1da2ccb` through CI #35 and accepted QA-03 Nightly R49 plus Release R50 shared execution. | Pending review |

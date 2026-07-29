@@ -1,5 +1,6 @@
-using Asp.Versioning;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using OrdersService.Application;
 using OrdersService.Contracts;
@@ -185,19 +186,29 @@ public sealed class OrdersController(
         return Ok(response);
     }
 
-    private static ProblemDetails CreateProblem(
+    private ProblemDetails CreateProblem(
         int status,
         string title,
         string? detail,
         string? type = null)
     {
-        return new ProblemDetails
+        ProblemDetails problemDetails = new()
         {
             Status = status,
             Title = title,
             Detail = detail,
-            Type = type
+            Type = type ?? $"https://httpstatuses.com/{status}",
+            Instance = Request.Path
         };
+
+        problemDetails.Extensions["traceId"] =
+            Activity.Current?.Id
+            ?? HttpContext.TraceIdentifier;
+
+        problemDetails.Extensions["requestId"] =
+            HttpContext.TraceIdentifier;
+
+        return problemDetails;
     }
 
     private ActionResult<OrderResponse> CreateSuccessResponse(
