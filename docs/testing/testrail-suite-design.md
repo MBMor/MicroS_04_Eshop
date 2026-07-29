@@ -1,8 +1,8 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 1.6
-> **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents and 193 selectors passed publication with `CI #34` / TestRail `R41`–`R44`; QA-03 tier execution is implemented locally
+> **Version:** 1.7
+> **Status:** Implemented — the 45-case catalogue is live, 31 automated TestIntents and 193 selectors passed `CI #35` / TestRail `R45`–`R48`; QA-03 Nightly `R49` and Release `R50` publication is accepted
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
@@ -175,7 +175,7 @@ Stores release scope, activation/applicability, complete required mapping/input 
 | Post-deployment completion | target digest/schema/config, ingress synthetic, health and telemetry |
 | Periodic operational | restore, alerts, runbooks, recovery objectives and other calendar-profile evidence |
 
-All 193 logical tests remain scheduled on pull requests and `main`. QA-03 adds an authoritative `PR=77`, `Main=97`, `Nightly=19`, `Release=13 overlap` policy plus a dedicated daily Nightly/manual Release workflow. The existing baseline is intentionally not narrowed until shared tier evidence is accepted.
+All 193 logical tests remain scheduled on pull requests and `main`. QA-03 adds an authoritative `PR=77`, `Main=97`, `Nightly=19`, `Release=13 overlap` policy plus a dedicated daily Nightly/manual Release workflow. Nightly `R49` and Release `R50` accepted the shared execution/publication contract; a separately groomed PR/Main cutover must preserve direct-push coverage before the broad baseline is narrowed.
 
 ---
 
@@ -215,7 +215,7 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
 
-The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Commit `192fa2c` passed GitHub Actions `CI #34`; all four TestRail runs `R41`–`R44` closed at 100%, and both GAP-001 aggregates passed in `R42` without creating a case.
+The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Commit `1da2ccb` passed GitHub Actions `CI #35`; all four TestRail runs `R45`–`R48` closed at 100%. The governed subsets then published Nightly `R49` with 11/11 and Release `R50` with 6/6 Passed without creating a case.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -229,6 +229,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.7 | 2026-07-29 | Promoted the committed QA-03 contract through CI #35 and accepted Nightly R49 plus Release R50 publication. | Pending review |
 | 1.6 | 2026-07-29 | Promoted the 193-selector contract through CI #34/R41–R44 and recorded the local QA-03 tier implementation. | Pending review |
 | 1.5 | 2026-07-28 | Added the local GAP-001 binding and reconciled the runtime contract to 193 selectors/211 edges while retaining CI #33 as the shared baseline. | Pending review |
 | 1.4 | 2026-07-28 | Recorded CI #33/TestRail R37–R40 acceptance for QA-02 and synchronized C60 messaging evidence metadata. | Pending review |

@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 1.7
+> **Version:** 1.8
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `192fa2c`
+> **Baseline:** `main` / `1da2ccb`
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-Existing CI schedules all tests on pull requests and `main`. GitHub Actions `CI #34` on commit `192fa2c` and TestRail runs `R41`–`R44` provide Passed/Valid evidence for the committed 31 automated TestIntents, including the GAP-001 broker-delivery selector. QA-03 implements the target-tier contract locally without yet changing the shared PR/main schedule. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+Existing CI schedules all tests on pull requests and `main`. GitHub Actions `CI #35` on commit `1da2ccb` and TestRail runs `R45`–`R48` provide Passed/Valid evidence for the committed 31 automated TestIntents. QA-03 Nightly `R49` and Release `R50` accept the governed selector subsets and publication contract without yet changing the broad PR/main schedule. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -28,7 +28,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Checkout command idempotency (`ESHOP-ORDER-002`) | R-ORDER-001 | CTRL-ORDER-IDEMPOTENCY-001 | network-retried or concurrent identical checkout creates one logical order and downstream workflow | approved [ADR 0002](../architecture/0002-checkout-command-idempotency.md); direct API/frontend and QA-02 sequential/concurrent complete-workflow variants passed CI #33/TestRail R38; local concurrent 5/5 supports determinism | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Nightly + Release | Orders Engineering owner | scheduled repeat history |
 | Customer order isolation (`ESHOP-ORDER-003`) | R-ORDER-SEC-001 | CTRL-SEC-OWNERSHIP-001 | owner list/detail and equivalent routes do not disclose another order | subject predicates; owner/other-customer service integration tests | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Orders Engineering owner | route exhaustiveness, side-channel and large-dataset review |
 | Inventory persisted invariants (`ESHOP-INVENTORY-001`) | R-INVENTORY-001 | CTRL-DATA-CONCURRENCY-001 | CRUD, adjust, nonnegative, reserved and sequential consistency | entity/DbContext/migrations; ten unit and seventeen API tests; CI #31/TestRail R30 passed, with local 17/17 project and five-run repeat evidence | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main + Nightly | Inventory Engineering owner | direct strength is limited to named variants; scheduled history remains for TECH-01 additions |
-| Concurrent inventory reservation (`ESHOP-INVENTORY-002`) | R-INVENTORY-001 | CTRL-DATA-CONCURRENCY-001 | competing OrderCreated handling using xmin and bounded retry never oversells or partially reserves | deterministic direct barriers cover last unit, multiline atomicity and retry exhaustion; a two-host/two-consumer RabbitMQ variant adds exact downstream and no-DLQ proof; all named variants passed CI/TestRail | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Nightly + Release | Inventory Engineering owner | CI #34/TestRail R42 is the shared broker-variant evidence; scheduled history remains |
+| Concurrent inventory reservation (`ESHOP-INVENTORY-002`) | R-INVENTORY-001 | CTRL-DATA-CONCURRENCY-001 | competing OrderCreated handling using xmin and bounded retry never oversells or partially reserves | deterministic direct barriers cover last unit, multiline atomicity and retry exhaustion; a two-host/two-consumer RabbitMQ variant adds exact downstream and no-DLQ proof; all named variants passed CI/TestRail | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Nightly + Release | Inventory Engineering owner | CI #35/R46 plus Nightly R49 and Release R50 passed; longitudinal scheduled history remains immature |
 | Inventory reservation lifecycle (`ESHOP-INVENTORY-003`) | R-INVENTORY-002 | CTRL-INVENTORY-LIFECYCLE-001 | reserved stock commits, releases or ages exactly once | domain commit/release methods; happy saga retains reservation | Applicable | Decision required | Partially implemented | Indirect | Planned | Not run | Unknown | None | Release | Inventory Engineering owner | fulfillment owner, events, cancellation timing and aging/reconciliation |
 | Asynchronous payment outcome (`ESHOP-PAYMENT-001`) | R-PAYMENT-001 | CTRL-PAY-UNIQUE-001 | PaymentRequested produces one authorized/failed decision and outbox outcome | consumer/processing service; unique OrderId; sagas | Applicable | Decision required | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Nightly + Release | Payments Engineering owner | concurrent duplicates, outbox outage and collision semantics |
 | Operational payment and async collision (`ESHOP-PAYMENT-002`) | R-PAYMENT-001 | CTRL-PAY-UNIQUE-001 | support/admin POST and broker request converge on one defined outcome | controller/application success/failure/duplicate tests; no defined result event | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Nightly + Release | Payments Engineering owner | operation orderings, concurrency, result event and poison-message behavior |
@@ -55,7 +55,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 
 ## Canonical CaseGateMapping records
 
-Mappings synchronize lifecycle, wave, activation and phase from the gate policy. Gate contribution remains `Not evaluated`. `CGM-008` points to CI #33/TestRail `R38`; `CGM-010` now points to CI #34/TestRail `R42`; the other mappings retain their original audit-source provenance until their exact required material variant is refreshed.
+Mappings synchronize lifecycle, wave, activation and phase from the gate policy. Gate contribution remains `Not evaluated`. `CGM-008` points to CI #33/TestRail `R38`; `CGM-010` now points to CI #35/TestRail `R46`; the other mappings retain their original audit-source provenance until their exact required material variant is refreshed.
 
 | Mapping | TestIntent | Gate | Contribution | Required material variant | Lifecycle | Activation | Wave | Phase | Required tier | Applicability | Calendar profile | Evidence strength | Latest first attempt | Validity | Contribution evaluation | Waiver ref | Latest evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -68,7 +68,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 | CGM-007 | ESHOP-ORDER-001 | GATE-ORD-001 | Supporting | creation, totals and initial transition | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-008 | ESHOP-ORDER-002 | GATE-ORD-001 | Primary | duplicate checkout command semantics | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | CI-33-R38@a1fba95 |
 | CGM-009 | ESHOP-INVENTORY-001 | GATE-INV-001 | Supporting | persisted sequential inventory invariants | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
-| CGM-010 | ESHOP-INVENTORY-002 | GATE-INV-001 | Primary | deterministic concurrent no-oversell | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | CI-34-R42@192fa2c |
+| CGM-010 | ESHOP-INVENTORY-002 | GATE-INV-001 | Primary | deterministic concurrent no-oversell | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | CI-35-R46@1da2ccb |
 | CGM-011 | ESHOP-E2E-002 | GATE-INV-001 | Supporting | insufficient-stock workflow outcome | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-012 | ESHOP-PAYMENT-001 | GATE-PAY-001 | Primary | asynchronous duplicate/concurrent payment outcome | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-013 | ESHOP-PAYMENT-002 | GATE-PAY-001 | Primary | operational/asynchronous collision | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
@@ -110,6 +110,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.8 | 2026-07-29 | Promoted the committed tier contract through CI #35 and accepted Nightly R49 plus Release R50 traceability. | Pending review |
 | 1.7 | 2026-07-29 | Promoted GAP-001 broker traceability to CI #34/TestRail R42 and recorded QA-03 as a local scheduling implementation. | Pending review |
 | 1.6 | 2026-07-28 | Added local GAP-001 broker-delivery/no-DLQ traceability under ESHOP-INVENTORY-002 and retained its shared/scheduled evidence residual. | Pending review |
 | 1.5 | 2026-07-28 | Promoted QA-02 traceability and CGM-008 provenance to CI #33/TestRail R38. | Pending review |

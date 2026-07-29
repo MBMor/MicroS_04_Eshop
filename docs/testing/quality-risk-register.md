@@ -2,7 +2,7 @@
 
 > **Document type:** Authoritative risk and control registry  
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Version:** 1.6
+> **Version:** 1.7
 > **Status:** Point-in-time assessed baseline — pending governance approval  
 > **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval  
 > **Last reviewed:** 2026-07-29
@@ -109,7 +109,7 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | `CTRL-BASKET-EXPIRY-001` | Apply basket TTL and post-order clear with defined recovery | Partially implemented | Partial | R-BASKET-003 | Checkout workflow owner | Basket and Orders Engineering | TTL and best-effort clear exist; real outage/repeat-checkout behavior is absent. |
 | `CTRL-ORDER-IDEMPOTENCY-001` | Create one order per logical checkout command | Implemented | Direct | R-ORDER-001, R-BASKET-003 | Orders Engineering owner | Orders Engineering | Required key, atomic persistence, replay/conflict, client lifecycle and QA-02 complete sequential/concurrent workflow passed in CI #33/TestRail R38; scheduled history remains. |
 | `CTRL-ORDER-PRICE-001` | Apply an approved fresh or quoted price and decimal policy | Partially implemented | Partial | R-ORDER-002 | Product owner | Orders and Catalog Engineering | Freshness, quote expiry and rounding policy are unresolved. |
-| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Direct | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | Synchronized direct variants passed CI #31/TestRail R30; the two-consumer broker-delivery/no-DLQ variant passed CI #34/TestRail R42. Scheduled history remains. |
+| `CTRL-DATA-CONCURRENCY-001` | Protect inventory invariants with transactional and optimistic concurrency | Implemented | Direct | R-INVENTORY-001 | Inventory Engineering owner | Inventory Engineering | Synchronized direct variants passed CI #31/R30; the two-consumer broker-delivery/no-DLQ variant passed CI #35/R46 plus first Nightly R49 and Release R50 execution. Longitudinal history remains immature. |
 | `CTRL-INVENTORY-LIFECYCLE-001` | Commit, release and age inventory reservations exactly once | Partially implemented | Indirect | R-INVENTORY-002 | Inventory Engineering owner | Inventory, Orders and Product | Domain methods exist but no active complete workflow owns fulfillment/aging. |
 | `CTRL-PAY-UNIQUE-001` | Produce one transactional payment decision per order across operational/asynchronous paths | Implemented | Partial | R-PAYMENT-001 | Payments Engineering owner | Payments and Checkout Engineering | Unique OrderId exists; collision/result-event semantics are unproved. |
 | `CTRL-MSG-INBOX-001` | Process delivered messages idempotently with durable inbox state | Implemented | Partial | R-MSG-001 | Shared Messaging owner | Consumer Engineering teams | One consumer duplicate is directly tested; complete matrix is absent. |
@@ -172,6 +172,7 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.7 | 2026-07-29 | Recorded first accepted Nightly R49 and Release R50 evidence without changing residual risk scores, acceptance or gate state. | Pending review |
 | 1.6 | 2026-07-29 | Promoted the GAP-001 broker-delivery/no-DLQ variant through CI #34/TestRail R42 without changing residual risk scores, acceptance or gate state. | Pending review |
 | 1.5 | 2026-07-28 | Recorded the local GAP-001 broker-delivery/no-DLQ proof without changing residual risk scores, acceptance or gate state. | Pending review |
 | 1.4 | 2026-07-28 | Promoted QA-02 downstream idempotency proof to CI #33/TestRail R38 without changing risk scores, acceptance or gate state. | Pending review |
