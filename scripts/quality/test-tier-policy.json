@@ -1,33 +1,33 @@
 {
-  "version": 3,
+  "version": 4,
   "description": "Authoritative primary ownership plus cumulative PR/Main event execution and explicit Release overlap for governed test selectors.",
   "expected_counts": {
     "PR": 77,
-    "Main": 98,
+    "Main": 100,
     "Nightly": 19,
-    "Release": 13
+    "Release": 15
   },
   "expected_execution_selector_counts": {
     "PR": 77,
-    "Main": 175,
+    "Main": 177,
     "Nightly": 19,
-    "Release": 13
+    "Release": 15
   },
   "expected_aggregate_counts": {
     "PR": 15,
-    "Main": 28,
+    "Main": 29,
     "Nightly": 11,
-    "Release": 6
+    "Release": 8
   },
   "expected_mapping_edges": {
     "PR": 80,
-    "Main": 187,
+    "Main": 190,
     "Nightly": 25,
-    "Release": 21
+    "Release": 24
   },
   "expected_main_report_counts": {
     "backend-unit": 12,
-    "backend-integration": 22,
+    "backend-integration": 23,
     "frontend-unit": 3,
     "checkout-e2e": 4
   },
@@ -164,6 +164,8 @@
     "InventoryConcurrencyMessagingTests.ConcurrentOrderCreatedDeliveriesForLastUnitDoNotOversellOrDeadLetter"
   ],
   "release_selectors": [
+    "CatalogServiceIntegrationTests.CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence",
+    "GatewayAuthorizationTests.CatalogMutationRoutesAreNotAddressableOrForwarded",
     "InventoryServiceIntegrationTests.ConcurrentReservationsForLastUnitDoNotOversellAndRetryLoser",
     "InventoryServiceIntegrationTests.ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder",
     "InventoryServiceIntegrationTests.ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged",

@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.6
+> **Version:** 2.7
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `b259026`
-> **Working-tree scope:** accepted QA-04/TECH-06 publication-integrity and E2E shell-portability evidence
+> **Repository baseline:** `main` / `411f166`
+> **Working-tree scope:** TECH-07/GAP-003 Catalog mutation-boundary candidate; shared Main/Release acceptance pending
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -25,18 +25,18 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The accepted TECH-05 source baseline contains:
+The TECH-07 working-tree source candidate contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
-| Logical tests | 194 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
-| Executable cases | 241 | logical tests plus five two-row Theory increments and 42 additional gateway-matrix rows |
-| xUnit logical / executable | 178 / 225 | 172 Facts, five two-row Theories and one 43-row Theory |
+| Logical tests | 196 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
+| Executable cases | 253 | logical tests plus five two-row Theory increments, 42 additional gateway-matrix rows, eight additional Catalog-boundary rows and two additional gateway no-forwarding rows |
+| xUnit logical / executable | 180 / 237 | 172 Facts, five two-row Theories, one 43-row Theory, one nine-row Theory and one three-row Theory |
 | Frontend Vitest | 13 | executable tests |
 | Playwright | 3 | executable scenarios |
-| TestRail automated TestIntents | 31 | aggregate IDs in `automation-id-map.json` |
-| TestRail source selectors | 194 | unique selectors in `automation-id-map.json` |
-| TestRail binding edges | 212 | selector-to-TestIntent mappings; eighteen are deliberate multi-intent overlaps |
+| TestRail automated TestIntents | 32 | aggregate IDs in `automation-id-map.json` |
+| TestRail source selectors | 196 | unique selectors in `automation-id-map.json` |
+| TestRail binding edges | 215 | selector-to-TestIntent mappings; nineteen are deliberate multi-intent overlaps |
 
 Every logical test has exactly one unique source selector. Multiple TestIntent bindings are allowed and explain the difference between selectors and edges.
 
@@ -251,6 +251,16 @@ Before merge, 38/38 quality-policy unit tests, 7/7 TestRail transformation tests
 
 All four runs are 100% Passed and link to CI #56. The project has 73 completed TestRail runs and no open run. This accepts the positive Main path for QA-04/TECH-06 without changing selectors, bindings, TestIntent catalogue or any Future gate. Failure and incomplete-report paths are accepted by deterministic policy tests; deliberately failing Main solely to create negative external evidence is unnecessary.
 
+## TECH-07 / GAP-003 local evidence
+
+TECH-07 adds the shared JWT/auth middleware to Catalog Service and applies `AdminOnly` to POST, PUT and DELETE while keeping public GET anonymous. `CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence` executes nine anonymous/customer/support variants and proves both the 401/403 contract and unchanged product state. Existing mutation scenarios now authenticate as admin and the complete Catalog project passes 19/19.
+
+`CatalogMutationRoutesAreNotAddressableOrForwarded` executes POST, PUT and DELETE against the actual configured gateway surface. All three return 405 and the fake downstream count remains zero; the complete gateway project passes 68/68. This is direct service/configuration evidence, not a substitute for the full container-network topology tracked by GAP-013.
+
+The two selectors bind to `ESHOP-CATALOG-001`; the gateway selector also binds to `ESHOP-GW-001`. Local validation reports 196 selectors/215 edges and tier counts `PR=77`, `Main primary=100`, `Main cumulative=177`, `Nightly=19`, `Release=15`. Main publication is locked to `12/23/3/4`; Release aggregates 8 TestIntents over 24 edges. TestRail C53 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes` and Automation ID `Eshop.TestIntents.ESHOP-CATALOG-001`.
+
+Evidence validity is **Valid locally** for the named variants. It is not yet shared acceptance: PR, Main publication and explicit Release execution remain pending, and `GATE-SEC-001` remains Future and unevaluated.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
@@ -260,13 +270,15 @@ All four runs are 100% Passed and link to CI #56. The project has 73 completed T
 - TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
 - TECH-04 fixes and locks the adjacent Catalog ProblemDetails media type; CI #45/#46 and TestRail R72 accept it without reopening GAP-020.
 - The docs-only gate is accepted by CI #47/#48 and correctly produced no TestRail runs.
-- TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed. Direct Catalog network isolation remains GAP-003.
+- TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed.
 - QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
+- TECH-07 supplies local direct Catalog authorization/no-write and gateway no-forwarding evidence. Shared Main/Release acceptance remains for GAP-003; deployable-network topology remains GAP-013.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.7 | 2026-07-29 | Added local TECH-07/GAP-003 Catalog mutation-boundary evidence, synchronized C53 and the 196-selector/215-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
 | 2.6 | 2026-07-29 | Accepted QA-04/TECH-06 after Main CI #56 passed and TestRail R82–R85 closed at 100% with locked `12/22/3/4` cardinality. | Pending review |
 | 2.5 | 2026-07-29 | Accepted TECH-05 after CI #50 exposed the E2E `ss` portability defect and hotfix `daf835d` passed Main CI #52/TestRail R78–R81. | Pending review |
 | 2.4 | 2026-07-29 | Recorded docs-only CI #47/#48 acceptance and local TECH-05 evidence: 16 endpoints, 43 matrix rows, 65/65 gateway regression and 194/212 runtime mapping. | Pending review |

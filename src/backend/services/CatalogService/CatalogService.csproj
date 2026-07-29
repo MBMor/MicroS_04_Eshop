@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\shared\ErrorHandling.Shared\ErrorHandling.Shared.csproj" />
     <ProjectReference Include="..\..\shared\OpenApi.Shared\OpenApi.Shared.csproj" />
+    <ProjectReference Include="..\..\shared\Security.Shared\Security.Shared.csproj" />
   </ItemGroup>
 
 </Project>

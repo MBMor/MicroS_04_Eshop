@@ -1,6 +1,8 @@
 using Asp.Versioning;
 using CatalogService.Data;
 using Eshop.ErrorHandling;
+using Eshop.Security.Authentication;
+using Eshop.Security.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Eshop.OpenApi;
 
@@ -33,6 +35,11 @@ builder.Services.AddEshopOpenApi(
     description:
         "Product catalog management and product query API.");
 
+builder.Services.AddEshopJwtAuthentication(
+    builder.Configuration);
+
+builder.Services.AddEshopAuthorization();
+
 string catalogConnectionString = builder.Configuration.GetConnectionString("CatalogDb")
     ?? throw new InvalidOperationException("Connection string 'CatalogDb' was not found.");
 
@@ -45,6 +52,9 @@ WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
 app.UseEshopOpenApi();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

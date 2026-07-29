@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace CatalogService.IntegrationTests.Infrastructure;
@@ -41,6 +44,29 @@ internal sealed class CatalogServiceFactory(
                 configurationBuilder.AddInMemoryCollection(
                     CreateSettings());
             });
+
+        builder.ConfigureTestServices(services =>
+        {
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme =
+                        TestAuthenticationHandler.SchemeName;
+
+                    options.DefaultChallengeScheme =
+                        TestAuthenticationHandler.SchemeName;
+
+                    options.DefaultForbidScheme =
+                        TestAuthenticationHandler.SchemeName;
+                })
+                .AddScheme<
+                    AuthenticationSchemeOptions,
+                    TestAuthenticationHandler>(
+                    TestAuthenticationHandler.SchemeName,
+                    _ =>
+                    {
+                    });
+        });
     }
 
     private Dictionary<string, string?>
@@ -51,6 +77,16 @@ internal sealed class CatalogServiceFactory(
         {
             ["ConnectionStrings:CatalogDb"] =
                 _postgresConnectionString,
+
+            ["Keycloak:Authority"] =
+                "http://keycloak.integration.test/" +
+                "realms/eshop",
+
+            ["Keycloak:Audience"] =
+                "eshop-api",
+
+            ["Keycloak:RequireHttpsMetadata"] =
+                "false",
 
             ["Logging:LogLevel:Default"] =
                 "Warning",

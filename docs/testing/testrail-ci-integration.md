@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The accepted TECH-05 contract maps 194 unique source selectors through 212 binding edges to 31 automated TestIntents; the gateway selector binds to existing `ESHOP-GW-001`, so no TestRail case is added. GitHub Actions `CI #56` on `b259026` is the latest accepted cumulative Main publication; TestRail `R82`–`R85` contain the locked `12/22/3/4` Passed results and accept the QA-04/TECH-06 publication-integrity controls. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The accepted Main baseline is GitHub Actions `CI #56` on `b259026`; TestRail `R82`–`R85` contain the locked `12/22/3/4` Passed results and accept the QA-04/TECH-06 publication-integrity controls. The TECH-07 working-tree candidate maps 196 unique source selectors through 215 binding edges to 32 automated TestIntents. It activates existing case C53/`ESHOP-CATALOG-001`, raises the pending Main contract to `12/23/3/4`, and leaves the 45-case catalogue unchanged. Nightly `R49` and Release `R50` remain the first accepted governed-tier publications; TECH-07 shared Main/Release evidence is pending.
 
 ## Identity contract
 
@@ -76,7 +76,7 @@ All four independent runs are required as one complete CI publication set:
 
 ## Production failure handling
 
-TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with exact locked cardinality `12/22/3/4` before Automation ID preflight or the first TRCLI call. Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
+TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with the exact checked-in cardinality before Automation ID preflight or the first TRCLI call (`12/23/3/4` in the TECH-07 candidate; the latest accepted baseline was `12/22/3/4`). Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
 
 TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run. Because TestRail receives four independent API operations rather than one transaction, an outage during TRCLI calls can still leave an externally partial diagnostic set; that residual must be identified by CI number and excluded from acceptance until a complete rerun passes.
 
@@ -125,9 +125,9 @@ The first shared tier acceptance completed on 2026-07-29. GitHub run [`304307883
 The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
 
 - pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
-- pushes to `main` and manual CI dispatch execute PR + Main ownership, 175 logical selectors in the accepted TECH-05 contract;
+- pushes to `main` and manual CI dispatch execute PR + Main ownership, 177 logical selectors in the TECH-07 candidate;
 - Nightly remains an independent 19-selector execution rather than being folded into Main;
-- Release remains a 13-selector overlap and is not inferred from a normal Main pass.
+- Release becomes a 15-selector overlap for TECH-07 and is not inferred from a normal Main pass.
 
 Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
 
@@ -146,3 +146,5 @@ TECH-05 adds `GatewayAuthorizationTests.EveryAddressableRouteEnforcesAuthorizati
 Main CI #50 published partial successful R75–R77 but failed Checkout E2E before startup on the unsupported Ubuntu command `ss --headers=never`; that run group is diagnostic, not acceptance evidence. Hotfix `daf835d` uses portable `ss -ltn`/`ss -ltnp`. Main [`CI #52`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30448986631) passed and published closed R78 Backend Unit 12, R79 Backend Integration 22, R80 Frontend Unit 3 and R81 Checkout E2E 4. All are Passed, R79 contains Passed `ESHOP-GW-001`, `trcli -n` created no case, and TECH-05/GAP-026 is accepted.
 
 QA-04/TECH-06 converts that diagnostic finding into preventive controls. Commit `b259026` requires successful Change scope, Backend, Frontend and Checkout E2E jobs before publication; requires four non-empty, valid reports with exact `12/22/3/4` cardinality before the first TestRail call; and validates the Linux/Windows port-detection shell contract in Quality policy. Main [`CI #56`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30451634130) passed and published closed R82 Backend Unit 12, R83 Backend Integration 22, R84 Frontend Unit 3 and R85 Checkout E2E 4. All are 100% Passed, so QA-04/TECH-06 is accepted without changing TestIntent identity, selector ownership or gate state.
+
+TECH-07 adds `CatalogServiceIntegrationTests.CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence` and `GatewayAuthorizationTests.CatalogMutationRoutesAreNotAddressableOrForwarded` to `ESHOP-CATALOG-001`; the gateway selector also strengthens `ESHOP-GW-001`. Theory rows aggregate to one result per TestIntent, so the complete Main report contract becomes `12/23/3/4`. The explicit Release matrix contains 15 selectors and produces 8 aggregate TestIntents over 24 edges. TestRail C53 is synchronized to the code-first Automation ID and both native/custom automation indicators. Local validation and the 19/19 Catalog plus 68/68 gateway suites pass; shared publication remains pending.
