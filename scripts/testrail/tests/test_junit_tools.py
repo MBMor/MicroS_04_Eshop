@@ -10,7 +10,14 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from junit_tools import aggregate_junit, automation_ids, canonical_selector, merge_junit, read_cases
+from junit_tools import (
+    aggregate_junit,
+    automation_ids,
+    canonical_selector,
+    load_bindings,
+    merge_junit,
+    read_cases,
+)
 from validate_testrail_automation_ids import compare_ids
 
 
@@ -30,6 +37,25 @@ class JUnitToolsTests(unittest.TestCase):
     def test_lists_exact_classname_dot_name(self) -> None:
         report = self.write("one.xml", '<testsuite><testcase classname="A.B" name="works"/></testsuite>')
         self.assertEqual(["A.B.works"], automation_ids([report]))
+
+    def test_repository_binding_manifest_is_supported(self) -> None:
+        manifest = SCRIPT_DIR / "automation-id-map.json"
+        bindings = load_bindings(manifest)
+
+        self.assertEqual(
+            ("ESHOP-CATALOG-001",),
+            bindings[
+                "CatalogServiceIntegrationTests."
+                "CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence"
+            ],
+        )
+        self.assertEqual(
+            ("ESHOP-CATALOG-001", "ESHOP-GW-001"),
+            bindings[
+                "GatewayAuthorizationTests."
+                "CatalogMutationRoutesAreNotAddressableOrForwarded"
+            ],
+        )
 
     def test_canonicalizes_dotnet_theory_and_vitest(self) -> None:
         dotnet = self.write(

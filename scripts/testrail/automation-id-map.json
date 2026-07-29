@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 1,
   "description": "Governed mapping from canonical raw test selectors to high-level TestRail TestIntent references.",
   "intents": {
     "ESHOP-AUTH-001": [
