@@ -25,6 +25,48 @@ env:
   NUGET_XMLDOC_MODE: skip
 
 jobs:
+  changes:
+    name: Change scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      application_changed: ${{ steps.scope.outputs.application_changed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect documentation-only change
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "application_changed=true" | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base_sha="$BEFORE_SHA"
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          fi
+
+          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+            echo "Cannot determine a safe comparison base; running the full pipeline."
+            echo "application_changed=true" | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only "$base_sha" "$HEAD_SHA" |
+            python scripts/quality/change_scope.py |
+            tee -a "$GITHUB_OUTPUT"
+
   quality-policy:
     name: Quality policy
     runs-on: ubuntu-latest
@@ -59,7 +101,10 @@ jobs:
 
   backend:
     name: Backend
-    needs: quality-policy
+    needs:
+      - changes
+      - quality-policy
+    if: ${{ needs.changes.outputs.application_changed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -373,7 +418,10 @@ jobs:
 
   frontend:
     name: Frontend
-    needs: quality-policy
+    needs:
+      - changes
+      - quality-policy
+    if: ${{ needs.changes.outputs.application_changed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -529,10 +577,11 @@ jobs:
   testrail:
     name: Publish TestRail results
     needs:
+      - changes
       - backend
       - frontend
       - e2e
-    if: ${{ always() && github.event_name != 'pull_request' && !cancelled() }}
+    if: ${{ always() && needs.changes.outputs.application_changed == 'true' && github.event_name != 'pull_request' && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #38` on merge commit `a41aa71` is the latest accepted cumulative Main publication; TestRail `R55`–`R58` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #42` on merge commit `c587eb9` is the latest accepted cumulative Main publication; TestRail `R63`–`R66` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
 
 ## Identity contract
 
@@ -130,6 +130,8 @@ The accepted GAP-022 cutover uses primary tier as selector ownership and cumulat
 
 Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
 
+The CI workflow classifies the complete PR or push diff before expensive jobs start. A non-empty change set containing only files below `docs/` or Markdown files runs the stable Change scope and Quality policy checks but skips Backend, Frontend, Container images, Checkout E2E and TestRail publication. Any application, configuration, script or workflow change — as well as an empty or indeterminate comparison — fails closed to the full event-appropriate pipeline. Manual `workflow_dispatch` always requests the full pipeline. This keeps required workflow checks observable while preventing documentation-only merges from creating redundant TestRail runs.
+
 Fail-closed validation locks both selector and publication cardinality. PR [`CI #37`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433749355) passed only Quality policy, Backend and Frontend; Containers, E2E and TestRail were skipped. Main [`CI #38`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433934594) passed all jobs and published four closed TestRail runs: R55 Backend Unit 12, R56 Backend Integration 22, R57 Frontend Unit 3 and R58 Checkout E2E 4, all Passed. Both event paths are accepted and GAP-022 is complete.
 
-TECH-03/GAP-020 strengthens the four selectors already bound to `ESHOP-DATA-004`; it does not change Automation IDs, mapping edges, selector ownership or report cardinality. The next Main publication must therefore keep Backend Integration at 22 TestIntents and update the existing TestRail case rather than create a case.
+TECH-03/GAP-020 strengthens the four selectors already bound to `ESHOP-DATA-004`; it does not change Automation IDs, mapping edges, selector ownership or report cardinality. Main `CI #42` published R63–R66 at `12/22/3/4`; the existing `[Negative mutations]` TestIntent passed in R64 and GAP-020 is closed.

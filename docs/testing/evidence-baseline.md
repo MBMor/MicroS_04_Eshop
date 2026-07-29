@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.0
+> **Version:** 2.1
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `07c5ec5`
-> **Working-tree scope:** local TECH-03/GAP-020 atomic-rejection evidence
+> **Repository baseline:** `main` / `c587eb9`
+> **Working-tree scope:** accepted TECH-03/GAP-020 atomic-rejection evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -158,7 +158,7 @@ Main run [`30433934594`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/3
 
 The three mixed integration projects use policy-generated positive filters: Inventory `14`, Messaging `4` and Orders `9`. Main is cumulative rather than exclusive, preserving fast-test coverage for direct pushes. The two shared event paths and locked TestRail cardinality are accepted; GAP-022 is complete. This records workflow evidence only and does not activate a quality gate.
 
-## TECH-03 / GAP-020 local evidence
+## TECH-03 / GAP-020 evidence
 
 The four existing `ESHOP-DATA-004` selectors were strengthened without renaming tests or changing the 193-selector/211-edge runtime contract:
 
@@ -169,9 +169,20 @@ The four existing `ESHOP-DATA-004` selectors were strengthened without renaming 
 | Catalog full integration regression | 10 | 0 | 0 | no regression across Catalog API behavior |
 | Orders full integration regression | 17 | 0 | 0 | no regression across Orders auth, creation, idempotency, ownership and rejection behavior |
 
-Orders controller-created errors now set the canonical HTTP-status type, request instance, `traceId` and `requestId`; explicitly typed idempotency errors retain their URN. The targeted runs used PostgreSQL Testcontainers and passed after a Release build. Policy validation remains `193` selectors with Main `174`, and `ESHOP-DATA-004` remains an existing four-edge Main aggregate, so the locked Main TestRail report count remains `12/22/3/4`.
+Orders controller-created errors now set the canonical HTTP-status type, request instance, `traceId` and `requestId`; explicitly typed idempotency errors retain their URN. The targeted runs used PostgreSQL Testcontainers and passed after a Release build. Policy validation remains `193` selectors with Main `174`, and `ESHOP-DATA-004` remains an existing four-edge Main aggregate.
 
-An adjacent finding was kept out of scope: Catalog model-validation bodies are structurally correct but currently negotiate `application/json` rather than `application/problem+json`. No global shared-error-handling change is claimed by TECH-03. Shared Main/TestRail acceptance is still required before GAP-020 is closed.
+PR run [`30437936730`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30437936730) (`CI #41`) completed successfully. Main run [`30438337628`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30438337628) (`CI #42`) then completed successfully on commit `c587eb9` and published four closed 100% Passed TestRail runs:
+
+| TestRail run | Area | TestIntent results | Result |
+|---|---|---:|---|
+| `R63` | Backend Unit | 12 | Passed |
+| `R64` | Backend Integration | 22 | Passed; includes `[Negative mutations]` / `ESHOP-DATA-004` |
+| `R65` | Frontend Unit | 3 | Passed |
+| `R66` | Checkout E2E | 4 | Passed |
+
+The locked `12/22/3/4` cardinality and existing TestRail identity were preserved. This accepts TECH-03 and closes GAP-020 without changing a risk score, control state or quality-gate lifecycle.
+
+An adjacent finding remains out of scope: Catalog model-validation bodies are structurally correct but currently negotiate `application/json` rather than `application/problem+json`. No global shared-error-handling change is claimed by TECH-03.
 
 ## Current interpretation
 
@@ -179,12 +190,13 @@ An adjacent finding was kept out of scope: Catalog model-validation bodies are s
 - TECH-01 and the broker-delivery/no-DLQ variant have Passed/Valid CI plus first shared Nightly/Release evidence; longitudinal scheduled history remains immature.
 - TECH-02 and QA-02 have Passed/Valid CI plus first shared Nightly/Release evidence for the governed variants; longitudinal scheduled history remains immature.
 - QA-03 Nightly/Release selection and publication are accepted. PR CI #37 and Main CI #38/R55–R58 complete GAP-022 and its W1 workflow substrate; no gate is activated by this evidence record.
-- TECH-03 locally supplies direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; GAP-020 remains open only for shared Main/TestRail acceptance.
+- TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R63–R66; closed GAP-020 without changing risk or gate state. | Pending review |
 | 2.0 | 2026-07-29 | Recorded local TECH-03/GAP-020 ProblemDetails, no-write and basket-retention evidence with unchanged TestRail identity/cardinality. | Pending review |
 | 1.9 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/TestRail R55–R58 and closed GAP-022 without activating a gate. | Pending review |
 | 1.8 | 2026-07-29 | Implemented and locally evidenced the governed PR=77/Main=174 cumulative cutover with locked TestRail report counts. | Pending review |
