@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 3.0
-> **Effective from:** 2026-07-29 TECH-08 local candidate
+> **Version:** 3.1
+> **Effective from:** 2026-07-29 TECH-08 accepted baseline
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `7a90d9a`; TECH-08 shared acceptance pending
+> **Baseline:** `main` / `36f6c5d`; Main CI #66 and governed Release #4 accepted
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The TECH-08 candidate has **198 logical tests and 257 executable cases**: five two-row theories, the 45-row gateway authorization theory, the nine-row Catalog mutation-boundary theory and the three-row gateway non-forwarding theory account for the difference. All 198 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted TECH-08 baseline has **198 logical tests and 257 executable cases**: five two-row theories, the 45-row gateway authorization theory, the nine-row Catalog mutation-boundary theory and the three-row gateway non-forwarding theory account for the difference. All 198 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
-GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 passed Main `CI #52`; QA-04/TECH-06 hardened publication integrity in Main `CI #56`. TECH-07's first Main publication exposed an unsupported manifest-version bump; hotfix `4ec560f` restored the unchanged version-1 contract. Main `CI #62` then passed and TestRail R86–R89 closed at `12/23/3/4`; governed Release run `30481512624` closed R90 with 8/8 Passed, including `ESHOP-CATALOG-001`. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
+GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 passed Main `CI #52`; QA-04/TECH-06 hardened publication integrity in Main `CI #56`. TECH-07's first Main publication exposed an unsupported manifest-version bump; hotfix `4ec560f` restored the unchanged version-1 contract. Main `CI #62` then passed and TestRail R86–R89 closed at `12/23/3/4`; governed Release run `30481512624` closed R90 with 8/8 Passed. TECH-08 merged through PR #15 as `36f6c5d`; Main run `30486673945` and TestRail CI #66/R92 passed 24/24 Backend Integration results, while governed Release run `30487730431` and Release #4/R95 passed 9/9, including `ESHOP-RESILIENCE-002`. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -343,8 +343,8 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - TECH-08 upgrades the service health rows from status-only `/health` checks to explicit `/live`, dependency-aware `/ready` and compatibility `/health` assertions. Migration evidence remains separately partial.
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
-- No executable test is removed from the governed portfolio. The TECH-08 candidate executes 77 logical/79 executable rows on PR, 179 logical/237 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 17 logical/28 executable Release-overlap rows.
-- TECH-08 adds bounded, secret-safe PostgreSQL and Redis outage/recovery tests. Both prove `/live=200`, `/ready=503` during dependency loss and `/ready=200` after recovery without restarting the service; the complete local Catalog 20/20, Basket 11/11 and Gateway 70/70 projects pass.
+- No executable test is removed from the governed portfolio. The accepted TECH-08 baseline executes 77 logical/79 executable rows on PR, 179 logical/237 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 17 logical/28 executable Release-overlap rows.
+- TECH-08 adds bounded, secret-safe PostgreSQL and Redis outage/recovery tests. Both prove `/live=200`, `/ready=503` during dependency loss and `/ready=200` after recovery without restarting the service; local Catalog 20/20, Basket 11/11 and Gateway 70/70 pass, followed by accepted Main CI #66/R92 and Release #4/R95 evidence.
 - TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants. The two-consumer broker-delivery/no-DLQ variant passed in CI #35/TestRail R46 and the governed tier runs; longitudinal scheduled history remains immature.
 - TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; QA-02 proves sequential and concurrent duplicate HTTP delivery produce one complete downstream workflow. The governed variants passed the first Nightly/Release runs; the five-run local concurrency smoke remains supporting determinism evidence.
 
@@ -352,6 +352,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 3.1 | 2026-07-29 | Accepted QA-05/TECH-08 through PR #15, Main `36f6c5d`/CI #66/R92 and governed Release #4/R95; closed GAP-004 without activating GATE-OPS-001. | Pending review |
 | 3.0 | 2026-07-29 | Added local QA-05/TECH-08 readiness contract, two outage/recovery selectors, seven-service `/live`/`/ready` implementation, synchronized C80 automation identity and the 198/257, 33-intent, 217-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
 | 2.9 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/TestRail R86–R89 and governed Release R90 passed at 100%. | Pending review |
 | 2.8 | 2026-07-29 | Added local TECH-07 Catalog admin-only mutation enforcement, nine direct denial/no-write variants, three gateway no-forwarding variants, C53 synchronization and the 196/253, 32-intent, 215-edge candidate contract; shared acceptance remains pending. | Pending review |

@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The TECH-08 candidate maps 198 unique source selectors through 217 binding edges to 33 automated TestIntents and leaves the 45-case catalogue unchanged. Main publication is locked to `12/24/3/4`; governed Release contains 17 selectors and aggregates 9 TestIntents over 26 edges. Existing C80/`ESHOP-RESILIENCE-002` is synchronized and receives the two new PostgreSQL and Redis outage/recovery selectors. Shared Main/Release publication is pending.
+The accepted TECH-08 baseline maps 198 unique source selectors through 217 binding edges to 33 automated TestIntents and leaves the 45-case catalogue unchanged. Main publication is locked to `12/24/3/4`; governed Release contains 17 selectors and aggregates 9 TestIntents over 26 edges. Existing C80/`ESHOP-RESILIENCE-002` is synchronized and receives the PostgreSQL and Redis outage/recovery selectors. Main run `30486673945` published CI #66/R92 at 24/24 Passed, and governed Release `30487730431` published Release #4/R95 at 9/9 Passed.
 
 ## Identity contract
 
@@ -76,7 +76,7 @@ All four independent runs are required as one complete CI publication set:
 
 ## Production failure handling
 
-TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with the exact checked-in cardinality before Automation ID preflight or the first TRCLI call (`12/24/3/4` in the TECH-08 candidate). Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
+TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with the exact checked-in cardinality before Automation ID preflight or the first TRCLI call (`12/24/3/4` in the accepted TECH-08 baseline). Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
 
 TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run. Because TestRail receives four independent API operations rather than one transaction, an outage during TRCLI calls can still leave an externally partial diagnostic set; that residual must be identified by CI number and excluded from acceptance until a complete rerun passes.
 
@@ -125,9 +125,9 @@ The first shared tier acceptance completed on 2026-07-29. GitHub run [`304307883
 The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
 
 - pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
-- pushes to `main` and manual CI dispatch execute PR + Main ownership, 179 logical selectors in the TECH-08 candidate;
+- pushes to `main` and manual CI dispatch execute PR + Main ownership, 179 logical selectors in the accepted TECH-08 baseline;
 - Nightly remains an independent 19-selector execution rather than being folded into Main;
-- Release becomes a 17-selector explicit overlap for TECH-08 and is not inferred from a normal Main pass.
+- Release is a 17-selector explicit overlap for TECH-08 and is not inferred from a normal Main pass.
 
 Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
 
@@ -151,6 +151,6 @@ TECH-07 adds `CatalogServiceIntegrationTests.CatalogMutationBoundaryRejectsUnaut
 
 The initial Main publication failed before remote calls because the unchanged manifest schema had been incorrectly labeled version 2 while `junit_tools.py` accepts version 1. Hotfix `4ec560f` restored version 1 and added a production-manifest regression test. Main [`CI #62`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30458083498) then published R86–R89 at `12/23/3/4`, all Passed. Governed Release [`30481512624`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30481512624) published R90 with 8/8 Passed, so TECH-07/GAP-003 is accepted.
 
-TECH-08 adds `BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy` and `CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy` to existing `ESHOP-RESILIENCE-002`. Both are Main-owned and explicit Release selectors. Candidate validation reports 198 selectors/217 edges, cumulative Main 179, Main `12/24/3/4`, and Release 9 aggregates over 26 edges. C80 is synchronized to `Eshop.TestIntents.ESHOP-RESILIENCE-002`, so `trcli -n` can stay fail-closed; shared acceptance is pending.
+TECH-08 adds `BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy` and `CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy` to existing `ESHOP-RESILIENCE-002`. Both are Main-owned and explicit Release selectors. Validation reports 198 selectors/217 edges, cumulative Main 179, Main `12/24/3/4`, and Release 9 aggregates over 26 edges. C80 is synchronized to `Eshop.TestIntents.ESHOP-RESILIENCE-002`, so `trcli -n` stays fail-closed. Main [`30486673945`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30486673945) published CI #66/R92 with 24/24 Passed, and governed Release [`30487730431`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30487730431) published Release #4/R95 with 9/9 Passed; C80 passed in both.
 
 Release intentionally downloads and publishes only backend-integration reports. The preparation script therefore emits informational GitHub annotations that backend-unit, frontend-unit and checkout-e2e reports are absent and skipped; these are expected for this profile and do not indicate lost Release evidence.
