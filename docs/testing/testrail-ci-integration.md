@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The local TECH-05 contract maps 194 unique source selectors through 212 binding edges to 31 automated TestIntents; the new gateway selector binds to existing `ESHOP-GW-001`, so no TestRail case is added. GitHub Actions `CI #46` on merge commit `b298107` remains the latest accepted cumulative Main publication; TestRail `R71`–`R74` contain the locked `12/22/3/4` Passed results. Docs-only CI #47/#48 correctly published nothing. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The accepted TECH-05 contract maps 194 unique source selectors through 212 binding edges to 31 automated TestIntents; the gateway selector binds to existing `ESHOP-GW-001`, so no TestRail case is added. GitHub Actions `CI #52` on `daf835d` is the latest accepted cumulative Main publication; TestRail `R78`–`R81` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
 
 ## Identity contract
 
@@ -104,7 +104,7 @@ The 47 aggregate rows deliberately overlap. The broker-delivery selector support
 
 ## Governed Nightly and Release publication
 
-QA-03 defines the source-of-truth classification in [`test-tier-policy.json`](../../scripts/quality/test-tier-policy.json). [`test_tiers.py`](../../scripts/quality/test_tiers.py) fails closed when a TestRail-bound selector is unclassified, ambiguously sourced, unknown in an override or changes the local TECH-05 `77/98/19/13` counts.
+QA-03 defines the source-of-truth classification in [`test-tier-policy.json`](../../scripts/quality/test-tier-policy.json). [`test_tiers.py`](../../scripts/quality/test_tiers.py) fails closed when a TestRail-bound selector is unclassified, ambiguously sourced, unknown in an override or changes the accepted TECH-05 `77/98/19/13` counts.
 
 The dedicated [`quality-tiers.yml`](../../.github/workflows/quality-tiers.yml) runs Nightly on a daily schedule and exposes Nightly/Release via `workflow_dispatch`. It builds an exact project/filter matrix, retains raw TRX/JUnit for 30 days, aggregates only the selected results and publishes one closed TestRail run named `Nightly #<run> | Backend Integration` or `Release #<run> | Backend Integration`.
 
@@ -125,7 +125,7 @@ The first shared tier acceptance completed on 2026-07-29. GitHub run [`304307883
 The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
 
 - pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
-- pushes to `main` and manual CI dispatch execute PR + Main ownership, 175 logical selectors in the local TECH-05 contract;
+- pushes to `main` and manual CI dispatch execute PR + Main ownership, 175 logical selectors in the accepted TECH-05 contract;
 - Nightly remains an independent 19-selector execution rather than being folded into Main;
 - Release remains a 13-selector overlap and is not inferred from a normal Main pass.
 
@@ -141,4 +141,6 @@ TECH-04 adds the Catalog `application/problem+json` transport assertion to that 
 
 PR CI #47 and Main CI #48 accepted the docs-only gate on `06b8895`. Both ran Change scope and Quality policy only; no TestRail run was created, leaving R71–R74 as the latest publication.
 
-TECH-05 adds `GatewayAuthorizationTests.EveryAddressableRouteEnforcesAuthorizationAndForwarding` to existing `ESHOP-GW-001`. Its 43 xUnit rows aggregate into that one TestIntent, so Main remains exactly `12/22/3/4` result rows. The local mapping is 194 selectors/212 edges and cumulative Main 175. Shared acceptance requires PR CI, Main CI and a Passed `ESHOP-GW-001` result in the next Backend Integration run; `trcli -n` must not create a case.
+TECH-05 adds `GatewayAuthorizationTests.EveryAddressableRouteEnforcesAuthorizationAndForwarding` to existing `ESHOP-GW-001`. Its 43 xUnit rows aggregate into that one TestIntent, so Main remains exactly `12/22/3/4` result rows. The mapping is 194 selectors/212 edges and cumulative Main 175.
+
+Main CI #50 published partial successful R75–R77 but failed Checkout E2E before startup on the unsupported Ubuntu command `ss --headers=never`; that run group is diagnostic, not acceptance evidence. Hotfix `daf835d` uses portable `ss -ltn`/`ss -ltnp`. Main [`CI #52`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30448986631) passed and published closed R78 Backend Unit 12, R79 Backend Integration 22, R80 Frontend Unit 3 and R81 Checkout E2E 4. All are Passed, R79 contains Passed `ESHOP-GW-001`, `trcli -n` created no case, and TECH-05/GAP-026 is accepted.
