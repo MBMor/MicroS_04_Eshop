@@ -94,6 +94,19 @@ jobs:
       - name: Test tier policy tooling
         run: python -m unittest discover -s scripts/quality/tests -v
 
+      - name: Validate E2E shell portability
+        shell: bash
+        run: |
+          bash -n \
+            scripts/e2e/*.sh \
+            scripts/e2e/lib/*.sh \
+            scripts/e2e/tests/*.sh
+          shellcheck --severity=error \
+            scripts/e2e/*.sh \
+            scripts/e2e/lib/*.sh \
+            scripts/e2e/tests/*.sh
+          bash scripts/e2e/tests/port-check.test.sh
+
       - name: Materialize governed Main filters
         id: main_filters
         shell: bash
@@ -577,14 +590,47 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  testrail:
-    name: Publish TestRail results
+  publication_gate:
+    name: TestRail publication gate
     needs:
       - changes
       - backend
       - frontend
       - e2e
-    if: ${{ always() && needs.changes.outputs.application_changed == 'true' && github.event_name != 'pull_request' && !cancelled() }}
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      publish: ${{ steps.decision.outputs.publish }}
+      reason: ${{ steps.decision.outputs.reason }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Decide whether TestRail publication is complete
+        id: decision
+        shell: bash
+        run: |
+          python scripts/quality/ci_publication.py decide \
+            --event-name "${{ github.event_name }}" \
+            --application-changed "${{ needs.changes.outputs.application_changed }}" \
+            --changes-result "${{ needs.changes.result }}" \
+            --backend-result "${{ needs.backend.result }}" \
+            --frontend-result "${{ needs.frontend.result }}" \
+            --e2e-result "${{ needs.e2e.result }}" |
+            tee -a "$GITHUB_OUTPUT"
+
+  testrail:
+    name: Publish TestRail results
+    needs:
+      - publication_gate
+    if: ${{ always() && needs.publication_gate.outputs.publish == 'true' && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -619,21 +665,18 @@ jobs:
         run: python -m pip install --disable-pip-version-check --no-input trcli==1.15.1
 
       - name: Download backend test results
-        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: backend-test-results
           path: artifacts/download/backend
 
       - name: Download frontend test results
-        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: frontend-test-results
           path: artifacts/download/frontend
 
       - name: Download Checkout E2E diagnostics
-        continue-on-error: true
         uses: actions/download-artifact@v8
         with:
           name: checkout-e2e-diagnostics
@@ -647,30 +690,26 @@ jobs:
           --e2e-root artifacts/download/e2e
           --output-dir artifacts/testrail
 
+      - name: Validate complete TestRail report set
+        run: >
+          python scripts/quality/ci_publication.py validate-reports
+          --report-directory artifacts/testrail
+
       - name: Validate Automation IDs exist uniquely in TestRail
         shell: bash
         run: |
-          shopt -s nullglob
           reports=(
             artifacts/testrail/backend-unit.junit.xml
             artifacts/testrail/backend-integration.junit.xml
             artifacts/testrail/frontend-unit.junit.xml
             artifacts/testrail/checkout-e2e.junit.xml
           )
-          existing=()
-          for report in "${reports[@]}"; do
-            [[ -f "$report" ]] && existing+=("$report")
-          done
-          if (( ${#existing[@]} == 0 )); then
-            echo "::error::No aggregated JUnit reports are available for TestRail"
-            exit 1
-          fi
           python scripts/testrail/validate_testrail_automation_ids.py \
             --host "$TESTRAIL_HOST" \
             --project "$TESTRAIL_PROJECT" \
             --username "$TESTRAIL_USERNAME" \
             --api-key "$TESTRAIL_API_KEY" \
-            "${existing[@]}"
+            "${reports[@]}"
 
       - name: Publish separate TestRail runs
         shell: bash
@@ -681,8 +720,8 @@ jobs:
             local report="$1"
             local area="$2"
             if [[ ! -f "$report" ]]; then
-              echo "::warning::${area}: aggregate report is absent; run skipped"
-              return 0
+              echo "::error::${area}: required aggregate report disappeared before publication"
+              return 1
             fi
             trcli \
               -y \
