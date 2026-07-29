@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 1.8
+> **Version:** 1.9
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `fcd051b`
-> **Working-tree scope:** local governed PR/Main cutover implementation and evidence
+> **Repository baseline:** `main` / `a41aa71`
+> **Working-tree scope:** accepted governed PR/Main execution evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -138,28 +138,38 @@ Both TestRail runs are closed, named by governed tier and linked to their origin
 
 ## GAP-022 PR/Main cutover evidence
 
-The working tree makes event semantics explicit while retaining the committed Nightly/Release contract:
+Merge commit `a41aa71` makes event semantics explicit while retaining the Nightly/Release contract:
 
 | Event profile | Logical selectors | Executable rows | TestRail publication |
 |---|---:|---:|---|
 | Pull request | 77 (`64` backend unit + `13` frontend) | 79 (`66` backend unit + `13` frontend) | none; fork/PR secrets are not consumed |
 | Main push / workflow dispatch | 174 (`77` PR + `97` Main primary) | 178 (`66` backend unit + `96` backend integration + `13` frontend + `3` E2E) | four area runs |
 
-The three mixed integration projects use policy-generated positive filters: Inventory `14/14`, Messaging `4/4` and Orders `9/9` passed locally. The complete governed Main backend produced `162/162` executable rows with zero failure or skip after a clean Release build. Local JUnit transformation produced 12 Backend Unit, 22 Backend Integration and 3 Frontend Unit TestIntents, all Passed; the unchanged Checkout E2E path is expected to contribute 4 TestIntents from 3 executable tests in shared CI.
+PR run [`30433749355`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433749355) (`CI #37`) completed successfully in 1m 51s: Quality policy, Backend and Frontend passed; Container images, Checkout E2E and Publish TestRail results were skipped. This accepts the no-Docker/no-browser/no-secret PR path while retaining backend integration compilation.
 
-PR still compiles all backend integration projects, so a moved/renamed test or broken integration assembly fails left-shift even though Docker-backed execution is deferred to `main`. Container-image build, Checkout E2E and TestRail publication are skipped on pull requests. Main is cumulative rather than exclusive, which preserves fast-test coverage for direct pushes. Shared acceptance of both event paths remains pending.
+Main run [`30433934594`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433934594) (`CI #38`) completed successfully on merge commit `a41aa71`; all six jobs passed, including Container images, Checkout E2E and TestRail publication. TestRail created four closed 100% Passed runs:
+
+| TestRail run | Area | TestIntent results | Result |
+|---|---|---:|---|
+| `R55` | Backend Unit | 12 | Passed |
+| `R56` | Backend Integration | 22 | Passed |
+| `R57` | Frontend Unit | 3 | Passed |
+| `R58` | Checkout E2E | 4 | Passed |
+
+The three mixed integration projects use policy-generated positive filters: Inventory `14`, Messaging `4` and Orders `9`. Main is cumulative rather than exclusive, preserving fast-test coverage for direct pushes. The two shared event paths and locked TestRail cardinality are accepted; GAP-022 is complete. This records workflow evidence only and does not activate a quality gate.
 
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
 - TECH-01 and the broker-delivery/no-DLQ variant have Passed/Valid CI plus first shared Nightly/Release evidence; longitudinal scheduled history remains immature.
 - TECH-02 and QA-02 have Passed/Valid CI plus first shared Nightly/Release evidence for the governed variants; longitudinal scheduled history remains immature.
-- QA-03 Nightly/Release selection and TestRail publication are shared-acceptance complete. The governed cumulative PR/Main split is implemented and locally evidenced; shared PR and Main acceptance remains before GAP-022/W1 completion.
+- QA-03 Nightly/Release selection and publication are accepted. PR CI #37 and Main CI #38/R55–R58 complete GAP-022 and its W1 workflow substrate; no gate is activated by this evidence record.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.9 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/TestRail R55–R58 and closed GAP-022 without activating a gate. | Pending review |
 | 1.8 | 2026-07-29 | Implemented and locally evidenced the governed PR=77/Main=174 cumulative cutover with locked TestRail report counts. | Pending review |
 | 1.7 | 2026-07-29 | Promoted commit `1da2ccb` through CI #35/R45–R48 and accepted QA-03 Nightly R49 plus Release R50 shared publication. | Pending review |
 | 1.6 | 2026-07-29 | Promoted GAP-001 through CI #34/TestRail R42 and recorded the local QA-03 77/97/19/13 tier contract and workflow. | Pending review |
