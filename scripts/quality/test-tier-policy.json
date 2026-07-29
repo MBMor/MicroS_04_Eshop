@@ -3,31 +3,31 @@
   "description": "Authoritative primary ownership plus cumulative PR/Main event execution and explicit Release overlap for governed test selectors.",
   "expected_counts": {
     "PR": 77,
-    "Main": 100,
+    "Main": 102,
     "Nightly": 19,
-    "Release": 15
+    "Release": 17
   },
   "expected_execution_selector_counts": {
     "PR": 77,
-    "Main": 177,
+    "Main": 179,
     "Nightly": 19,
-    "Release": 15
+    "Release": 17
   },
   "expected_aggregate_counts": {
     "PR": 15,
-    "Main": 29,
+    "Main": 30,
     "Nightly": 11,
-    "Release": 8
+    "Release": 9
   },
   "expected_mapping_edges": {
     "PR": 80,
-    "Main": 190,
+    "Main": 192,
     "Nightly": 25,
-    "Release": 24
+    "Release": 26
   },
   "expected_main_report_counts": {
     "backend-unit": 12,
-    "backend-integration": 23,
+    "backend-integration": 24,
     "frontend-unit": 3,
     "checkout-e2e": 4
   },
@@ -164,7 +164,9 @@
     "InventoryConcurrencyMessagingTests.ConcurrentOrderCreatedDeliveriesForLastUnitDoNotOversellOrDeadLetter"
   ],
   "release_selectors": [
+    "BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy",
     "CatalogServiceIntegrationTests.CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence",
+    "CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy",
     "GatewayAuthorizationTests.CatalogMutationRoutesAreNotAddressableOrForwarded",
     "InventoryServiceIntegrationTests.ConcurrentReservationsForLastUnitDoNotOversellAndRetryLoser",
     "InventoryServiceIntegrationTests.ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder",

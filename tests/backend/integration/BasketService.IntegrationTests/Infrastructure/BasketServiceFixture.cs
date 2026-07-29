@@ -12,6 +12,7 @@ public sealed class BasketServiceFixture
             .Build();
 
     private BasketServiceFactory? _factory;
+    private string? _redisConnectionString;
 
     public HttpClient Client
     {
@@ -30,14 +31,33 @@ public sealed class BasketServiceFixture
             "The Basket Service factory has not been initialized.");
 
     internal string RedisConnectionString =>
-        _redisContainer.GetConnectionString();
+        _redisConnectionString
+        ?? throw new InvalidOperationException(
+            "The Redis connection string has not been initialized.");
+
+    public Task PauseRedisAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _redisContainer.PauseAsync(
+            cancellationToken);
+    }
+
+    public Task UnpauseRedisAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _redisContainer.UnpauseAsync(
+            cancellationToken);
+    }
 
     public async ValueTask InitializeAsync()
     {
         await _redisContainer.StartAsync();
 
+        _redisConnectionString =
+            _redisContainer.GetConnectionString();
+
         _factory = new BasketServiceFactory(
-            _redisContainer.GetConnectionString(),
+            _redisConnectionString,
             CatalogClient);
 
         Client = _factory.CreateClient(

@@ -1,10 +1,10 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 2.8
-> **Status:** Implemented — the 45-case catalogue is live; TECH-07 is accepted in Main `CI #62` / TestRail `R86`–`R89` and governed Release `R90`
+> **Version:** 2.9
+> **Status:** Implemented — the 45-case catalogue is live; TECH-08/C80 is synchronized and shared evidence is pending
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
-> **Baseline:** `main` / `4ec560f`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
+> **Baseline:** `main` / `7a90d9a`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -175,7 +175,7 @@ Stores release scope, activation/applicability, complete required mapping/input 
 | Post-deployment completion | target digest/schema/config, ingress synthetic, health and telemetry |
 | Periodic operational | restore, alerts, runbooks, recovery objectives and other calendar-profile evidence |
 
-All 196 logical tests remain governed in the accepted TECH-07 contract. QA-03 defines authoritative primary ownership `PR=77`, `Main=100`, `Nightly=19` plus `Release=15 overlap`; Main is cumulative at 177 selectors. Main CI #62/R86–R89 and governed Release R90 accept the current execution and publication contract.
+All 198 logical tests remain governed in the TECH-08 candidate. QA-03 defines authoritative primary ownership `PR=77`, `Main=102`, `Nightly=19` plus `Release=17 overlap`; Main is cumulative at 179 selectors. The candidate publishes `12/24/3/4` on Main and 9 TestIntents over 26 edges on governed Release; shared acceptance remains pending.
 
 ---
 
@@ -215,7 +215,7 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
 
-The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). The accepted TECH-07 state contains 32 automated TestIntents, 196 unique source selectors and 215 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`; the gateway Catalog-mutation selector binds to both `ESHOP-CATALOG-001` and `ESHOP-GW-001`. Hotfix `4ec560f` preserves manifest version 1. Main CI #62/R86–R89 accepted `12/23/3/4`; governed Release R90 accepted 8 aggregates over 24 edges without creating a case.
+The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). The TECH-08 candidate contains 33 automated TestIntents, 198 unique source selectors and 217 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`; the gateway Catalog-mutation selector binds to both `ESHOP-CATALOG-001` and `ESHOP-GW-001`. Hotfix `4ec560f` preserves manifest version 1. TECH-08 adds two selectors to existing `ESHOP-RESILIENCE-002`; the 45-case catalogue does not grow.
 
 TECH-03/GAP-020 strengthens all four existing `ESHOP-DATA-004` bindings in place. Selector count, mapping edges, Automation ID, Main ownership and the Backend Integration aggregate count of 22 did not change. PR CI #41 and Main CI #42 passed; `[Negative mutations]` passed in TestRail R64 and GAP-020 is closed.
 
@@ -226,6 +226,8 @@ TECH-05 adds one Main selector with 43 runtime rows to existing `ESHOP-GW-001`. 
 QA-04/TECH-06 keeps the catalogue and runtime mapping unchanged while hardening publication integrity. Upstream job success plus four valid reports at exact `12/22/3/4` cardinality are prerequisites before the first TestRail call, and the E2E port-detection contract is checked for Linux and Windows command forms. Main CI #56 and closed R82–R85 accept the positive path; deterministic policy tests cover failure, skipped, cancelled, missing, malformed and cardinality-drift rejection paths. No Future gate is activated.
 
 TECH-07 synchronizes existing C53/`ESHOP-CATALOG-001`: custom `Automation Status=Automated` is authoritative, native `Is Automated=Yes` is synchronized, Implementation is Implemented, Oracle is Approved and the code-first Automation ID is `Eshop.TestIntents.ESHOP-CATALOG-001`. Its approved steps record nine direct 401/403/no-write variants and three gateway 405/no-forwarding variants. Main CI #62/R87 and governed Release R90 passed; catalogue size remains 45 and no Future gate is activated.
+
+QA-05 approves the TECH-08 dependency contract: owned PostgreSQL for Catalog, Inventory, Orders, Payments and Notifications; owned Redis for Basket; process/configuration only for Gateway; RabbitMQ and downstream HTTP excluded from service-local readiness. Existing C80/`ESHOP-RESILIENCE-002` is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Two bounded pause/unpause selectors pass locally. Shared evidence remains pending; `GATE-OPS-001` stays Future.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -239,6 +241,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.9 | 2026-07-29 | Added QA-05/TECH-08 mapping, approved dependency ownership, synchronized C80 and recorded the 33-intent, 198-selector, 217-edge candidate; shared Main/Release evidence remains pending. | Pending review |
 | 2.8 | 2026-07-29 | Accepted TECH-07 after hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed without catalogue growth. | Pending review |
 | 2.7 | 2026-07-29 | Added TECH-07 C53 automation/oracle synchronization and the 32-intent, 196-selector, 215-edge candidate contract; shared Main/Release evidence remains pending. | Pending review |
 | 2.6 | 2026-07-29 | Accepted QA-04/TECH-06 publication integrity through Main CI #56 and TestRail R82–R85 without catalogue, binding or report-cardinality change. | Pending review |

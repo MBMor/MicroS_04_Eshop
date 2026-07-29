@@ -11,8 +11,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\shared\ErrorHandling.Shared\ErrorHandling.Shared.csproj" />
+    <ProjectReference Include="..\..\shared\HealthChecks.Shared\HealthChecks.Shared.csproj" />
     <ProjectReference Include="..\..\shared\Security.Shared\Security.Shared.csproj" />
   </ItemGroup>
 
 </Project>  
-

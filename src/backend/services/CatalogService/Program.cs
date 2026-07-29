@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using CatalogService.Data;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +27,6 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEshopErrorHandling();
 
 builder.Services.AddEshopOpenApi(
@@ -48,6 +47,11 @@ builder.Services.AddDbContext<CatalogDbContext>(options =>
     options.UseNpgsql(catalogConnectionString);
 });
 
+builder.Services
+    .AddHealthChecks()
+    .AddEshopPostgreSqlReadinessCheck(
+        catalogConnectionString);
+
 WebApplication app = builder.Build();
 
 app.UseEshopErrorHandling();
@@ -57,6 +61,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

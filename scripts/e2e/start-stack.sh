@@ -603,37 +603,37 @@ start_service \
 wait_for_service \
   "catalog-service" \
   "Catalog Service" \
-  "http://localhost:5081/health"
+  "http://localhost:5081/ready"
 
 wait_for_service \
   "basket-service" \
   "Basket Service" \
-  "http://localhost:5082/health"
+  "http://localhost:5082/ready"
 
 wait_for_service \
   "orders-service" \
   "Orders Service" \
-  "http://localhost:5083/health"
+  "http://localhost:5083/ready"
 
 wait_for_service \
   "inventory-service" \
   "Inventory Service" \
-  "http://localhost:5084/health"
+  "http://localhost:5084/ready"
 
 wait_for_service \
   "payments-service" \
   "Payments Service" \
-  "http://localhost:5085/health"
+  "http://localhost:5085/ready"
 
 wait_for_service \
   "notifications-service" \
   "Notifications Service" \
-  "http://localhost:5086/health"
+  "http://localhost:5086/ready"
 
 wait_for_service \
   "api-gateway" \
   "API Gateway" \
-  "http://localhost:5080/health" \
+  "http://localhost:5080/ready" \
   90
 
 wait_for_seeded_product 60

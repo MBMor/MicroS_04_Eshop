@@ -27,6 +27,30 @@
       "rate_limiter_policy": null
     },
     {
+      "id": "gateway-liveness",
+      "kind": "local",
+      "cluster_id": null,
+      "path_template": "/live",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/live",
+      "authorization_policy": null,
+      "allowed_roles": [],
+      "rate_limiter_policy": null
+    },
+    {
+      "id": "gateway-readiness",
+      "kind": "local",
+      "cluster_id": null,
+      "path_template": "/ready",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/ready",
+      "authorization_policy": null,
+      "allowed_roles": [],
+      "rate_limiter_policy": null
+    },
+    {
       "id": "gateway-auth-me",
       "kind": "local",
       "cluster_id": null,

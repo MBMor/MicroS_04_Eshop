@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.8
+> **Version:** 2.9
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `4ec560f`
-> **Working-tree scope:** accepted TECH-07/GAP-003 Main and governed Release evidence
+> **Repository baseline:** `main` / `7a90d9a`
+> **Working-tree scope:** TECH-08/GAP-004 local candidate; shared Main/Release acceptance pending
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -25,18 +25,18 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The accepted TECH-07 source baseline contains:
+The TECH-08 working-tree candidate contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
-| Logical tests | 196 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
-| Executable cases | 253 | logical tests plus five two-row Theory increments, 42 additional gateway-matrix rows, eight additional Catalog-boundary rows and two additional gateway no-forwarding rows |
-| xUnit logical / executable | 180 / 237 | 172 Facts, five two-row Theories, one 43-row Theory, one nine-row Theory and one three-row Theory |
+| Logical tests | 198 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
+| Executable cases | 257 | logical tests plus five two-row Theory increments, 44 additional gateway-matrix rows, eight additional Catalog-boundary rows and two additional gateway no-forwarding rows |
+| xUnit logical / executable | 182 / 241 | 174 Facts, five two-row Theories, one 45-row Theory, one nine-row Theory and one three-row Theory |
 | Frontend Vitest | 13 | executable tests |
 | Playwright | 3 | executable scenarios |
-| TestRail automated TestIntents | 32 | aggregate IDs in `automation-id-map.json` |
-| TestRail source selectors | 196 | unique selectors in `automation-id-map.json` |
-| TestRail binding edges | 215 | selector-to-TestIntent mappings; nineteen are deliberate multi-intent overlaps |
+| TestRail automated TestIntents | 33 | aggregate IDs in `automation-id-map.json` |
+| TestRail source selectors | 198 | unique selectors in `automation-id-map.json` |
+| TestRail binding edges | 217 | selector-to-TestIntent mappings; nineteen are deliberate multi-intent overlaps |
 
 Every logical test has exactly one unique source selector. Multiple TestIntent bindings are allowed and explain the difference between selectors and edges.
 
@@ -265,6 +265,24 @@ Governed Release [`30481512624`](https://github.com/MBMor/MicroS_04_Eshop/action
 
 Evidence validity is **Valid** for the named Main and Release variants. TECH-07 is accepted and GAP-003 is closed. `GATE-SEC-001` remains Future and unevaluated; full deployable-network topology remains GAP-013.
 
+## QA-05 / TECH-08 / GAP-004 local evidence
+
+TECH-08 introduces shared endpoint registration for all seven HTTP processes. `/live` runs no dependency checks, `/ready` runs owned mandatory checks and transitional `/health` uses the same readiness predicate. Catalog, Inventory, Orders, Payments and Notifications execute a bounded non-destructive PostgreSQL `SELECT 1`; Basket probes its configured Redis cache; Gateway has no mandatory runtime downstream check. RabbitMQ is deliberately excluded because outbox-backed services are designed to remain available during a temporary broker outage.
+
+`CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy` and `BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy` pause the real Testcontainer without changing its network identity. Both prove healthy readiness, `/live=200` during dependency loss, bounded `/ready=503`, the compatibility alias at 503, a body of exactly `Unhealthy` without the connection string, and recovery to `Healthy` without restarting the HTTP service. Cleanup unpauses the dependency in `finally` and polling is bounded and condition-based.
+
+Local evidence on 2026-07-29:
+
+- solution restore/build: passed, 0 warnings and 0 errors;
+- Catalog full project: 20/20 Passed;
+- Basket full project: 11/11 Passed;
+- API Gateway full project: 70/70 Passed, including 13 proxy and 5 local governed routes;
+- Inventory, Orders, Payments and Notifications health selectors: 1/1 Passed in each project;
+- quality policy: 38/38 Passed; TestRail tooling: 8/8 Passed;
+- tier validation: 198 selectors; `PR=77`, `Main primary=102`, `Main cumulative=179`, `Nightly=19`, `Release=17`; Main 30 aggregates/192 edges and Release 9 aggregates/26 edges.
+
+The two new selectors bind to existing C80/`ESHOP-RESILIENCE-002`; no case is added. C80 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Its generic evidence precondition remains Missing until the first shared result. Main publication is locked to `12/24/3/4`. Shared Main/Release evidence remains pending, so GAP-004 is not yet closed. `GATE-OPS-001` remains Future and unevaluated; full Compose/delayed-dependency topology remains GAP-013.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
@@ -277,11 +295,13 @@ Evidence validity is **Valid** for the named Main and Release variants. TECH-07 
 - TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed.
 - QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
 - TECH-07 supplies accepted direct Catalog authorization/no-write and gateway no-forwarding evidence through Main CI #62/R87 and governed Release R90; GAP-003 is closed. Deployable-network topology remains GAP-013.
+- QA-05 approves the dependency ownership and outage/recovery oracle; TECH-08 implements it with valid local PostgreSQL and Redis material variants. Shared Main/Release/TestRail acceptance is still required before GAP-004 closes.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.9 | 2026-07-29 | Added QA-05 oracle and local TECH-08/GAP-004 implementation evidence, synchronized C80 automation identity, and recorded the 198-selector/217-edge candidate. | Pending review |
 | 2.8 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed at 100%. | Pending review |
 | 2.7 | 2026-07-29 | Added local TECH-07/GAP-003 Catalog mutation-boundary evidence, synchronized C53 and the 196-selector/215-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
 | 2.6 | 2026-07-29 | Accepted QA-04/TECH-06 after Main CI #56 passed and TestRail R82–R85 closed at 100% with locked `12/22/3/4` cardinality. | Pending review |

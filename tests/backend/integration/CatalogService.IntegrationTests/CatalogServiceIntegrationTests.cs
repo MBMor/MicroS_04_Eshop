@@ -37,6 +37,80 @@ public sealed class CatalogServiceIntegrationTests(
         return ValueTask.CompletedTask;
     }
 
+    [Fact]
+    public async Task
+        ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy()
+    {
+        CancellationToken cancellationToken =
+            Xunit.TestContext.Current.CancellationToken;
+
+        await AssertEndpointStatusAsync(
+            "/live",
+            HttpStatusCode.OK,
+            cancellationToken);
+
+        await AssertEndpointStatusAsync(
+            "/ready",
+            HttpStatusCode.OK,
+            cancellationToken);
+
+        await AssertEndpointStatusAsync(
+            "/health",
+            HttpStatusCode.OK,
+            cancellationToken);
+
+        await fixture.PausePostgresAsync(
+            cancellationToken);
+
+        try
+        {
+            await AssertEndpointStatusAsync(
+                "/live",
+                HttpStatusCode.OK,
+                cancellationToken);
+
+            using HttpResponseMessage unavailableResponse =
+                await WaitForStatusAsync(
+                    "/ready",
+                    HttpStatusCode.ServiceUnavailable,
+                    cancellationToken);
+
+            string responseBody =
+                await unavailableResponse.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            Assert.Equal(
+                "Unhealthy",
+                responseBody);
+
+            Assert.DoesNotContain(
+                fixture.PostgresConnectionString,
+                responseBody,
+                StringComparison.OrdinalIgnoreCase);
+
+            await AssertEndpointStatusAsync(
+                "/health",
+                HttpStatusCode.ServiceUnavailable,
+                cancellationToken);
+        }
+        finally
+        {
+            await fixture.UnpausePostgresAsync(
+                cancellationToken);
+        }
+
+        using HttpResponseMessage recoveredResponse =
+            await WaitForStatusAsync(
+                "/ready",
+                HttpStatusCode.OK,
+                cancellationToken);
+
+        Assert.Equal(
+            "Healthy",
+            await recoveredResponse.Content.ReadAsStringAsync(
+                cancellationToken));
+    }
+
     public static IEnumerable<object?[]>
         CatalogMutationBoundaryCases()
     {
@@ -870,5 +944,51 @@ public sealed class CatalogServiceIntegrationTests(
         AssertTimestampEqual(
             expected.Value,
             actual.Value);
+    }
+
+    private async Task AssertEndpointStatusAsync(
+        string endpoint,
+        HttpStatusCode expectedStatus,
+        CancellationToken cancellationToken)
+    {
+        using HttpResponseMessage response =
+            await _client.GetAsync(
+                endpoint,
+                cancellationToken);
+
+        Assert.Equal(
+            expectedStatus,
+            response.StatusCode);
+    }
+
+    private async Task<HttpResponseMessage> WaitForStatusAsync(
+        string endpoint,
+        HttpStatusCode expectedStatus,
+        CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource timeout =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+
+        while (true)
+        {
+            HttpResponseMessage response =
+                await _client.GetAsync(
+                    endpoint,
+                    timeout.Token);
+
+            if (response.StatusCode == expectedStatus)
+            {
+                return response;
+            }
+
+            response.Dispose();
+
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(250),
+                timeout.Token);
+        }
     }
 }
