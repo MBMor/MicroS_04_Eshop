@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.4
+> **Version:** 2.5
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `06b8895`
-> **Working-tree scope:** local TECH-05/GAP-026 gateway authorization evidence, pending shared acceptance
+> **Repository baseline:** `main` / `daf835d`
+> **Working-tree scope:** accepted TECH-05/GAP-026 gateway authorization and E2E runner-portability evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -25,7 +25,7 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The local TECH-05 source baseline contains the counts below. Accepted shared publication remains CI #46/R71–R74 until the change reaches Main.
+The accepted TECH-05 source baseline contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
@@ -210,7 +210,7 @@ Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains 
 
 PR run [`30444117840`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30444117840) (`CI #47`) and Main run [`30444165223`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30444165223) (`CI #48`) passed on the docs-only change ending at `06b8895`. Only Change scope and Quality policy executed. Backend, Frontend, Container images, Checkout E2E and TestRail publication were skipped, so TestRail stayed at 62 completed runs and R71–R74 remained the latest publication. This accepts the docs-only optimization without creating redundant execution evidence.
 
-## TECH-05 local evidence
+## TECH-05 evidence
 
 The authoritative gateway registry and integration matrix were verified locally on 2026-07-29:
 
@@ -221,7 +221,20 @@ The authoritative gateway registry and integration matrix were verified locally 
 | Quality policy unit tests | 24 | 0 | route registry, tier, mapping and report-cardinality drift controls |
 | TestRail transformation unit tests | 7 | 0 | aggregate/publication contract retained |
 
-[`gateway_routes.py`](../../scripts/quality/gateway_routes.py) reconciles [`gateway-route-policy.json`](../../scripts/quality/gateway-route-policy.json) against the production gateway configuration and reports `16` routes (`13` proxy, `3` local). The new Main selector binds to existing `ESHOP-GW-001`, so the local contract becomes 194 selectors/212 edges, Main primary 98 and cumulative Main 175. The four Main report aggregates remain locked at `12/22/3/4`; no TestRail case or gate state changes. This evidence is local until PR and Main CI pass and Main republishes the aggregate.
+[`gateway_routes.py`](../../scripts/quality/gateway_routes.py) reconciles [`gateway-route-policy.json`](../../scripts/quality/gateway-route-policy.json) against the production gateway configuration and reports `16` routes (`13` proxy, `3` local). The new Main selector binds to existing `ESHOP-GW-001`, so the contract is 194 selectors/212 edges, Main primary 98 and cumulative Main 175. The four Main report aggregates remain locked at `12/22/3/4`; no TestRail case or gate state changes.
+
+TECH-05 merged as `002ceab`. Its first Main execution, CI #50, passed Backend Unit, Backend Integration and Frontend Unit and published partial TestRail R75–R77, but Checkout E2E failed before stack startup because Ubuntu `ss` does not support `--headers=never`. CI #50 and its partial publication are retained as diagnostic evidence, not acceptance evidence.
+
+Commit `daf835d` replaced the unsupported option with portable `ss -ltn`/`ss -ltnp`. Main run [`30448986631`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30448986631) (`CI #52`) passed all jobs and published four closed 100% Passed runs:
+
+| TestRail run | Area | TestIntent results | Result |
+|---|---|---:|---|
+| `R78` | Backend Unit | 12 | Passed |
+| `R79` | Backend Integration | 22 | Passed; includes `[Gateway authorization]` / `ESHOP-GW-001` |
+| `R80` | Frontend Unit | 3 | Passed |
+| `R81` | Checkout E2E | 4 | Passed |
+
+The project now has 69 completed TestRail runs and no open run. R79 proves the new selector aggregated into the existing gateway TestIntent without creating a case or changing report cardinality. This accepts TECH-05/GAP-026 while `GATE-SEC-001` remains Future and unevaluated.
 
 ## Current interpretation
 
@@ -232,12 +245,13 @@ The authoritative gateway registry and integration matrix were verified locally 
 - TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
 - TECH-04 fixes and locks the adjacent Catalog ProblemDetails media type; CI #45/#46 and TestRail R72 accept it without reopening GAP-020.
 - The docs-only gate is accepted by CI #47/#48 and correctly produced no TestRail runs.
-- TECH-05 supplies local direct gateway route/policy/non-forwarding evidence; shared Main/TestRail acceptance is still pending and direct Catalog network isolation remains GAP-003.
+- TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed. Direct Catalog network isolation remains GAP-003.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.5 | 2026-07-29 | Accepted TECH-05 after CI #50 exposed the E2E `ss` portability defect and hotfix `daf835d` passed Main CI #52/TestRail R78–R81. | Pending review |
 | 2.4 | 2026-07-29 | Recorded docs-only CI #47/#48 acceptance and local TECH-05 evidence: 16 endpoints, 43 matrix rows, 65/65 gateway regression and 194/212 runtime mapping. | Pending review |
 | 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R71–R74 with unchanged TestRail identity and cardinality. | Pending review |
 | 2.2 | 2026-07-29 | Added local TECH-04 pre-fix failure and post-fix Catalog/build/governance evidence with unchanged TestRail identity. | Pending review |

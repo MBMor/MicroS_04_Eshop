@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.5
+> **Version:** 2.6
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `06b8895`; TECH-05/GAP-026 evidence is local and pending shared acceptance
+> **Baseline:** `main` / `daf835d`; TECH-05/GAP-026 accepted in CI #52 and TestRail R79
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The local TECH-05 working tree has **194 logical tests and 241 executable cases**: five two-row theories add five executable cases and the 43-row gateway authorization theory adds 42. All 194 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted TECH-05 baseline has **194 logical tests and 241 executable cases**: five two-row theories add five executable cases and the 43-row gateway authorization theory adds 42. All 194 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
-GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime on merge commit `a41aa71`. TECH-03 passed PR `CI #41` and Main `CI #42`; TECH-04 then passed PR `CI #45` and Main `CI #46` on commit `b298107`. The docs-only gate was accepted by PR `CI #47` and Main `CI #48` on `06b8895` without publishing TestRail results. TestRail `R71`–`R74` therefore remain the latest accepted locked `12/22/3/4` publication. TECH-05 adds local direct gateway evidence and one binding to the existing `ESHOP-GW-001` aggregate; it does not claim shared acceptance or activate a gate. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
+GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 first reached Main in CI #50, whose Checkout E2E startup exposed an incompatible `ss` option; its three partial TestRail runs are not acceptance evidence. Commit `daf835d` fixed the runner portability issue, Main `CI #52` passed, and TestRail `R78`–`R81` retained locked `12/22/3/4` cardinality. `ESHOP-GW-001` passed in R79. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -339,7 +339,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - The nine legacy Partially covered rows are six status-only health/migration smoke rows plus Catalog invalid create and two Orders validations.
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
-- No executable test is removed from the governed portfolio. The local TECH-05 contract executes 77 logical/79 executable rows on PR, 175 logical/221 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 13 logical/14 executable Release-overlap rows.
+- No executable test is removed from the governed portfolio. The accepted TECH-05 contract executes 77 logical/79 executable rows on PR, 175 logical/221 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 13 logical/14 executable Release-overlap rows.
 - TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants. The two-consumer broker-delivery/no-DLQ variant passed in CI #35/TestRail R46 and the governed tier runs; longitudinal scheduled history remains immature.
 - TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; QA-02 proves sequential and concurrent duplicate HTTP delivery produce one complete downstream workflow. The governed variants passed the first Nightly/Release runs; the five-run local concurrency smoke remains supporting determinism evidence.
 
@@ -347,6 +347,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.6 | 2026-07-29 | Accepted TECH-05 after the E2E runner-portability fix: Main CI #52 and TestRail R78–R81 passed, including ESHOP-GW-001 in R79. | Pending review |
 | 2.5 | 2026-07-29 | Added local TECH-05 complete gateway authorization/non-forwarding matrix: 16 endpoints, 43 variants, 194 selectors and 212 bindings; shared acceptance remains pending. | Pending review |
 | 2.4 | 2026-07-29 | Accepted TECH-04 through PR CI #45 and Main CI #46/TestRail R72 with unchanged selectors, bindings and report cardinality. | Pending review |
 | 2.3 | 2026-07-29 | Added local TECH-04 Catalog `application/problem+json` evidence without changing selectors, bindings or report cardinality. | Pending review |
