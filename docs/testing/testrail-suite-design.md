@@ -1,14 +1,14 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 3.0
-> **Status:** Implemented — the 45-case catalogue is live; TECH-08/C80 has accepted Main and Release evidence
+> **Version:** 3.2
+> **Status:** Implemented — the live 45-case catalogue is formatted and audited under QA-TR-01
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main` / `36f6c5d`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
-This design implements [TestRail and Traceability Governance](testrail-governance.md). Stable intent, executable bindings, append-only execution evidence, gate contributions and release decisions are separate records. Proposed `ESHOP-*` values are durable external references, not TestRail internal `C` IDs.
+This design implements [TestRail and Traceability Governance](testrail-governance.md). Stable intent, executable bindings, append-only execution evidence, gate contributions and release decisions are separate records. Proposed `ESHOP-*` values are durable external references, not TestRail internal `C` IDs. Human-readable Preconditions and Steps follow the [TestRail Case Writing Standard](testrail-case-writing-standard.md).
 
 ---
 
@@ -227,7 +227,9 @@ QA-04/TECH-06 keeps the catalogue and runtime mapping unchanged while hardening 
 
 TECH-07 synchronizes existing C53/`ESHOP-CATALOG-001`: custom `Automation Status=Automated` is authoritative, native `Is Automated=Yes` is synchronized, Implementation is Implemented, Oracle is Approved and the code-first Automation ID is `Eshop.TestIntents.ESHOP-CATALOG-001`. Its approved steps record nine direct 401/403/no-write variants and three gateway 405/no-forwarding variants. Main CI #62/R87 and governed Release R90 passed; catalogue size remains 45 and no Future gate is activated.
 
-QA-05 approves the TECH-08 dependency contract: owned PostgreSQL for Catalog, Inventory, Orders, Payments and Notifications; owned Redis for Basket; process/configuration only for Gateway; RabbitMQ and downstream HTTP excluded from service-local readiness. Existing C80/`ESHOP-RESILIENCE-002` is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Two bounded pause/unpause selectors passed Main CI #66/R92 and governed Release #4/R95; C80 has a Passed result in both completed runs. Its legacy imported Preconditions prose still says `Evidence Strength: Missing` / `Decision required`; current custom metadata, `evidence-direct` tag and immutable result history supersede that non-authoritative text. Clean the prose only through a controlled rich-editor update that preserves References. GAP-004 is closed while `GATE-OPS-001` stays Future.
+QA-05 approves the TECH-08 dependency contract: owned PostgreSQL for Catalog, Inventory, Orders, Payments and Notifications; owned Redis for Basket; process/configuration only for Gateway; RabbitMQ and downstream HTTP excluded from service-local readiness. Existing C80/`ESHOP-RESILIENCE-002` is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Two bounded pause/unpause selectors passed Main CI #66/R92 and governed Release #4/R95; C80 has a Passed result in both completed runs. QA-TR-01 replaced its stale imported `Evidence Strength: Missing` / `Decision required` prose with the approved direct oracle and bounded recovery instructions while preserving References, Automation ID and result history. GAP-004 is closed while `GATE-OPS-001` stays Future.
+
+QA-TR-01 introduces a readability standard without changing case identity or evidence history. The initial pilot rewrote C51/`ESHOP-GW-001`, C60/`ESHOP-ORDER-002`, C63/`ESHOP-INVENTORY-002`, C76/`ESHOP-E2E-001` and C80/`ESHOP-RESILIENCE-002`; after visual acceptance, the remaining 40 cases were rewritten in place. Stable illustrative data is included where it reduces ambiguity: representative route/role rows in C51, checkout replay data in C60, an explicitly nondeterministic last-unit winner in C63 and an exact `2 x 49.90 = 99.80 CZK` calculation in C76. C80 already supplies the complete `/ready 200 -> 503 -> 200` example and is not padded with duplicate prose. Every case now uses labelled Preconditions and short action/oracle paragraphs with bullet-structured statuses, counts, evidence and cleanup. The 39 imported generic actions expose their case-specific test data under `VARIANTS`; C53 and the five pilot cases keep their custom actions. Manual, Planned, Missing/Partial evidence and `Decision required` metadata remain unchanged. A full C49–C93 UI audit confirmed 45/45 References, formatting and automation-field presence with zero generic import phrases; all 45 Tests & Results pages remain attached to the same C IDs.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -241,6 +243,8 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 3.2 | 2026-07-29 | Completed QA-TR-01 across all 45 cases and audited References, structured content, automation-field presence and results-page continuity. | Pending review |
+| 3.1 | 2026-07-29 | Added the TestRail case-writing standard and QA-TR-01 five-case readability pilot, including stable illustrative examples and in-place identity/evidence preservation. | Pending review |
 | 3.0 | 2026-07-29 | Accepted TECH-08/C80 through Main `36f6c5d`/CI #66/R92 and governed Release #4/R95; closed GAP-004 without catalogue growth or gate activation. | Pending review |
 | 2.9 | 2026-07-29 | Added QA-05/TECH-08 mapping, approved dependency ownership, synchronized C80 and recorded the 33-intent, 198-selector, 217-edge candidate; shared Main/Release evidence remains pending. | Pending review |
 | 2.8 | 2026-07-29 | Accepted TECH-07 after hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed without catalogue growth. | Pending review |

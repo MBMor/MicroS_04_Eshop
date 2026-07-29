@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 3.0
+> **Version:** 3.2
 > **As of:** 2026-07-29 (Europe/Prague)
 > **Repository baseline:** `main` / `36f6c5d`
-> **Current scope:** TECH-08/GAP-004 accepted through Main CI #66 and governed Release #4
+> **Current scope:** TECH-08/GAP-004 evidence accepted; QA-TR-01 readability rollout verified across all 45 cases
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -283,9 +283,26 @@ Supporting local evidence on 2026-07-29:
 
 The two new selectors bind to existing C80/`ESHOP-RESILIENCE-002`; no case is added. C80 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Main publication is locked to `12/24/3/4`.
 
-PR #15 merged TECH-08 as `36f6c5d`. Main GitHub Actions run [`30486673945`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30486673945) completed successfully, including Container images, Checkout E2E, the TestRail publication gate and publication. TestRail CI #66 Backend Integration R92 is completed at 24/24 Passed and contains Passed C80. Governed Release run [`30487730431`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30487730431) completed all six selected backend partitions and publication; TestRail Release #4/R95 is completed at 9/9 Passed and contains a second Passed C80 result. C80 therefore reports two Passed results in the current 30-day window. Its legacy import prose in Preconditions still contains historical `Evidence Strength: Missing` / `Decision required` wording; current Approved/Implemented custom metadata, the `evidence-direct` tag and immutable R92/R95 history supersede that prose. Rich-editor cleanup is non-blocking and must preserve the References token.
+PR #15 merged TECH-08 as `36f6c5d`. Main GitHub Actions run [`30486673945`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30486673945) completed successfully, including Container images, Checkout E2E, the TestRail publication gate and publication. TestRail CI #66 Backend Integration R92 is completed at 24/24 Passed and contains Passed C80. Governed Release run [`30487730431`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30487730431) completed all six selected backend partitions and publication; TestRail Release #4/R95 is completed at 9/9 Passed and contains a second Passed C80 result. C80 therefore reports two Passed results in the current 30-day window. QA-TR-01 subsequently replaced the stale imported Preconditions text in place; Approved/Implemented metadata, the `evidence-direct` tag and immutable R92/R95 history remain attached to C80.
 
 Evidence validity is **Valid** for the named PostgreSQL and Redis outage/recovery variants on `36f6c5d`. GAP-004 is closed. `GATE-OPS-001` remains Future and unevaluated; full Compose/delayed-dependency and orchestration-consumption topology remains GAP-013.
+
+## QA-TR-01 TestRail readability rollout
+
+The [TestRail Case Writing Standard](testrail-case-writing-standard.md) was first applied in place to C51/`ESHOP-GW-001`, C60/`ESHOP-ORDER-002`, C63/`ESHOP-INVENTORY-002`, C76/`ESHOP-E2E-001` and C80/`ESHOP-RESILIENCE-002`. C51, C60, C63 and C76 contain stable illustrative examples taken from the executable contract; C80 already contains an exact outage/recovery sequence and deliberately receives no duplicate example. After visual review, the remaining C49–C93 cases were converted in place, excluding those five already-completed pilot cases.
+
+All 45 cases now identify owner, evidence strength, purpose, setup, material data, durable oracle, evidence to retain, bounded wait and cleanup in labelled visual blocks. Four paired action/oracle steps separate preparation, behavior, durable inspection and cleanup into short paragraphs and bullets. The 39 imported generic actions repeat their case-specific execution data under `VARIANTS`, so the action no longer depends on interpreting a generic instruction. Existing case-specific data and oracle text were retained; curated C53 kept its approved direct-service/gateway authorization matrix rather than receiving the generic imported action pattern.
+
+Post-save UI verification on 2026-07-29 confirmed for all 45 cases:
+
+- every expected `ESHOP-*` Reference from C49 through C93 is present (45/45);
+- labelled Preconditions, bullet-structured Steps and both automation metadata fields are visible (45/45);
+- no case retains the generic import phrases `Verify the recorded candidate/environment` or `Preconditions: candidate identity`;
+- all 45 Tests & Results pages remain reachable through the same C IDs;
+- Manual, Planned, Missing/Partial evidence and `Decision required` states remain visible and were not promoted by the edit;
+- the pilot Automation IDs and previously verified Passed history remain attached to their unchanged case identities.
+
+This is governance/readability evidence, not a new test execution and not a gate activation. Result-page reachability proves continuity of case identity, not a Passed result for planned/manual cases.
 
 ## Current interpretation
 
@@ -300,11 +317,14 @@ Evidence validity is **Valid** for the named PostgreSQL and Redis outage/recover
 - QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
 - TECH-07 supplies accepted direct Catalog authorization/no-write and gateway no-forwarding evidence through Main CI #62/R87 and governed Release R90; GAP-003 is closed. Deployable-network topology remains GAP-013.
 - QA-05 approves the dependency ownership and outage/recovery oracle; TECH-08 is accepted through Main CI #66/R92 and governed Release #4/R95. GAP-004 is closed while GATE-OPS-001 remains Future and GAP-013 retains full-topology evidence.
+- QA-TR-01 applies the human-readable authoring pattern to the full 45-case catalogue while preserving stable identity, automation/decision metadata and result-page continuity; it does not change coverage or gate state.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 3.2 | 2026-07-29 | Completed QA-TR-01 across C49–C93 and recorded the 45/45 Reference, formatting, automation-field and result-page continuity audit. | Pending review |
+| 3.1 | 2026-07-29 | Recorded QA-TR-01 five-case readability pilot with stable illustrative examples and post-save preservation audit for References, Automation IDs, automation metadata and Passed history. | Pending review |
 | 3.0 | 2026-07-29 | Accepted QA-05/TECH-08 on `36f6c5d` through Main CI #66/R92 and governed Release #4/R95; closed GAP-004 without activating GATE-OPS-001. | Pending review |
 | 2.9 | 2026-07-29 | Added QA-05 oracle and local TECH-08/GAP-004 implementation evidence, synchronized C80 automation identity, and recorded the 198-selector/217-edge candidate. | Pending review |
 | 2.8 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed at 100%. | Pending review |
