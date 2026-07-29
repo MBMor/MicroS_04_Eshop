@@ -61,13 +61,13 @@ public static class ErrorHandlingServiceCollectionExtensions
                     problemDetails.Extensions["requestId"] =
                         actionContext.HttpContext.TraceIdentifier;
 
-                    return new BadRequestObjectResult(
+                    return new JsonResult(
                         problemDetails)
                     {
-                        ContentTypes =
-                        {
+                        StatusCode =
+                            StatusCodes.Status400BadRequest,
+                        ContentType =
                             "application/problem+json"
-                        }
                     };
                 };
         });

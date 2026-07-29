@@ -1,7 +1,7 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 2.1
+> **Version:** 2.2
 > **Status:** Implemented — the 45-case catalogue is live; latest Main `CI #42` / TestRail `R63`–`R66`, QA-03 PR `CI #37`, Nightly `R49` and Release `R50` are accepted
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
@@ -219,6 +219,8 @@ The repository runtime contract is [`scripts/testrail/automation-id-map.json`](.
 
 TECH-03/GAP-020 strengthens all four existing `ESHOP-DATA-004` bindings in place. Selector count, mapping edges, Automation ID, Main ownership and the Backend Integration aggregate count of 22 did not change. PR CI #41 and Main CI #42 passed; `[Negative mutations]` passed in TestRail R64 and GAP-020 is closed.
 
+TECH-04 locally adds an exact `application/problem+json` assertion to the existing Catalog binding and changes only shared response serialization. It does not add a selector, binding, case or report row; shared Main/TestRail acceptance is pending at the same locked cardinality.
+
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
 The archived canonical CSV uses exactly 28 source columns and a repeated step-row model. Generated upload transports add a 29th, derived `Is Automated` column. Evidence Strength, owner, test data, final durable oracle, diagnostics and cleanup remain explicit in Preconditions because the mandated source column set has no dedicated fields. On the verified instance, canonical Type `Smoke` maps explicitly to TestRail `Smoke & Sanity`; this transport adaptation does not change the canonical enum.
@@ -231,6 +233,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.2 | 2026-07-29 | Recorded local TECH-04 media-type evidence without catalogue, binding or report-cardinality change. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R64; closed GAP-020 without catalogue or cardinality change. | Pending review |
 | 2.0 | 2026-07-29 | Recorded local TECH-03/GAP-020 strengthening of the existing ESHOP-DATA-004 bindings without catalogue or cardinality change. | Pending review |
 | 1.9 | 2026-07-29 | Accepted PR CI #37 and cumulative Main CI #38 with TestRail R55–R58; closed GAP-022. | Pending review |

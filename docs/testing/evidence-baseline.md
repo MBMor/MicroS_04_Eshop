@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.1
+> **Version:** 2.2
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `c587eb9`
-> **Working-tree scope:** accepted TECH-03/GAP-020 atomic-rejection evidence
+> **Repository baseline:** `main` / `7e92102`
+> **Working-tree scope:** local TECH-04 ProblemDetails media-type evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -182,7 +182,20 @@ PR run [`30437936730`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/304
 
 The locked `12/22/3/4` cardinality and existing TestRail identity were preserved. This accepts TECH-03 and closes GAP-020 without changing a risk score, control state or quality-gate lifecycle.
 
-An adjacent finding remains out of scope: Catalog model-validation bodies are structurally correct but currently negotiate `application/json` rather than `application/problem+json`. No global shared-error-handling change is claimed by TECH-03.
+TECH-03 did not claim the adjacent Catalog media-type finding; TECH-04 addresses it separately below.
+
+## TECH-04 local evidence
+
+The pre-fix targeted Catalog run failed 0/1 because the observed response media type was `application/json` despite the previous `ObjectResult.ContentTypes` declaration. TECH-04 returns the same `ValidationProblemDetails` through an explicit `JsonResult` with `application/problem+json` and adds a fail-fast header assertion to the existing selector.
+
+| Verification | Passed | Failed | Result |
+|---|---:|---:|---|
+| Targeted invalid Catalog create | 1 | 0 | exact ProblemDetails media type plus existing body/correlation/no-write oracle |
+| Full Catalog integration regression | 10 | 0 | all Catalog API behavior retained |
+| Release solution build | all projects | 0 | zero warnings and zero errors |
+| Quality/TestRail Python controls | 17 + 7 | 0 | selector, tier, mapping and transformation contracts retained |
+
+Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains a four-selector Main aggregate and the locked TestRail cardinality remains `12/22/3/4`. This evidence is local until PR/Main CI and TestRail accept the unchanged identity.
 
 ## Current interpretation
 
@@ -191,11 +204,13 @@ An adjacent finding remains out of scope: Catalog model-validation bodies are st
 - TECH-02 and QA-02 have Passed/Valid CI plus first shared Nightly/Release evidence for the governed variants; longitudinal scheduled history remains immature.
 - QA-03 Nightly/Release selection and publication are accepted. PR CI #37 and Main CI #38/R55–R58 complete GAP-022 and its W1 workflow substrate; no gate is activated by this evidence record.
 - TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
+- TECH-04 locally fixes and locks the adjacent Catalog ProblemDetails media type; shared acceptance remains outstanding without reopening GAP-020.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.2 | 2026-07-29 | Added local TECH-04 pre-fix failure and post-fix Catalog/build/governance evidence with unchanged TestRail identity. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R63–R66; closed GAP-020 without changing risk or gate state. | Pending review |
 | 2.0 | 2026-07-29 | Recorded local TECH-03/GAP-020 ProblemDetails, no-write and basket-retention evidence with unchanged TestRail identity/cardinality. | Pending review |
 | 1.9 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/TestRail R55–R58 and closed GAP-022 without activating a gate. | Pending review |

@@ -1,10 +1,10 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.2
+> **Version:** 2.3
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `c587eb9`; TECH-03/GAP-020 accepted in CI #41/#42 and TestRail R64
+> **Baseline:** `main` / `7e92102`; local TECH-04 evidence is separated from accepted TECH-03/GAP-020 evidence
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
 One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted baseline has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
@@ -196,7 +196,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `GetProductsIncludeInactiveReturnsAllProducts` | R-ORDER-002 | direct functional API behavior; no authorization assertion |
 | `GetProductByIdUnknownProductReturnsNotFound` | R-ORDER-002 | 404 |
 | `CreateProductValidRequestPersistsNormalizedProduct` | R-AUTH-001 | 201/location/body/DB; auth unasserted |
-| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical ValidationProblemDetails fields/error/trace/request IDs and unchanged PostgreSQL product cardinality |
+| `CreateProductInvalidRequestReturnsBadRequest` | R-ORDER-002 | **Direct named variant:** canonical `application/problem+json` ValidationProblemDetails fields/error/trace/request IDs and unchanged PostgreSQL product cardinality; media-type assertion is local pending shared acceptance |
 | `CreateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original retained |
 | `UpdateProductValidRequestPersistsNewValues` | R-ORDER-002 | response/DB |
 | `UpdateProductDuplicateSkuReturnsConflict` | R-DATA-001 | 409/original values |
@@ -346,6 +346,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.3 | 2026-07-29 | Added local TECH-04 Catalog `application/problem+json` evidence without changing selectors, bindings or report cardinality. | Pending review |
 | 2.2 | 2026-07-29 | Accepted TECH-03 through PR CI #41 and Main CI #42/TestRail R64; closed GAP-020 with unchanged bindings and cardinality. | Pending review |
 | 2.1 | 2026-07-29 | Strengthened the four ESHOP-DATA-004 selectors with traceable ProblemDetails, no-write and basket-retention evidence without changing counts or bindings. | Pending review |
 | 2.0 | 2026-07-29 | Accepted PR CI #37 and cumulative Main CI #38 with TestRail R55–R58 at the locked `12/22/3/4` cardinality. | Pending review |

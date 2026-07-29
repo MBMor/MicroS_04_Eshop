@@ -219,6 +219,10 @@ public sealed class CatalogServiceIntegrationTests(
             HttpStatusCode.BadRequest,
             response.StatusCode);
 
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
+
         ValidationProblemDetails problem =
             await ReadRequiredAsync<ValidationProblemDetails>(
                 response);
