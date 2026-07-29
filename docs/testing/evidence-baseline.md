@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 1.7
+> **Version:** 1.8
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `1da2ccb`
-> **Working-tree scope:** CI #35 and QA-03 Nightly/Release shared-evidence promotion
+> **Repository baseline:** `main` / `fcd051b`
+> **Working-tree scope:** local governed PR/Main cutover implementation and evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -136,17 +136,31 @@ The committed [`quality-tiers.yml`](../../.github/workflows/quality-tiers.yml) s
 
 Both TestRail runs are closed, named by governed tier and linked to their originating GitHub run. This accepts selection, execution, transformation and publication mechanics. It is the first shared tier observation, not longitudinal flake history and not a release decision or gate activation.
 
+## GAP-022 PR/Main cutover evidence
+
+The working tree makes event semantics explicit while retaining the committed Nightly/Release contract:
+
+| Event profile | Logical selectors | Executable rows | TestRail publication |
+|---|---:|---:|---|
+| Pull request | 77 (`64` backend unit + `13` frontend) | 79 (`66` backend unit + `13` frontend) | none; fork/PR secrets are not consumed |
+| Main push / workflow dispatch | 174 (`77` PR + `97` Main primary) | 178 (`66` backend unit + `96` backend integration + `13` frontend + `3` E2E) | four area runs |
+
+The three mixed integration projects use policy-generated positive filters: Inventory `14/14`, Messaging `4/4` and Orders `9/9` passed locally. The complete governed Main backend produced `162/162` executable rows with zero failure or skip after a clean Release build. Local JUnit transformation produced 12 Backend Unit, 22 Backend Integration and 3 Frontend Unit TestIntents, all Passed; the unchanged Checkout E2E path is expected to contribute 4 TestIntents from 3 executable tests in shared CI.
+
+PR still compiles all backend integration projects, so a moved/renamed test or broken integration assembly fails left-shift even though Docker-backed execution is deferred to `main`. Container-image build, Checkout E2E and TestRail publication are skipped on pull requests. Main is cumulative rather than exclusive, which preserves fast-test coverage for direct pushes. Shared acceptance of both event paths remains pending.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
 - TECH-01 and the broker-delivery/no-DLQ variant have Passed/Valid CI plus first shared Nightly/Release evidence; longitudinal scheduled history remains immature.
 - TECH-02 and QA-02 have Passed/Valid CI plus first shared Nightly/Release evidence for the governed variants; longitudinal scheduled history remains immature.
-- QA-03 Nightly/Release selection and TestRail publication are implemented and shared-acceptance complete. The established PR/main execution remains intentionally broad; its governed split is the remaining W1 rollout step.
+- QA-03 Nightly/Release selection and TestRail publication are shared-acceptance complete. The governed cumulative PR/Main split is implemented and locally evidenced; shared PR and Main acceptance remains before GAP-022/W1 completion.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.8 | 2026-07-29 | Implemented and locally evidenced the governed PR=77/Main=174 cumulative cutover with locked TestRail report counts. | Pending review |
 | 1.7 | 2026-07-29 | Promoted commit `1da2ccb` through CI #35/R45–R48 and accepted QA-03 Nightly R49 plus Release R50 shared publication. | Pending review |
 | 1.6 | 2026-07-29 | Promoted GAP-001 through CI #34/TestRail R42 and recorded the local QA-03 77/97/19/13 tier contract and workflow. | Pending review |
 | 1.5 | 2026-07-28 | Added local GAP-001 two-consumer broker-delivery/no-DLQ proof, three-run stability evidence and the 193/198 source baseline. | Pending review |

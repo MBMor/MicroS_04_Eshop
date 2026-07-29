@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 1.8
+> **Version:** 1.9
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `1da2ccb`
+> **Baseline:** `main` / `fcd051b`; governed PR/Main cutover is local until shared acceptance
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -36,7 +36,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-019` Medium | `R-GW-001`; remote IP behind proxy/multiple replicas unknown. | Ingress trust/distributed-limit Decision required; rate-limit control Partial. | Intended proxy + two gateways; trusted versus spoofed forwarded headers, independent subjects, attacker sharing/reset and documented replica behavior. | Security/performance ingress; L; Release; design first. |
 | `GAP-020` Medium | `R-DATA-001/R-ORDER-002`; several 400 tests are status-only. | Approved negative behavior; controls unaffected. | Assert ProblemDetails fields/trace and zero product/order/history/outbox writes; unchanged basket. | Existing API fixtures; XS; PR/Main; immediate. |
 | `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; direct DB multiline atomicity is covered by TECH-01, but late/reordered broker delivery is absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; broker-delivered mixed lines; correct ack/DLQ, terminal immutability and no extra outbox. | Messaging; M; Nightly; late policy first. |
-| `GAP-022` Medium — Nightly/Release accepted; PR/Main rollout residual | All 193 selectors have a fail-closed primary classification (`PR=77`, `Main=97`, `Nightly=19`) and explicit Release overlap (`13`). Commit `1da2ccb` passed CI #35; Nightly `R49` published 11/11 and Release `R50` 6/6. Existing PR/main execution remains deliberately broad. | Governance approved; not a product control reduction alone. | Groom cumulative event semantics, split PR/Main execution without losing direct-push coverage, preserve fail-closed mapping and accept both paths before removing the broad baseline. | CI/TestRail workflow; remaining S/M. |
+| `GAP-022` Medium — PR/Main cutover local; shared acceptance residual | All 193 selectors have a fail-closed primary classification (`PR=77`, `Main=97`, `Nightly=19`) and Release overlap (`13`). Nightly `R49` and Release `R50` are accepted. The working tree implements PR `77` and cumulative Main `174`, locks Main TestRail area counts `12/22/3/4`, skips integration runtime/containers/E2E/TestRail on PR while retaining integration compilation, and passed local selector/runtime/transformation evidence. | Governance approved; direct-push-safe cumulative semantics approved by the groomed contract below; not a product control reduction alone. | Commit/push, accept Main CI and `12/22/3/4` TestRail publication, then accept a PR run with only Quality policy + Backend unit + Frontend runtime and no secret-consuming publication. | CI/TestRail workflow; remaining XS/S. |
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
 | `GAP-024` Low | Test infrastructure uses delays/eventual polling/CI retry. | Determinism standard Approved; potential `DEV-*` only if unavoidable. | Observable readiness/queue/DB state; injected time; preserve first-attempt logs/trace/video; retry occurrence remains failure signal. | Infrastructure; S/M; PR/Main before Nightly expansion. |
 | `GAP-025` Low | .NET net10, Node CI24/local22, Chromium only; no support matrix. | Oracle Decision required. | Approve runtime/browser/OS versions; targeted Windows/Linux builds if supported, engine smoke and architecture check. | CI/platform; M; Nightly/Release after policy. |
@@ -54,12 +54,28 @@ Weak assertions retained from the audit: five service `HealthAnonymousRequestRet
 
 ## CI findings
 
-All identified existing tests remain scheduled by checked-in PR/main CI. QA-03 daily Nightly and dispatched Nightly/Release execution passed first shared acceptance in `R49`/`R50`, without narrowing the established baseline. Missing tests, PR/Main tier rollout and accumulated scheduled evidence remain distinct concerns.
+The committed baseline still schedules all identified tests on PR/main. The working tree narrows runtime by event without narrowing total governed coverage: PR runs 77 logical selectors; Main runs the cumulative 174; Nightly retains 19. Missing tests, shared cutover acceptance and accumulated scheduled evidence remain distinct concerns.
+
+## GAP-022 groomed PR/Main cutover contract
+
+**User outcome:** pull requests receive fast deterministic feedback without Docker, browser or TestRail secret use; a direct push or dispatch on `main` still executes every PR and Main selector before publishing evidence.
+
+**In scope:** event conditions, generated positive filters for mixed Main/Nightly .NET projects, fail-closed selector/report cardinality, artifact and TestRail behavior, direct-push safety and rollback evidence. **Out of scope:** changing selector ownership, activating gates, moving new tests between tiers, GitHub branch protection and reducing compile coverage.
+
+**Acceptance criteria:**
+
+1. `pull_request` runs Quality policy, compiles backend test projects, executes 66 backend-unit rows and 13 frontend rows, and skips Docker-backed integration execution, Container images, Checkout E2E and TestRail publication.
+2. `push main` and `workflow_dispatch` execute 77 PR plus 97 Main logical selectors: 66 backend-unit, 96 backend-integration, 13 frontend and 3 E2E executable rows.
+3. Inventory, Messaging and Orders Main filters contain exactly 14, 4 and 9 selectors; all Nightly-primary selectors remain excluded from Main.
+4. Main TestRail publication creates four closed runs with exactly 12 Backend Unit, 22 Backend Integration, 3 Frontend Unit and 4 Checkout E2E Passed TestIntents; `trcli -n` creates no case.
+5. Nightly and Release matrices/counts remain `19 → 11` and `13 → 6`; policy drift, unknown selectors, changed cardinality or missing source groups fail before test execution.
+6. Rollback is the cutover commit only; the previous broad PR/main behavior remains recoverable without changing test code or TestRail cases.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.9 | 2026-07-29 | Groomed and implemented cumulative PR/Main cutover locally; retained shared-event acceptance as the only GAP-022 residual. | Pending review |
 | 1.8 | 2026-07-29 | Accepted QA-03 Nightly R49 and Release R50; narrowed GAP-022 to the governed PR/Main rollout. | Pending review |
 | 1.7 | 2026-07-29 | Promoted GAP-001 through CI #34/TestRail R42 and implemented the QA-03 tier contract/workflow locally. | Pending review |
 | 1.6 | 2026-07-28 | Implemented the remaining GAP-001 broker-delivery/no-DLQ variant locally; retained shared CI/TestRail and scheduled-history residuals. | Pending review |

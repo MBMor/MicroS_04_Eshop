@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ DEFAULT_AUTOMATION_MAP = (
     REPOSITORY_ROOT / "scripts" / "testrail" / "automation-id-map.json"
 )
 PRIMARY_TIERS = ("PR", "Main", "Nightly")
+EXECUTION_TIERS = ("PR", "Main", "Nightly", "Release")
 
 
 class PolicyError(ValueError):
@@ -49,7 +51,10 @@ def automation_selectors(automation_map: dict[str, Any]) -> set[str]:
     selectors: set[str] = set()
     for intent, values in intents.items():
         if not isinstance(values, list) or not all(
-            isinstance(value, str) and value.strip() for value in values
+            isinstance(value, str)
+            and value.strip()
+            and all(character >= " " and character != "\x7f" for character in value)
+            for value in values
         ):
             raise PolicyError(f"Intent {intent!r} has invalid selectors.")
         selectors.update(values)
@@ -167,12 +172,21 @@ def validate_aggregate_counts(
             "Tier policy must contain expected aggregate and mapping-edge counts."
         )
 
+    classified = classify(policy, automation_selectors(automation_map))
+    expected_execution = policy.get("expected_execution_selector_counts")
+    if not isinstance(expected_execution, dict):
+        raise PolicyError(
+            "Tier policy must contain expected execution selector counts."
+        )
+
     actual: dict[str, tuple[int, int]] = {}
-    for tier, field in (
-        ("Nightly", "nightly_selectors"),
-        ("Release", "release_selectors"),
-    ):
-        selected = selector_set(policy, field)
+    for tier in EXECUTION_TIERS:
+        selected = execution_selectors(classified, policy, tier)
+        if expected_execution.get(tier) != len(selected):
+            raise PolicyError(
+                f"Tier {tier} expected {expected_execution.get(tier)!r} "
+                f"execution selectors but selected {len(selected)}."
+            )
         aggregate_count = 0
         edge_count = 0
         for values in intents.values():
@@ -195,26 +209,93 @@ def validate_aggregate_counts(
                 f"but produced {edge_count}."
             )
 
+    validate_main_report_counts(policy, automation_map, classified)
+    return actual
+
+
+def execution_selectors(
+    classified: list[ClassifiedSelector] | None,
+    policy: dict[str, Any],
+    tier: str,
+) -> set[str]:
+    normalized = tier.casefold()
+    if normalized == "release":
+        return selector_set(policy, "release_selectors")
+    if classified is None:
+        raise PolicyError(f"Classified selectors are required for tier {tier}.")
+    if normalized == "pr":
+        return {item.selector for item in classified if item.primary_tier == "PR"}
+    if normalized == "main":
+        return {
+            item.selector
+            for item in classified
+            if item.primary_tier in {"PR", "Main"}
+        }
+    if normalized == "nightly":
+        return {
+            item.selector for item in classified if item.primary_tier == "Nightly"
+        }
+    raise PolicyError(f"Unsupported execution tier: {tier}.")
+
+
+def validate_main_report_counts(
+    policy: dict[str, Any],
+    automation_map: dict[str, Any],
+    classified: list[ClassifiedSelector],
+) -> dict[str, int]:
+    expected = policy.get("expected_main_report_counts")
+    if not isinstance(expected, dict):
+        raise PolicyError("Tier policy must contain expected Main report counts.")
+
+    intents = automation_map["intents"]
+    selected = execution_selectors(classified, policy, "Main")
+    areas: dict[str, set[str]] = {
+        "backend-unit": set(),
+        "backend-integration": set(),
+        "frontend-unit": set(),
+        "checkout-e2e": set(),
+    }
+    for item in classified:
+        if item.selector not in selected:
+            continue
+        if item.source_id == "backend-unit":
+            area = "backend-unit"
+        elif item.kind == "dotnet":
+            area = "backend-integration"
+        elif item.kind == "vitest":
+            area = "frontend-unit"
+        elif item.kind == "playwright":
+            area = "checkout-e2e"
+        else:
+            raise PolicyError(f"Unsupported Main report kind: {item.kind}.")
+        areas[area].add(item.selector)
+
+    actual = {
+        area: sum(bool(selectors.intersection(values)) for values in intents.values())
+        for area, selectors in areas.items()
+    }
+    if expected != actual:
+        raise PolicyError(
+            f"Main TestRail report counts expected {expected!r} but produced {actual!r}."
+        )
     return actual
 
 
 def build_matrix(
     classified: list[ClassifiedSelector],
     tier: str,
+    policy: dict[str, Any] | None = None,
 ) -> dict[str, list[dict[str, str | int]]]:
     normalized = tier.casefold()
     if normalized not in {"nightly", "release"}:
         raise PolicyError("Executable matrix is supported for Nightly or Release.")
 
-    selected = [
-        item
-        for item in classified
-        if (
-            item.primary_tier == "Nightly"
-            if normalized == "nightly"
-            else item.release
-        )
-    ]
+    selected_names = execution_selectors(
+        classified,
+        policy if policy is not None else load_json(DEFAULT_POLICY),
+        tier,
+    )
+    selected = [item for item in classified if item.selector in selected_names]
     unsupported = sorted({item.kind for item in selected if item.kind != "dotnet"})
     if unsupported:
         raise PolicyError(
@@ -244,13 +325,43 @@ def build_matrix(
     return {"include": include}
 
 
+def build_filter(
+    classified: list[ClassifiedSelector],
+    policy: dict[str, Any],
+    tier: str,
+    source_id: str,
+) -> str:
+    source_items = [item for item in classified if item.source_id == source_id]
+    if not source_items:
+        raise PolicyError(f"Unknown source group: {source_id}.")
+    if any(item.kind != "dotnet" for item in source_items):
+        raise PolicyError(f"Source {source_id} is not a .NET test source.")
+
+    selected_names = execution_selectors(classified, policy, tier)
+    selectors = sorted(
+        item.selector for item in source_items if item.selector in selected_names
+    )
+    if not selectors:
+        raise PolicyError(f"Tier {tier} selects no tests from source {source_id}.")
+    unsafe = [
+        selector
+        for selector in selectors
+        if re.fullmatch(r"[A-Za-z0-9_.]+", selector) is None
+    ]
+    if unsafe:
+        raise PolicyError(
+            f"Source {source_id} contains selectors unsafe for a VSTest filter."
+        )
+    return "|".join(f"FullyQualifiedName~{selector}" for selector in selectors)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate and materialize the governed test tier policy."
     )
     parser.add_argument(
         "command",
-        choices=("validate", "matrix"),
+        choices=("validate", "matrix", "filter"),
     )
     parser.add_argument("--policy", type=Path, default=DEFAULT_POLICY)
     parser.add_argument(
@@ -258,7 +369,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_AUTOMATION_MAP,
     )
-    parser.add_argument("--tier", choices=("nightly", "release"))
+    parser.add_argument(
+        "--tier",
+        choices=("pr", "main", "nightly", "release"),
+    )
+    parser.add_argument("--source")
     return parser.parse_args()
 
 
@@ -274,16 +389,37 @@ def main() -> int:
         if args.command == "matrix":
             if args.tier is None:
                 raise PolicyError("--tier is required for the matrix command.")
-            print(json.dumps(build_matrix(classified, args.tier), separators=(",", ":")))
+            print(
+                json.dumps(
+                    build_matrix(classified, args.tier, policy),
+                    separators=(",", ":"),
+                )
+            )
+        elif args.command == "filter":
+            if args.tier is None or args.source is None:
+                raise PolicyError("--tier and --source are required for filter.")
+            print(build_filter(classified, policy, args.tier, args.source))
         else:
             counts = Counter(item.primary_tier for item in classified)
+            execution_counts = {
+                tier: len(execution_selectors(classified, policy, tier))
+                for tier in EXECUTION_TIERS
+            }
             print(
                 "Tier policy valid: "
                 f"selectors={len(classified)}, "
                 f"PR={counts['PR']}, Main={counts['Main']}, "
                 f"Nightly={counts['Nightly']}, "
                 f"Release={sum(item.release for item in classified)}; "
-                f"TestRail Nightly={aggregate_counts['Nightly'][0]}/"
+                f"execution selectors PR={execution_counts['PR']}, "
+                f"Main={execution_counts['Main']}, "
+                f"Nightly={execution_counts['Nightly']}, "
+                f"Release={execution_counts['Release']}; "
+                f"TestRail PR={aggregate_counts['PR'][0]}/"
+                f"{aggregate_counts['PR'][1]} edges, "
+                f"Main={aggregate_counts['Main'][0]}/"
+                f"{aggregate_counts['Main'][1]} edges, "
+                f"Nightly={aggregate_counts['Nightly'][0]}/"
                 f"{aggregate_counts['Nightly'][1]} edges, "
                 f"Release={aggregate_counts['Release'][0]}/"
                 f"{aggregate_counts['Release'][1]} edges"

@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 1.8
+> **Version:** 1.9
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `1da2ccb`
+> **Baseline:** `main` / `fcd051b`; governed PR/Main cutover is local until shared acceptance
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-Existing CI schedules all tests on pull requests and `main`. GitHub Actions `CI #35` on commit `1da2ccb` and TestRail runs `R45`–`R48` provide Passed/Valid evidence for the committed 31 automated TestIntents. QA-03 Nightly `R49` and Release `R50` accept the governed selector subsets and publication contract without yet changing the broad PR/main schedule. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+GitHub Actions `CI #35` on commit `1da2ccb` and TestRail runs `R45`–`R48` provide Passed/Valid evidence for the committed 31 automated TestIntents. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. The working tree implements PR-owned 77 and cumulative Main 174 execution while retaining all 193 selectors across tiers; shared event-path acceptance is pending. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -110,6 +110,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.9 | 2026-07-29 | Recorded local governed PR/Main cutover while retaining shared acceptance as the GAP-022 residual. | Pending review |
 | 1.8 | 2026-07-29 | Promoted the committed tier contract through CI #35 and accepted Nightly R49 plus Release R50 traceability. | Pending review |
 | 1.7 | 2026-07-29 | Promoted GAP-001 broker traceability to CI #34/TestRail R42 and recorded QA-03 as a local scheduling implementation. | Pending review |
 | 1.6 | 2026-07-28 | Added local GAP-001 broker-delivery/no-DLQ traceability under ESHOP-INVENTORY-002 and retained its shared/scheduled evidence residual. | Pending review |

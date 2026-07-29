@@ -118,3 +118,16 @@ python scripts/quality/test_tiers.py matrix --tier release
 ```
 
 The first shared acceptance completed on 2026-07-29. GitHub run [`30430788377`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430788377) published closed TestRail Nightly `R49` with 11/11 Passed; run [`30430855956`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430855956) published closed Release `R50` with 6/6 Passed. The suite remained at 45 cases, so fail-closed identity matching did not create catalogue drift. Current PR/main execution remains broad until its cumulative/direct-push semantics are groomed and accepted separately.
+
+## Governed PR and Main execution
+
+The local GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
+
+- pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
+- pushes to `main` and manual CI dispatch execute PR + Main ownership, 174 logical selectors in total;
+- Nightly remains an independent 19-selector execution rather than being folded into Main;
+- Release remains a 13-selector overlap and is not inferred from a normal Main pass.
+
+Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
+
+Fail-closed validation locks both selector and publication cardinality. A successful Main run must publish four closed TestRail runs containing 12 Backend Unit, 22 Backend Integration, 3 Frontend Unit and 4 Checkout E2E TestIntent results. The local pre-acceptance run passed 66 unit and 96 integration executable rows, then produced the expected `12/22/3` non-browser aggregates with zero failure/error/skip. Shared Main and PR acceptance remains required before GAP-022 is complete.

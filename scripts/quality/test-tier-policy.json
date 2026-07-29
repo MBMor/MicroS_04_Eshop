@@ -1,19 +1,35 @@
 {
-  "version": 1,
-  "description": "Authoritative classification of governed test selectors into one primary execution tier plus optional Release overlap.",
+  "version": 2,
+  "description": "Authoritative primary ownership plus cumulative PR/Main event execution and explicit Release overlap for governed test selectors.",
   "expected_counts": {
     "PR": 77,
     "Main": 97,
     "Nightly": 19,
     "Release": 13
   },
+  "expected_execution_selector_counts": {
+    "PR": 77,
+    "Main": 174,
+    "Nightly": 19,
+    "Release": 13
+  },
   "expected_aggregate_counts": {
+    "PR": 15,
+    "Main": 28,
     "Nightly": 11,
     "Release": 6
   },
   "expected_mapping_edges": {
+    "PR": 80,
+    "Main": 186,
     "Nightly": 25,
     "Release": 21
+  },
+  "expected_main_report_counts": {
+    "backend-unit": 12,
+    "backend-integration": 22,
+    "frontend-unit": 3,
+    "checkout-e2e": 4
   },
   "sources": [
     {

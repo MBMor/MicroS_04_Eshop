@@ -29,6 +29,10 @@ jobs:
     name: Quality policy
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      inventory_main_filter: ${{ steps.main_filters.outputs.inventory }}
+      messaging_main_filter: ${{ steps.main_filters.outputs.messaging }}
+      orders_main_filter: ${{ steps.main_filters.outputs.orders }}
 
     steps:
       - name: Checkout repository
@@ -45,8 +49,17 @@ jobs:
       - name: Test tier policy tooling
         run: python -m unittest discover -s scripts/quality/tests -v
 
+      - name: Materialize governed Main filters
+        id: main_filters
+        shell: bash
+        run: |
+          echo "inventory=$(python scripts/quality/test_tiers.py filter --tier main --source inventory-service)" >> "$GITHUB_OUTPUT"
+          echo "messaging=$(python scripts/quality/test_tiers.py filter --tier main --source messaging-integration)" >> "$GITHUB_OUTPUT"
+          echo "orders=$(python scripts/quality/test_tiers.py filter --tier main --source orders-service)" >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend
+    needs: quality-policy
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -63,6 +76,7 @@ jobs:
         run: dotnet --info
 
       - name: Verify Docker availability
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
           docker version
           docker info
@@ -225,6 +239,7 @@ jobs:
           artifacts/test-results/unit
 
       - name: Run API Gateway integration tests
+        if: ${{ github.event_name != 'pull_request' }}
         run: >
           dotnet test
           tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj
@@ -238,6 +253,7 @@ jobs:
           artifacts/test-results/api-gateway
 
       - name: Run Basket Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
         run: >
           dotnet test
           tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj
@@ -251,11 +267,15 @@ jobs:
           artifacts/test-results/basket-service
 
       - name: Run messaging integration tests
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TEST_FILTER: ${{ needs.quality-policy.outputs.messaging_main_filter }}
         run: |
           dotnet test \
             tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj \
             --configuration Release \
             --no-build \
+            --filter "$TEST_FILTER" \
             --logger "console;verbosity=detailed" \
             --logger "trx;LogFileName=messaging-integration-tests.trx" \
             --logger "junit;LogFileName=messaging-integration-tests.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose" \
@@ -263,6 +283,7 @@ jobs:
             --results-directory artifacts/test-results/messaging
 
       - name: Run Catalog Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
         run: >
           dotnet test
           tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj
@@ -276,11 +297,16 @@ jobs:
           artifacts/test-results/catalog-service
 
       - name: Run Orders Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TEST_FILTER: ${{ needs.quality-policy.outputs.orders_main_filter }}
         run: >
           dotnet test
           tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj
           --configuration Release
           --no-build
+          --filter
+          "$TEST_FILTER"
           --logger
           "trx;LogFileName=orders-service-integration-tests.trx"
           --logger
@@ -289,11 +315,16 @@ jobs:
           artifacts/test-results/orders-service
 
       - name: Run Inventory Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TEST_FILTER: ${{ needs.quality-policy.outputs.inventory_main_filter }}
         run: >
           dotnet test
           tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj
           --configuration Release
           --no-build
+          --filter
+          "$TEST_FILTER"
           --logger
           "trx;LogFileName=inventory-service-integration-tests.trx"
           --logger
@@ -302,6 +333,7 @@ jobs:
           artifacts/test-results/inventory-service
 
       - name: Run Payments Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
         run: >
           dotnet test
           tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj
@@ -315,6 +347,7 @@ jobs:
           artifacts/test-results/payments-service
 
       - name: Run Notifications Service integration tests
+        if: ${{ github.event_name != 'pull_request' }}
         run: >
           dotnet test
           tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj
@@ -340,6 +373,7 @@ jobs:
 
   frontend:
     name: Frontend
+    needs: quality-policy
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -389,6 +423,7 @@ jobs:
 
   containers:
     name: Container images
+    if: ${{ github.event_name != 'pull_request' }}
 
     needs:
       - backend
@@ -426,6 +461,7 @@ jobs:
 
   e2e:
     name: Checkout E2E
+    if: ${{ github.event_name != 'pull_request' }}
 
     needs:
       - containers
