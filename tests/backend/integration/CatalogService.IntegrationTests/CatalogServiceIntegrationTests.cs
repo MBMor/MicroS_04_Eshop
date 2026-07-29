@@ -1,8 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using CatalogService.Contracts;
+using CatalogService.Data;
 using CatalogService.IntegrationTests.Infrastructure;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace CatalogService.IntegrationTests;
@@ -190,6 +196,9 @@ public sealed class CatalogServiceIntegrationTests(
     [Fact]
     public async Task CreateProductInvalidRequestReturnsBadRequest()
     {
+        int productCountBefore =
+            await GetProductCountAsync();
+
         CreateProductRequest request = new()
         {
             Name = string.Empty,
@@ -209,6 +218,56 @@ public sealed class CatalogServiceIntegrationTests(
         Assert.Equal(
             HttpStatusCode.BadRequest,
             response.StatusCode);
+
+        ValidationProblemDetails problem =
+            await ReadRequiredAsync<ValidationProblemDetails>(
+                response);
+
+        Assert.Equal(
+            StatusCodes.Status400BadRequest,
+            problem.Status);
+
+        Assert.Equal(
+            "https://httpstatuses.com/400",
+            problem.Type);
+
+        Assert.Equal(
+            "Request validation failed.",
+            problem.Title);
+
+        Assert.Equal(
+            "One or more validation errors occurred.",
+            problem.Detail);
+
+        Assert.Equal(
+            ProductsEndpoint,
+            problem.Instance);
+
+        Assert.Contains(
+            "Name",
+            problem.Errors.Keys);
+
+        Assert.Equal(
+            "model_validation_failed",
+            GetRequiredStringExtension(
+                problem,
+                "errorCode"));
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                GetRequiredStringExtension(
+                    problem,
+                    "traceId")));
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                GetRequiredStringExtension(
+                    problem,
+                    "requestId")));
+
+        Assert.Equal(
+            productCountBefore,
+            await GetProductCountAsync());
     }
 
     [Fact]
@@ -466,6 +525,32 @@ public sealed class CatalogServiceIntegrationTests(
             await response.Content.ReadFromJsonAsync<T>(Xunit.TestContext.Current.CancellationToken);
 
         return Assert.IsType<T>(value);
+    }
+
+    private async Task<int> GetProductCountAsync()
+    {
+        await using AsyncServiceScope scope =
+            fixture.Factory.Services
+                .CreateAsyncScope();
+
+        CatalogDbContext dbContext =
+            scope.ServiceProvider
+                .GetRequiredService<CatalogDbContext>();
+
+        return await dbContext.Products
+            .CountAsync(
+                Xunit.TestContext.Current.CancellationToken);
+    }
+
+    private static string GetRequiredStringExtension(
+        ProblemDetails problem,
+        string key)
+    {
+        JsonElement value = Assert.IsType<JsonElement>(
+            problem.Extensions[key]);
+
+        return Assert.IsType<string>(
+            value.GetString());
     }
 
     private static void AssertProductResponse(

@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Eshop.Messaging.RabbitMq;
 using Eshop.Security.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -670,12 +672,23 @@ public sealed class OrdersServiceIntegrationTests(
                 .ReadFromJsonAsync<ProblemDetails>(Xunit.TestContext.Current.CancellationToken);
 
         Assert.NotNull(problem);
-        Assert.Equal("Checkout failed.", problem.Title);
+
+        AssertProblemContract(
+            problem,
+            expectedTitle: "Checkout failed.",
+            expectedDetail: "The basket is empty.");
 
         Assert.Equal(
             0,
             fixture.BasketClient
                 .GetClearCallCount(subject));
+
+        BasketSnapshot retainedBasket =
+            await fixture.BasketClient.GetBasketAsync(
+                subject,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Empty(retainedBasket.Items);
 
         await AssertDatabaseIsEmptyAsync();
     }
@@ -706,6 +719,35 @@ public sealed class OrdersServiceIntegrationTests(
         Assert.Equal(
             HttpStatusCode.BadRequest,
             response.StatusCode);
+
+        ProblemDetails? problem =
+            await response.Content
+                .ReadFromJsonAsync<ProblemDetails>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+
+        AssertProblemContract(
+            problem,
+            expectedTitle: "Checkout failed.",
+            expectedDetail:
+                "An order cannot contain items in multiple currencies.");
+
+        Assert.Equal(
+            0,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        BasketSnapshot retainedBasket =
+            await fixture.BasketClient.GetBasketAsync(
+                subject,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            ["CZK", "EUR"],
+            retainedBasket.Items
+                .Select(item => item.Currency)
+                .ToArray());
 
         await AssertDatabaseIsEmptyAsync();
     }
@@ -823,6 +865,46 @@ public sealed class OrdersServiceIntegrationTests(
             HttpStatusCode.BadRequest,
             response.StatusCode);
 
+        ValidationProblemDetails? problem =
+            await response.Content
+                .ReadFromJsonAsync<ValidationProblemDetails>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+
+        AssertProblemContract(
+            problem,
+            expectedTitle: "Request validation failed.",
+            expectedDetail:
+                "One or more validation errors occurred.");
+
+        Assert.Contains(
+            "CustomerEmail",
+            problem.Errors.Keys);
+
+        Assert.Equal(
+            "model_validation_failed",
+            GetRequiredStringExtension(
+                problem,
+                "errorCode"));
+
+        Assert.Equal(
+            0,
+            fixture.BasketClient
+                .GetBasketCallCount(subject));
+
+        Assert.Equal(
+            0,
+            fixture.BasketClient
+                .GetClearCallCount(subject));
+
+        BasketSnapshot retainedBasket =
+            await fixture.BasketClient.GetBasketAsync(
+                subject,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Single(retainedBasket.Items);
+
         await AssertDatabaseIsEmptyAsync();
     }
 
@@ -894,6 +976,78 @@ public sealed class OrdersServiceIntegrationTests(
             expectedOrders: 0,
             expectedOutboxMessages: 0,
             expectedIdempotencyRecords: 0);
+
+        await using AsyncServiceScope scope =
+            fixture.Factory.Services
+                .CreateAsyncScope();
+
+        OrdersDbContext dbContext =
+            scope.ServiceProvider
+                .GetRequiredService<OrdersDbContext>();
+
+        Assert.Equal(
+            0,
+            await dbContext.OrderItems.CountAsync(
+                Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            0,
+            await dbContext.OrderStatusHistories.CountAsync(
+                Xunit.TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            0,
+            await dbContext.ProcessedMessages.CountAsync(
+                Xunit.TestContext.Current.CancellationToken));
+    }
+
+    private static void AssertProblemContract(
+        ProblemDetails problem,
+        string expectedTitle,
+        string expectedDetail)
+    {
+        Assert.Equal(
+            StatusCodes.Status400BadRequest,
+            problem.Status);
+
+        Assert.Equal(
+            "https://httpstatuses.com/400",
+            problem.Type);
+
+        Assert.Equal(
+            expectedTitle,
+            problem.Title);
+
+        Assert.Equal(
+            expectedDetail,
+            problem.Detail);
+
+        Assert.Equal(
+            OrdersPath,
+            problem.Instance);
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                GetRequiredStringExtension(
+                    problem,
+                    "traceId")));
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                GetRequiredStringExtension(
+                    problem,
+                    "requestId")));
+    }
+
+    private static string GetRequiredStringExtension(
+        ProblemDetails problem,
+        string key)
+    {
+        JsonElement value = Assert.IsType<JsonElement>(
+            problem.Extensions[key]);
+
+        return Assert.IsType<string>(
+            value.GetString());
     }
 
     private async Task AssertDatabaseCountsAsync(
