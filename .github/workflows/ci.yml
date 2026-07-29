@@ -88,6 +88,9 @@ jobs:
       - name: Validate governed test tiers
         run: python scripts/quality/test_tiers.py validate
 
+      - name: Validate gateway route policy
+        run: python scripts/quality/gateway_routes.py validate
+
       - name: Test tier policy tooling
         run: python -m unittest discover -s scripts/quality/tests -v
 

@@ -25,8 +25,8 @@ class TestTierPolicyTests(unittest.TestCase):
         cls.classified = MODULE.classify(cls.policy, cls.selectors)
 
     def test_every_automation_selector_is_classified_once(self) -> None:
-        self.assertEqual(2, self.policy["version"])
-        self.assertEqual(193, len(self.classified))
+        self.assertEqual(3, self.policy["version"])
+        self.assertEqual(194, len(self.classified))
         self.assertEqual(
             self.selectors,
             {item.selector for item in self.classified},
@@ -37,14 +37,14 @@ class TestTierPolicyTests(unittest.TestCase):
             tier: sum(item.primary_tier == tier for item in self.classified)
             for tier in MODULE.PRIMARY_TIERS
         }
-        self.assertEqual({"PR": 77, "Main": 97, "Nightly": 19}, primary)
+        self.assertEqual({"PR": 77, "Main": 98, "Nightly": 19}, primary)
         self.assertEqual(13, sum(item.release for item in self.classified))
 
     def test_expected_testrail_aggregate_and_edge_counts(self) -> None:
         self.assertEqual(
             {
                 "PR": (15, 80),
-                "Main": (28, 186),
+                "Main": (28, 187),
                 "Nightly": (11, 25),
                 "Release": (6, 21),
             },
@@ -59,7 +59,7 @@ class TestTierPolicyTests(unittest.TestCase):
             for tier in MODULE.EXECUTION_TIERS
         }
         self.assertEqual(
-            {"PR": 77, "Main": 174, "Nightly": 19, "Release": 13},
+            {"PR": 77, "Main": 175, "Nightly": 19, "Release": 13},
             actual,
         )
 

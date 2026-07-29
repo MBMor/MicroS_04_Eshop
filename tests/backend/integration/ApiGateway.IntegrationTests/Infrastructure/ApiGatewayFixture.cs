@@ -15,6 +15,20 @@ public sealed class ApiGatewayFixture
     public HttpClient Client { get; private set; } =
         null!;
 
+    public int ForwardedRequestCount =>
+        (_downstreamServer
+         ?? throw new InvalidOperationException(
+             "The downstream server is not initialized."))
+        .RequestCount;
+
+    public void ResetForwardedRequestCount()
+    {
+        (_downstreamServer
+         ?? throw new InvalidOperationException(
+             "The downstream server is not initialized."))
+        .ResetRequestCount();
+    }
+
     public async ValueTask InitializeAsync()
     {
         _downstreamServer =
