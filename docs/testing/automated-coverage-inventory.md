@@ -1,13 +1,13 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.9
-> **Effective from:** 2026-07-29 TECH-07 shared acceptance
+> **Version:** 3.0
+> **Effective from:** 2026-07-29 TECH-08 local candidate
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `4ec560f`; TECH-07 accepted in CI #62/TestRail R86–R90
+> **Baseline:** `main` / `7a90d9a`; TECH-08 shared acceptance pending
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted TECH-07 baseline has **196 logical tests and 253 executable cases**: five two-row theories, the 43-row gateway authorization theory, the nine-row Catalog mutation-boundary theory and the three-row gateway non-forwarding theory account for the difference. All 196 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The TECH-08 candidate has **198 logical tests and 257 executable cases**: five two-row theories, the 45-row gateway authorization theory, the nine-row Catalog mutation-boundary theory and the three-row gateway non-forwarding theory account for the difference. All 198 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
 GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 passed Main `CI #52`; QA-04/TECH-06 hardened publication integrity in Main `CI #56`. TECH-07's first Main publication exposed an unsupported manifest-version bump; hotfix `4ec560f` restored the unchanged version-1 contract. Main `CI #62` then passed and TestRail R86–R89 closed at `12/23/3/4`; governed Release run `30481512624` closed R90 with 8/8 Passed, including `ESHOP-CATALOG-001`. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
 
@@ -18,9 +18,9 @@ Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust
 | Project / framework | Logical | Executable | Level | Active/skipped | Recommended tier |
 |---|---:|---:|---|---|---|
 | `Eshop.Domain.UnitTests` / xUnit v3 | 64 | 66 | Domain/application unit | 64/0 | PR |
-| `ApiGateway.IntegrationTests` / xUnit v3 | 24 | 68 | Gateway integration | 24/0 | Main + Release overlap |
-| `BasketService.IntegrationTests` / xUnit v3 | 10 | 10 | API/Redis | 10/0 | Main |
-| `CatalogService.IntegrationTests` / xUnit v3 | 11 | 19 | API/PostgreSQL | 11/0 | Main + Release overlap |
+| `ApiGateway.IntegrationTests` / xUnit v3 | 24 | 70 | Gateway integration | 24/0 | Main + Release overlap |
+| `BasketService.IntegrationTests` / xUnit v3 | 11 | 11 | API/Redis | 11/0 | Main + Release overlap |
+| `CatalogService.IntegrationTests` / xUnit v3 | 12 | 20 | API/PostgreSQL | 12/0 | Main + Release overlap |
 | `InventoryService.IntegrationTests` / xUnit v3 | 17 | 17 | API/PostgreSQL | 17/0 | 14 Main; 3 Nightly + Release |
 | `OrdersService.IntegrationTests` / xUnit v3 | 16 | 17 | API/PostgreSQL | 16/0 | 9 Main; 7 Nightly + Release |
 | `PaymentsService.IntegrationTests` / xUnit v3 | 12 | 13 | API/PostgreSQL | 12/0 | Main |
@@ -28,9 +28,9 @@ Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust
 | `Eshop.Messaging.IntegrationTests` / xUnit v2 | 13 | 13 | Cross-service messaging | 13/0 | 4 Main; 9 Nightly + 3 Release overlap |
 | Frontend / Vitest | 13 | 13 | Component/unit | 13/0 | PR |
 | E2E / Playwright | 3 | 3 | Browser workflow | 3/0 | Main |
-| **Total** | **196** | **253** | 77 unit/component; 103 API; 13 messaging; 3 browser | **196/0** | **77 PR; 100 Main; 19 Nightly; 15 Release overlap** |
+| **Total** | **198** | **257** | 77 unit/component; 105 API; 13 messaging; 3 browser | **198/0** | **77 PR; 102 Main; 19 Nightly; 17 Release overlap** |
 
-xUnit totals are 180 logical/237 executable, plus 13 Vitest and 3 Playwright. Source inspection found 172 Facts and eight Theories. Discovery reconciled these counts with 196 unique TestRail source selectors; the mapping has 215 edges because nineteen selectors intentionally support more than one TestIntent.
+xUnit totals are 182 logical/241 executable, plus 13 Vitest and 3 Playwright. Source inspection found 174 Facts and eight Theories. Discovery reconciled these counts with 198 unique TestRail source selectors; the mapping has 217 edges because nineteen selectors intentionally support more than one TestIntent.
 
 ## Domain and application unit tests (64 logical / 66 executable)
 
@@ -140,7 +140,7 @@ Inherited: `tests/backend/unit/Eshop.Domain.UnitTests`, xUnit v3, in-memory obje
 | `AuthorizeAlreadyAuthorizedPaymentThrows` | R-PAYMENT-001 | duplicate transition denied |
 | `FailAuthorizedPaymentThrowsWithoutMutation` | R-PAYMENT-001 | unchanged Authorized |
 
-## API Gateway integration (23 logical / 65 executable)
+## API Gateway integration (24 logical / 70 executable)
 
 Inherited: xUnit v3 in-process gateway, fake downstream/test auth, no containers, current PR/main, target Main.
 
@@ -166,19 +166,21 @@ Inherited: xUnit v3 in-process gateway, fake downstream/test auth, no containers
 | `CheckoutSameCustomerExceedsLimitReturnsTooManyRequests` | R-GW-001 | checkout 429 |
 | `CheckoutDifferentCustomersHaveIndependentLimits` | R-GW-001 | independent subjects |
 | `OperationalEndpointSameUserExceedsLimitReturnsTooManyRequests` | R-GW-001 | operational 429 |
-| `HealthEndpointIsNotRateLimited` | R-RESILIENCE-001 | exemption, not dependency health |
+| `HealthEndpointIsNotRateLimited` | R-RESILIENCE-001 | `/live`, `/ready` and `/health` each remain 200 across ten requests; Gateway has no mandatory runtime downstream readiness dependency |
 | `CrossOriginPreflightDoesNotGrantCorsAccess` | R-GW-AUTH-001 | no permissive CORS; absence policy only |
-| `EveryAddressableRouteEnforcesAuthorizationAndForwarding` (43 rows) | R-GW-AUTH-001 | all 13 YARP routes and 3 local endpoints; anonymous, wrong-role and every allowed-role variant; denied requests never reach the fake downstream; registry/config drift fails closed |
+| `EveryAddressableRouteEnforcesAuthorizationAndForwarding` (45 rows) | R-GW-AUTH-001 | all 13 YARP routes and 5 local endpoints; anonymous, wrong-role and every allowed-role variant; denied requests never reach the fake downstream; registry/config drift fails closed |
+| `CatalogMutationRoutesAreNotAddressableOrForwarded` (3 rows) | R-AUTH-001 | POST/PUT/DELETE return 405 and never reach Catalog downstream |
 
-## Service API integrations (90 logical / 92 executable)
+## Service API integrations (81 logical / 92 executable)
 
 Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testcontainers PostgreSQL or Redis, current PR/main, target Main. Health rows and three specified negative cases are legacy Partially covered; all others Covered for named variants.
 
-### Basket (10; Redis Testcontainer)
+### Basket (11; Redis Testcontainer)
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
-| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; Redis-down absent |
+| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | `/live`, `/ready` and compatibility `/health` are anonymous and 200 while Redis is available |
+| `ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy` | R-RESILIENCE-001 | **Direct:** paused real Redis gives live 200/readiness 503 with secret-safe body, then recovers without service restart |
 | `BasketAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `BasketSupportUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `GetBasketNewCustomerReturnsEmptyBasket` | R-BASKET-002 | empty DTO |
@@ -189,10 +191,12 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 | `RedisRepositorySetAndGetRoundTripsSerializedBasket` | R-BASKET-002 | serialized equivalence |
 | `RedisRepositorySetAssignsExpectedAbsoluteExpiration` | R-BASKET-003 | bounded TTL; timing tolerance |
 
-### Catalog (10; PostgreSQL Testcontainer)
+### Catalog (12 logical / 20 executable; PostgreSQL Testcontainer)
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
+| `ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy` | R-RESILIENCE-001 | **Direct:** paused real PostgreSQL gives live 200/readiness 503 with secret-safe body, then recovers without service restart |
+| `CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence` (9 rows) | R-AUTH-001 | anonymous/customer/support POST/PUT/DELETE are denied and product state remains unchanged |
 | `GetProductsDefaultReturnsOnlyActiveProducts` | R-ORDER-002 | inactive excluded |
 | `GetProductsIncludeInactiveReturnsAllProducts` | R-ORDER-002 | direct functional API behavior; no authorization assertion |
 | `GetProductByIdUnknownProductReturnsNotFound` | R-ORDER-002 | 404 |
@@ -208,7 +212,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
-| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; DB-down absent |
+| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | `/live`, `/ready` and compatibility `/health` are anonymous and 200 while PostgreSQL is available |
 | `InventoryAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `InventoryCustomerUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `CreateInventoryItemSupportUserPersistsNormalizedItem` | R-INVENTORY-001 | 201/body/DB |
@@ -230,7 +234,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
-| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; DB-down absent |
+| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | `/live`, `/ready` and compatibility `/health` are anonymous and 200 while PostgreSQL is available |
 | `OrdersAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `OrdersSupportUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `CreateOrderValidBasketPersistsOrderHistoryAndOutbox` | R-ORDER-002, R-OUTBOX-001 | first-attempt 201/order/items/history/outbox/clear |
@@ -251,7 +255,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
-| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; DB-down absent |
+| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | `/live`, `/ready` and compatibility `/health` are anonymous and 200 while PostgreSQL is available |
 | `PaymentsAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `PaymentsCustomerUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `GetPaymentsOperationalRoleReturnsOk` (`Support`, `Admin`) | R-GW-AUTH-001 | two-row Theory; both 200 |
@@ -268,7 +272,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
-| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | **Partial:** 200 only; DB-down absent |
+| `HealthAnonymousRequestReturnsOk` | R-RESILIENCE-001 | `/live`, `/ready` and compatibility `/health` are anonymous and 200 while PostgreSQL is available |
 | `NotificationsAnonymousRequestReturnsUnauthorized` | R-GW-AUTH-001 | 401 |
 | `NotificationsSupportUserReturnsForbidden` | R-GW-AUTH-001 | 403 |
 | `GetNotificationsNewCustomerReturnsEmptyCollection` | R-NOTIFICATION-001 | empty |
@@ -336,10 +340,11 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 - Layered overlap across domain, messaging and browser is deliberate.
 - Gateway and service authorization protect distinct boundaries. TECH-05 covers every registered gateway endpoint; TECH-07 adds direct Catalog admin-only mutation enforcement, nine denial/no-write variants and gateway 405/no-forwarding proof. Full deployable-network topology remains GAP-013.
-- The nine legacy Partially covered rows are six status-only health/migration smoke rows plus Catalog invalid create and two Orders validations.
+- TECH-08 upgrades the service health rows from status-only `/health` checks to explicit `/live`, dependency-aware `/ready` and compatibility `/health` assertions. Migration evidence remains separately partial.
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
-- No executable test is removed from the governed portfolio. The accepted TECH-07 contract executes 77 logical/79 executable rows on PR, 177 logical/233 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 15 logical/26 executable Release-overlap rows.
+- No executable test is removed from the governed portfolio. The TECH-08 candidate executes 77 logical/79 executable rows on PR, 179 logical/237 executable rows cumulatively on Main, 19 logical/20 executable rows on Nightly and 17 logical/28 executable Release-overlap rows.
+- TECH-08 adds bounded, secret-safe PostgreSQL and Redis outage/recovery tests. Both prove `/live=200`, `/ready=503` during dependency loss and `/ready=200` after recovery without restarting the service; the complete local Catalog 20/20, Basket 11/11 and Gateway 70/70 projects pass.
 - TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants. The two-consumer broker-delivery/no-DLQ variant passed in CI #35/TestRail R46 and the governed tier runs; longitudinal scheduled history remains immature.
 - TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; QA-02 proves sequential and concurrent duplicate HTTP delivery produce one complete downstream workflow. The governed variants passed the first Nightly/Release runs; the five-run local concurrency smoke remains supporting determinism evidence.
 
@@ -347,6 +352,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 3.0 | 2026-07-29 | Added local QA-05/TECH-08 readiness contract, two outage/recovery selectors, seven-service `/live`/`/ready` implementation, synchronized C80 automation identity and the 198/257, 33-intent, 217-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
 | 2.9 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/TestRail R86–R89 and governed Release R90 passed at 100%. | Pending review |
 | 2.8 | 2026-07-29 | Added local TECH-07 Catalog admin-only mutation enforcement, nine direct denial/no-write variants, three gateway no-forwarding variants, C53 synchronization and the 196/253, 32-intent, 215-edge candidate contract; shared acceptance remains pending. | Pending review |
 | 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 publication integrity and E2E shell-portability controls through Main CI #56 and TestRail R82–R85 without changing governed test counts. | Pending review |

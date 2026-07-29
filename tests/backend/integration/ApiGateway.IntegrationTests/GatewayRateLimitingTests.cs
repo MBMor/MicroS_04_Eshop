@@ -187,16 +187,26 @@ public sealed class GatewayRateLimitingTests
         await using GatewayRateLimitingTestHost host =
             await GatewayRateLimitingTestHost.StartAsync();
 
-        for (int attempt = 0; attempt < 10; attempt++)
-        {
-            using HttpResponseMessage response =
-                await host.Client.GetAsync(
-                    "/health",
-                    TestContext.Current.CancellationToken);
+        string[] endpoints =
+        [
+            "/live",
+            "/ready",
+            "/health"
+        ];
 
-            Assert.Equal(
-                HttpStatusCode.OK,
-                response.StatusCode);
+        foreach (string endpoint in endpoints)
+        {
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                using HttpResponseMessage response =
+                    await host.Client.GetAsync(
+                        endpoint,
+                        TestContext.Current.CancellationToken);
+
+                Assert.Equal(
+                    HttpStatusCode.OK,
+                    response.StatusCode);
+            }
         }
     }
 

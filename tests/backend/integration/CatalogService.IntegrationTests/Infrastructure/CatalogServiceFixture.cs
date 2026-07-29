@@ -18,6 +18,7 @@ public sealed class CatalogServiceFixture
             .Build();
 
     private CatalogServiceFactory? _factory;
+    private string? _postgresConnectionString;
 
     public HttpClient Client
     {
@@ -30,12 +31,20 @@ public sealed class CatalogServiceFixture
         ?? throw new InvalidOperationException(
             "The Catalog Service factory has not been initialized.");
 
+    internal string PostgresConnectionString =>
+        _postgresConnectionString
+        ?? throw new InvalidOperationException(
+            "The PostgreSQL connection string has not been initialized.");
+
     public async ValueTask InitializeAsync()
     {
         await _postgresContainer.StartAsync();
 
+        _postgresConnectionString =
+            _postgresContainer.GetConnectionString();
+
         _factory = new CatalogServiceFactory(
-            _postgresContainer.GetConnectionString());
+            _postgresConnectionString);
 
         Client = _factory.CreateClient(
             new WebApplicationFactoryClientOptions
@@ -56,6 +65,20 @@ public sealed class CatalogServiceFixture
                 .GetRequiredService<CatalogDbContext>();
 
         await dbContext.Products.ExecuteDeleteAsync();
+    }
+
+    public Task PausePostgresAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _postgresContainer.PauseAsync(
+            cancellationToken);
+    }
+
+    public Task UnpausePostgresAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _postgresContainer.UnpauseAsync(
+            cancellationToken);
     }
 
     public async ValueTask DisposeAsync()

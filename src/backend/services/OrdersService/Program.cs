@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Observability;
 using Eshop.Messaging;
 using Eshop.Messaging.Outbox;
@@ -34,8 +35,6 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEshopObservability(
     builder.Configuration,
     serviceName: "orders-service");
@@ -61,6 +60,11 @@ builder.Services.AddDbContext<OrdersDbContext>(options =>
 {
     options.UseNpgsql(ordersConnectionString);
 });
+
+builder.Services
+    .AddHealthChecks()
+    .AddEshopPostgreSqlReadinessCheck(
+        ordersConnectionString);
 
 string basketBaseUrl =
     builder.Configuration["Services:BasketBaseUrl"]
@@ -157,6 +161,6 @@ app.MapControllers()
     .RequireAuthorization(
         EshopPolicies.CustomerOnly);
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

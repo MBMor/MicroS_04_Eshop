@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Observability;
 using InventoryService.Application;
 using InventoryService.Data;
@@ -33,8 +34,6 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEshopObservability(
     builder.Configuration,
     serviceName: "inventory-service");
@@ -61,6 +60,11 @@ builder.Services.AddDbContext<InventoryDbContext>(
     {
         options.UseNpgsql(inventoryConnectionString);
     });
+
+builder.Services
+    .AddHealthChecks()
+    .AddEshopPostgreSqlReadinessCheck(
+        inventoryConnectionString);
 
 builder.Services
     .AddOptions<OutboxProcessingOptions>()
@@ -134,6 +138,6 @@ app.MapControllers()
     .RequireAuthorization(
         EshopPolicies.SupportOrAdmin);
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

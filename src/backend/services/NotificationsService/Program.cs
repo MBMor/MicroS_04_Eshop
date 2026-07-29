@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Observability;
 using Eshop.Messaging;
 using Microsoft.EntityFrameworkCore;
@@ -32,8 +33,6 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEshopObservability(
     builder.Configuration,
     serviceName: "notifications-service");
@@ -61,6 +60,11 @@ builder.Services.AddDbContext<NotificationsDbContext>(
         options.UseNpgsql(notificationsConnectionString);
     });
 
+builder.Services
+    .AddHealthChecks()
+    .AddEshopPostgreSqlReadinessCheck(
+        notificationsConnectionString);
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddEshopMessagingCore(builder.Configuration);
 
@@ -85,6 +89,6 @@ app.MapControllers()
     .RequireAuthorization(
         EshopPolicies.CustomerOnly);
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

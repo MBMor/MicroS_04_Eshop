@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Observability;
 using Eshop.Messaging;
 using Eshop.Messaging.Outbox;
@@ -33,8 +34,6 @@ builder.Services
         options.SubstituteApiVersionInUrl = true;
     });
 
-builder.Services.AddHealthChecks();
-
 builder.Services.AddEshopObservability(
     builder.Configuration,
     serviceName: "payments-service");
@@ -61,6 +60,11 @@ builder.Services.AddDbContext<PaymentsDbContext>(
     {
         options.UseNpgsql(paymentsConnectionString);
     });
+
+builder.Services
+    .AddHealthChecks()
+    .AddEshopPostgreSqlReadinessCheck(
+        paymentsConnectionString);
 
 builder.Services
     .AddOptions<OutboxProcessingOptions>()
@@ -133,6 +137,6 @@ app.MapControllers()
     .RequireAuthorization(
         EshopPolicies.SupportOrAdmin);
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

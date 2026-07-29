@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ApiGateway.RateLimiting;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 
@@ -41,7 +42,7 @@ app.MapGet("/", () => Results.Ok(new
     Status = "Running"
 }));
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.MapGet(
         "/api/v1/auth/me",

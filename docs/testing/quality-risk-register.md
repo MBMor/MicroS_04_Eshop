@@ -2,7 +2,7 @@
 
 > **Document type:** Authoritative risk and control registry  
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Version:** 1.7
+> **Version:** 1.8
 > **Status:** Point-in-time assessed baseline — pending governance approval  
 > **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval  
 > **Last reviewed:** 2026-07-29
@@ -52,7 +52,7 @@ Canonical values are used in status columns. Score triplets are `Likelihood / Im
 | `R-OUTBOX-001` | Service outboxes | A committed change never publishes or is published again after a crash window. | service outboxes/workers; confirms; unique event; one Orders outage test | 3/5/15 High | 3/5/15 High | Decision required | Approved | Required / — |
 | `R-OUTBOX-002` | Outbox claiming | Concurrent or stale claims strand records, steal live work or duplicate publish attempts. | SKIP LOCKED; claim owner; stale threshold in stores | 3/4/12 High | 3/4/12 High | Decision required | Approved | Required / — |
 | `R-DATA-001` | PostgreSQL migration/recovery | A populated upgrade fails, rolling versions conflict or recoverable state cannot be restored. | migrations; MigrateAsync; pending smoke excludes Catalog | 3/5/15 High | 3/5/15 High | Decision required | Decision required | Required / — |
-| `R-RESILIENCE-001` | Health/readiness | A service reports healthy while a mandatory dependency is unavailable. | parameterless AddHealthChecks(); status-only tests | 4/4/16 High | 4/4/16 High | Decision required | Decision required | Required / — |
+| `R-RESILIENCE-001` | Health/readiness | A service reports healthy while a mandatory dependency is unavailable. | TECH-08 `/live`/`/ready`; bounded PostgreSQL/Redis probes; direct pause/unpause recovery tests | 4/4/16 High | 4/4/16 High | Decision required | Approved | Required / — |
 | `R-RESILIENCE-002` | Rabbit recovery | Broker outage leaves provider, channel, consumer or outbox processing stalled after recovery. | automatic/topology recovery; one Orders publisher outage test | 3/4/12 High | 3/4/12 High | Decision required | Decision required | Required / — |
 | `R-OBS-001` | Observability | Broken HTTP/message context prevents reconstruction; some services omit shared registration. | shared extension; Programs; message trace headers; ProblemDetails IDs | 3/3/9 Medium | 3/3/9 Medium | Decision required | Decision required | Not required / — |
 | `R-DEPLOY-001` | Frontend production ingress | The built UI cannot reach APIs because nginx or production API-base routing is incomplete. | apiConfig.ts; nginx.conf; frontend Docker/Compose | 4/4/16 High | 4/4/16 High | Decision required | Decision required | Required / — |
@@ -121,7 +121,7 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | `CTRL-MSG-RECON-001` | Detect and remediate stalled distributed state | Unknown | Missing | R-OUTBOX-001, R-INVENTORY-002 | Workflow Engineering owner | Workflow Engineering and Operations | Reconciliation and repair policy require an architectural decision. |
 | `CTRL-DATA-MIGRATION-001` | Upgrade every supported populated schema and preserve operations | Partially implemented | Partial | R-DATA-001 | Data Migration owner | Service Engineering and Platform/DBA | Fresh migration exists; prior populated baselines/rolling window are absent. |
 | `CTRL-DATA-BACKUP-001` | Restore release-critical persistent state within approved objectives | Unknown | Missing | R-DATA-001 | Platform owner | Platform/DBA | External backup configuration and restore evidence are unavailable. |
-| `CTRL-OPS-READINESS-001` | Expose dependency-aware readiness separate from liveness | Not implemented | Missing | R-RESILIENCE-001 | Platform owner | Platform and service Engineering | Current health endpoints are process liveness only. |
+| `CTRL-OPS-READINESS-001` | Expose dependency-aware readiness separate from liveness | Implemented | Direct | R-RESILIENCE-001 | Platform owner | Platform and service Engineering | All seven HTTP processes expose the split; local PostgreSQL and Redis outage/recovery variants pass, while shared CI/TestRail and full Compose evidence remain pending. |
 | `CTRL-OPS-ALERT-001` | Trigger and deliver actionable alerts for release-critical failure states | Unknown | Missing | R-RESILIENCE-001, R-RESILIENCE-002, R-OBS-001 | Observability owner | Platform and service Engineering | No alert-delivery evidence exists. |
 | `CTRL-OBS-TRACE-001` | Propagate/correlate end-to-end HTTP and message trace context | Partially implemented | Indirect | R-OBS-001 | Observability owner | Platform and service Engineering | No parentage assertion exists; registration is inconsistent. |
 | `CTRL-DEPLOY-INGRESS-001` | Serve the built frontend and APIs through supported production ingress | Unknown | Missing | R-DEPLOY-001 | Frontend Engineering owner | Frontend and Platform Engineering | Production ingress contract/built-image API smoke are absent. |
@@ -151,7 +151,7 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 | R-OUTBOX-001 | Partial | all publishers and publish-before-mark crash windows; Nightly + Release |
 | R-OUTBOX-002 | Indirect | two publishers, killed owner, stale reclaim and cleanup race; Nightly |
 | R-DATA-001 | Partial | Catalog drift, populated upgrade, rolling window and restore; Release + Operational |
-| R-RESILIENCE-001 | Partial | dependency-aware readiness negative/recovery; Main + Release |
+| R-RESILIENCE-001 | Direct | shared Main/Release acceptance, full Compose/delayed-dependency behavior and alerting; Main + Release |
 | R-RESILIENCE-002 | Partial | consumer/topology/channel recovery and repeated flap; Nightly |
 | R-OBS-001 | Indirect | trace parentage, log/error linkage and complete registration; Nightly + Release |
 | R-DEPLOY-001 | Missing | built-image browser through intended ingress; Main + Release |
@@ -165,13 +165,14 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 - Inventory commit: the domain method exists, but no active path owns the complete lifecycle; oracle is `Decision required`.
 - Production ingress: the repository lacks a frontend `/api` proxy and full backend Compose topology; oracle is `Decision required`.
 - Secrets: fixture/default credentials exist in Keycloak and E2E configuration and are not reproduced here.
-- Health: current endpoints prove process liveness, not dependency readiness.
+- Health: TECH-08 locally proves separate process liveness and owned PostgreSQL/Redis readiness; shared execution, full Compose topology and alerting remain outstanding.
 - Risk acceptance references and target scores remain blank until accountable decisions are recorded.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.8 | 2026-07-29 | Approved QA-05 dependency ownership and recorded local TECH-08 direct PostgreSQL/Redis readiness evidence without reducing residual risk scores or activating GATE-OPS-001. | Pending review |
 | 1.7 | 2026-07-29 | Recorded first accepted Nightly R49 and Release R50 evidence without changing residual risk scores, acceptance or gate state. | Pending review |
 | 1.6 | 2026-07-29 | Promoted the GAP-001 broker-delivery/no-DLQ variant through CI #34/TestRail R42 without changing residual risk scores, acceptance or gate state. | Pending review |
 | 1.5 | 2026-07-28 | Recorded the local GAP-001 broker-delivery/no-DLQ proof without changing residual risk scores, acceptance or gate state. | Pending review |

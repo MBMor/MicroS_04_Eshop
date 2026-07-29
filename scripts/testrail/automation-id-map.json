@@ -87,6 +87,9 @@
       "PaymentsServiceIntegrationTests.CreatePaymentSuccessMethodPersistsAuthorizedPayment", "PaymentsServiceIntegrationTests.CreatePaymentFailureMethodPersistsFailedPayment", "PaymentsServiceIntegrationTests.CreatePaymentDuplicateOrderReturnsConflict", "PaymentsServiceIntegrationTests.CreatePaymentUnsupportedMethodReturnsBadRequestWithoutPersistence", "PaymentsServiceIntegrationTests.CreatePaymentEmptyOrderIdReturnsValidationProblem", "PaymentsServiceIntegrationTests.GetPaymentsReturnsPersistedPayments", "PaymentsServiceIntegrationTests.GetPaymentByIdAndOrderReturnsPersistedPayment", "PaymentsServiceIntegrationTests.MissingPaymentQueriesReturnNotFound"
     ],
     "ESHOP-RESILIENCE-001": ["RabbitMqOutageRecoveryTests.OrdersOutboxRabbitMqOutageRetriesAndPublishesAfterRecovery"],
+    "ESHOP-RESILIENCE-002": [
+      "BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy", "CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy"
+    ],
     "ESHOP-RESILIENCE-003": [
       "GatewayRateLimitingTests.HealthEndpointIsNotRateLimited", "BasketServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "InventoryServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "NotificationsServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "OrdersServiceIntegrationTests.HealthAnonymousRequestReturnsOk", "PaymentsServiceIntegrationTests.HealthAnonymousRequestReturnsOk"
     ]

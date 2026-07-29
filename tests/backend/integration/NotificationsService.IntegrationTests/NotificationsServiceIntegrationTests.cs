@@ -28,12 +28,17 @@ public sealed class NotificationsServiceIntegrationTests(
     public async Task
         HealthAnonymousRequestReturnsOk()
     {
-        using HttpResponseMessage response =
-            await _client.GetAsync("/health", Xunit.TestContext.Current.CancellationToken);
+        foreach (string endpoint in new[] { "/live", "/ready", "/health" })
+        {
+            using HttpResponseMessage response =
+                await _client.GetAsync(
+                    endpoint,
+                    Xunit.TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            HttpStatusCode.OK,
-            response.StatusCode);
+            Assert.Equal(
+                HttpStatusCode.OK,
+                response.StatusCode);
+        }
     }
 
     [Fact]

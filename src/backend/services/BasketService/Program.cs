@@ -5,9 +5,11 @@ using BasketService.Identity;
 using BasketService.Integration;
 using BasketService.Options;
 using Eshop.ErrorHandling;
+using Eshop.HealthChecks;
 using Eshop.OpenApi;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
+using Microsoft.Extensions.Caching.Distributed;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -28,8 +30,6 @@ builder.Services
 
         options.SubstituteApiVersionInUrl = true;
     });
-
-builder.Services.AddHealthChecks();
 
 builder.Services.AddEshopErrorHandling();
 
@@ -65,6 +65,20 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "eshop:";
 });
 
+builder.Services
+    .AddHealthChecks()
+    .AddEshopReadinessCheck(
+        "redis",
+        async (serviceProvider, cancellationToken) =>
+        {
+            IDistributedCache cache = serviceProvider
+                .GetRequiredService<IDistributedCache>();
+
+            await cache.GetAsync(
+                "__eshop_readiness__",
+                cancellationToken);
+        });
+
 string catalogBaseUrl =
     builder.Configuration["Services:CatalogBaseUrl"]
     ?? throw new InvalidOperationException(
@@ -92,6 +106,6 @@ app.MapControllers()
     .RequireAuthorization(
         EshopPolicies.CustomerOnly);
 
-app.MapHealthChecks("/health");
+app.MapEshopHealthChecks();
 
 app.Run();

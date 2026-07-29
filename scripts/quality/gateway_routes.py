@@ -37,6 +37,20 @@ LOCAL_ROUTES = {
         "allowed_roles": [],
         "rate_limiter_policy": None,
     },
+    "gateway-liveness": {
+        "path_template": "/live",
+        "methods": ["GET"],
+        "authorization_policy": None,
+        "allowed_roles": [],
+        "rate_limiter_policy": None,
+    },
+    "gateway-readiness": {
+        "path_template": "/ready",
+        "methods": ["GET"],
+        "authorization_policy": None,
+        "allowed_roles": [],
+        "rate_limiter_policy": None,
+    },
     "gateway-auth-me": {
         "path_template": "/api/v1/auth/me",
         "methods": ["GET"],

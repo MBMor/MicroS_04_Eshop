@@ -21,12 +21,84 @@ public sealed class BasketServiceIntegrationTests(
     public async Task
         HealthAnonymousRequestReturnsOk()
     {
-        using HttpResponseMessage response =
-            await fixture.Client.GetAsync("/health", TestContext.Current.CancellationToken);
+        string[] endpoints =
+        [
+            "/live",
+            "/ready",
+            "/health"
+        ];
+
+        foreach (string endpoint in endpoints)
+        {
+            await AssertEndpointStatusAsync(
+                endpoint,
+                HttpStatusCode.OK,
+                TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task
+        ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy()
+    {
+        CancellationToken cancellationToken =
+            TestContext.Current.CancellationToken;
+
+        await AssertEndpointStatusAsync(
+            "/ready",
+            HttpStatusCode.OK,
+            cancellationToken);
+
+        await fixture.PauseRedisAsync(
+            cancellationToken);
+
+        try
+        {
+            await AssertEndpointStatusAsync(
+                "/live",
+                HttpStatusCode.OK,
+                cancellationToken);
+
+            using HttpResponseMessage unavailableResponse =
+                await WaitForStatusAsync(
+                    "/ready",
+                    HttpStatusCode.ServiceUnavailable,
+                    cancellationToken);
+
+            string responseBody =
+                await unavailableResponse.Content.ReadAsStringAsync(
+                    cancellationToken);
+
+            Assert.Equal(
+                "Unhealthy",
+                responseBody);
+
+            Assert.DoesNotContain(
+                fixture.RedisConnectionString,
+                responseBody,
+                StringComparison.OrdinalIgnoreCase);
+
+            await AssertEndpointStatusAsync(
+                "/health",
+                HttpStatusCode.ServiceUnavailable,
+                cancellationToken);
+        }
+        finally
+        {
+            await fixture.UnpauseRedisAsync(
+                cancellationToken);
+        }
+
+        using HttpResponseMessage recoveredResponse =
+            await WaitForStatusAsync(
+                "/ready",
+                HttpStatusCode.OK,
+                cancellationToken);
 
         Assert.Equal(
-            HttpStatusCode.OK,
-            response.StatusCode);
+            "Healthy",
+            await recoveredResponse.Content.ReadAsStringAsync(
+                cancellationToken));
     }
 
     [Fact]
@@ -565,5 +637,51 @@ public sealed class BasketServiceIntegrationTests(
         string scenario)
     {
         return $"{scenario}-{Guid.NewGuid():N}";
+    }
+
+    private async Task AssertEndpointStatusAsync(
+        string endpoint,
+        HttpStatusCode expectedStatus,
+        CancellationToken cancellationToken)
+    {
+        using HttpResponseMessage response =
+            await fixture.Client.GetAsync(
+                endpoint,
+                cancellationToken);
+
+        Assert.Equal(
+            expectedStatus,
+            response.StatusCode);
+    }
+
+    private async Task<HttpResponseMessage> WaitForStatusAsync(
+        string endpoint,
+        HttpStatusCode expectedStatus,
+        CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource timeout =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken);
+
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+
+        while (true)
+        {
+            HttpResponseMessage response =
+                await fixture.Client.GetAsync(
+                    endpoint,
+                    timeout.Token);
+
+            if (response.StatusCode == expectedStatus)
+            {
+                return response;
+            }
+
+            response.Dispose();
+
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(250),
+                timeout.Token);
+        }
     }
 }
