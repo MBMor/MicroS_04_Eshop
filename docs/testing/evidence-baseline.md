@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.9
+> **Version:** 3.0
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `7a90d9a`
-> **Working-tree scope:** TECH-08/GAP-004 local candidate; shared Main/Release acceptance pending
+> **Repository baseline:** `main` / `36f6c5d`
+> **Current scope:** TECH-08/GAP-004 accepted through Main CI #66 and governed Release #4
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -25,7 +25,7 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The TECH-08 working-tree candidate contains:
+The accepted TECH-08 source baseline contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
@@ -265,13 +265,13 @@ Governed Release [`30481512624`](https://github.com/MBMor/MicroS_04_Eshop/action
 
 Evidence validity is **Valid** for the named Main and Release variants. TECH-07 is accepted and GAP-003 is closed. `GATE-SEC-001` remains Future and unevaluated; full deployable-network topology remains GAP-013.
 
-## QA-05 / TECH-08 / GAP-004 local evidence
+## QA-05 / TECH-08 / GAP-004 accepted evidence
 
 TECH-08 introduces shared endpoint registration for all seven HTTP processes. `/live` runs no dependency checks, `/ready` runs owned mandatory checks and transitional `/health` uses the same readiness predicate. Catalog, Inventory, Orders, Payments and Notifications execute a bounded non-destructive PostgreSQL `SELECT 1`; Basket probes its configured Redis cache; Gateway has no mandatory runtime downstream check. RabbitMQ is deliberately excluded because outbox-backed services are designed to remain available during a temporary broker outage.
 
 `CatalogServiceIntegrationTests.ReadinessTracksPostgreSqlOutageAndRecoveryWhileLivenessStaysHealthy` and `BasketServiceIntegrationTests.ReadinessTracksRedisOutageAndRecoveryWhileLivenessStaysHealthy` pause the real Testcontainer without changing its network identity. Both prove healthy readiness, `/live=200` during dependency loss, bounded `/ready=503`, the compatibility alias at 503, a body of exactly `Unhealthy` without the connection string, and recovery to `Healthy` without restarting the HTTP service. Cleanup unpauses the dependency in `finally` and polling is bounded and condition-based.
 
-Local evidence on 2026-07-29:
+Supporting local evidence on 2026-07-29:
 
 - solution restore/build: passed, 0 warnings and 0 errors;
 - Catalog full project: 20/20 Passed;
@@ -281,7 +281,11 @@ Local evidence on 2026-07-29:
 - quality policy: 38/38 Passed; TestRail tooling: 8/8 Passed;
 - tier validation: 198 selectors; `PR=77`, `Main primary=102`, `Main cumulative=179`, `Nightly=19`, `Release=17`; Main 30 aggregates/192 edges and Release 9 aggregates/26 edges.
 
-The two new selectors bind to existing C80/`ESHOP-RESILIENCE-002`; no case is added. C80 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Its generic evidence precondition remains Missing until the first shared result. Main publication is locked to `12/24/3/4`. Shared Main/Release evidence remains pending, so GAP-004 is not yet closed. `GATE-OPS-001` remains Future and unevaluated; full Compose/delayed-dependency topology remains GAP-013.
+The two new selectors bind to existing C80/`ESHOP-RESILIENCE-002`; no case is added. C80 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes`, `Main; Release` and Automation ID `Eshop.TestIntents.ESHOP-RESILIENCE-002`. Main publication is locked to `12/24/3/4`.
+
+PR #15 merged TECH-08 as `36f6c5d`. Main GitHub Actions run [`30486673945`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30486673945) completed successfully, including Container images, Checkout E2E, the TestRail publication gate and publication. TestRail CI #66 Backend Integration R92 is completed at 24/24 Passed and contains Passed C80. Governed Release run [`30487730431`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30487730431) completed all six selected backend partitions and publication; TestRail Release #4/R95 is completed at 9/9 Passed and contains a second Passed C80 result. C80 therefore reports two Passed results in the current 30-day window. Its legacy import prose in Preconditions still contains historical `Evidence Strength: Missing` / `Decision required` wording; current Approved/Implemented custom metadata, the `evidence-direct` tag and immutable R92/R95 history supersede that prose. Rich-editor cleanup is non-blocking and must preserve the References token.
+
+Evidence validity is **Valid** for the named PostgreSQL and Redis outage/recovery variants on `36f6c5d`. GAP-004 is closed. `GATE-OPS-001` remains Future and unevaluated; full Compose/delayed-dependency and orchestration-consumption topology remains GAP-013.
 
 ## Current interpretation
 
@@ -295,12 +299,13 @@ The two new selectors bind to existing C80/`ESHOP-RESILIENCE-002`; no case is ad
 - TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed.
 - QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
 - TECH-07 supplies accepted direct Catalog authorization/no-write and gateway no-forwarding evidence through Main CI #62/R87 and governed Release R90; GAP-003 is closed. Deployable-network topology remains GAP-013.
-- QA-05 approves the dependency ownership and outage/recovery oracle; TECH-08 implements it with valid local PostgreSQL and Redis material variants. Shared Main/Release/TestRail acceptance is still required before GAP-004 closes.
+- QA-05 approves the dependency ownership and outage/recovery oracle; TECH-08 is accepted through Main CI #66/R92 and governed Release #4/R95. GAP-004 is closed while GATE-OPS-001 remains Future and GAP-013 retains full-topology evidence.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 3.0 | 2026-07-29 | Accepted QA-05/TECH-08 on `36f6c5d` through Main CI #66/R92 and governed Release #4/R95; closed GAP-004 without activating GATE-OPS-001. | Pending review |
 | 2.9 | 2026-07-29 | Added QA-05 oracle and local TECH-08/GAP-004 implementation evidence, synchronized C80 automation identity, and recorded the 198-selector/217-edge candidate. | Pending review |
 | 2.8 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed at 100%. | Pending review |
 | 2.7 | 2026-07-29 | Added local TECH-07/GAP-003 Catalog mutation-boundary evidence, synchronized C53 and the 196-selector/215-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
