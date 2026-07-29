@@ -63,11 +63,11 @@ Repository variables:
 - `TESTRAIL_HOST` — for example `https://mbmor.testrail.io`
 - `TESTRAIL_PROJECT` — exact TestRail project name
 
-The reporting job validates that all four values are non-empty without printing their contents. It runs after backend, frontend and E2E processing even when a test job fails, but never on pull requests. A skipped upstream area produces no TestRail run for that area; available reports are still processed.
+The reporting job validates that all four values are non-empty without printing their contents. QA-04/TECH-06 adds an explicit publication gate after Change scope, Backend, Frontend and Checkout E2E. Only a non-PR application run with all four required job results equal to `success` can reach TestRail; documentation-only, failed, skipped or cancelled execution fails closed to no publication.
 
 Before upload, a read-only TestRail API preflight verifies that every local aggregate Automation ID exists exactly once. Missing or duplicate IDs stop all publication and are printed explicitly. TRCLI 1.15.1 then runs with `-n`, so it cannot create cases, and closes each created run. The run description links to the originating GitHub Actions execution.
 
-Four independent runs are created when their artifacts exist:
+All four independent runs are required as one complete CI publication set:
 
 - `CI #<number> | Backend Unit`
 - `CI #<number> | Backend Integration`
@@ -76,9 +76,9 @@ Four independent runs are created when their artifacts exist:
 
 ## Production failure handling
 
-TestRail publication is a blocking CI job. Missing configuration, mapping drift, a TestRail outage or a TRCLI failure therefore changes the workflow conclusion to failed. Individual artifact downloads remain tolerant so that a skipped upstream area does not prevent publication of available reports; an absent area creates no empty TestRail run.
+TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with exact locked cardinality `12/22/3/4` before Automation ID preflight or the first TRCLI call. Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
 
-TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run.
+TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run. Because TestRail receives four independent API operations rather than one transaction, an outage during TRCLI calls can still leave an externally partial diagnostic set; that residual must be identified by CI number and excluded from acceptance until a complete rerun passes.
 
 ## Initial production acceptance
 
