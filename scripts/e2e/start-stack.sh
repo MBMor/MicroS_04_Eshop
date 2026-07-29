@@ -106,11 +106,12 @@ is_port_in_use() {
 
   if command -v ss >/dev/null 2>&1; then
     ss \
-      --headers=never \
-      --listening \
-      --tcp \
-      "sport = :${port}" |
-      grep -q .
+      -ltn \
+      "sport = :${port}" \
+      2>/dev/null |
+      grep -E \
+        "[\.:]${port}[[:space:]]" \
+        >/dev/null
 
     return
   fi
@@ -137,10 +138,8 @@ print_backend_port_owners() {
 
   if command -v ss >/dev/null 2>&1; then
     ss \
-      --listening \
-      --tcp \
-      --processes \
-      --numeric |
+      -ltnp \
+      2>/dev/null |
       grep -E \
         ':(5080|5081|5082|5083|5084|5085|5086)[[:space:]]' ||
       true
