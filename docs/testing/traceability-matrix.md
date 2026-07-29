@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 2.1
+> **Version:** 2.2
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `07c5ec5`; TECH-03/GAP-020 strengthening is local until shared acceptance
+> **Baseline:** `main` / `c587eb9`; TECH-03/GAP-020 accepted in CI #41/#42 and TestRail R64
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-GitHub Actions PR `CI #37` accepts PR-owned 77 execution without Docker, browser or TestRail publication. Main `CI #38` on merge commit `a41aa71` accepts cumulative Main 174 execution and TestRail `R55`–`R58` at `12/22/3/4`, all Passed. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. All 193 selectors remain governed across tiers; GAP-022 is complete. TECH-03 locally advances `ESHOP-DATA-004` from weak status-only evidence to direct atomic-rejection evidence; shared acceptance remains the GAP-020 residual. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+GitHub Actions PR `CI #37` accepts PR-owned 77 execution without Docker, browser or TestRail publication. Main `CI #38` on merge commit `a41aa71` accepts cumulative Main 174 execution and TestRail `R55`–`R58` at `12/22/3/4`, all Passed. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. All 193 selectors remain governed across tiers; GAP-022 is complete. TECH-03 passed PR CI #41, Main CI #42 and TestRail R64, advancing `ESHOP-DATA-004` to accepted direct atomic-rejection evidence and closing GAP-020. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -47,7 +47,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Process liveness (`ESHOP-RESILIENCE-003`) | NONE — liveness does not reduce dependency-readiness risk | NONE — informational process-smoke capability | `/live` reports process viability without requiring dependencies | current `/health` status tests provide limited liveness evidence | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Platform owner | separate endpoint naming and explicit liveness contract |
 | PostgreSQL migration compatibility (`ESHOP-DATA-001`) | R-DATA-001 | CTRL-DATA-MIGRATION-001 | fresh plus every supported populated upgrade and rolling window | migrations/fixtures; smoke for four services | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Release | Data Migration owner | prior schema snapshots, Catalog drift, rolling window and restore linkage |
 | Persistence constraints and uniqueness (`ESHOP-DATA-002`) | R-DATA-001 | CTRL-DATA-MIGRATION-001 | SKU/product/payment/inbox/outbox constraints survive current and upgraded schemas | configuration/migrations and duplicate tests | Applicable | Approved | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Release | Data Migration owner | direct SQL bypass and cross-version preservation |
-| Atomic negative mutations (`ESHOP-DATA-004`) | R-DATA-001, R-ORDER-002 | NONE — evidence strengthening only | invalid Catalog/order input is traceable and rejected without partial persistence or basket consumption | four existing API selectors now assert canonical error fields/correlation, unchanged Catalog count, empty Orders tables and retained basket; targeted local 4/4 passed | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | Local | Main | Catalog and Orders Engineering owners | shared Main/TestRail acceptance; global ProblemDetails media-type consistency is adjacent scope |
+| Atomic negative mutations (`ESHOP-DATA-004`) | R-DATA-001, R-ORDER-002 | NONE — evidence strengthening only | invalid Catalog/order input is traceable and rejected without partial persistence or basket consumption | four API selectors assert canonical error fields/correlation, unchanged Catalog count, empty Orders tables and retained basket; CI #42/TestRail R64 passed | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Catalog and Orders Engineering owners | global ProblemDetails media-type consistency is adjacent scope |
 | Trace and correlation lineage (`ESHOP-OBS-001`) | R-OBS-001 | CTRL-OBS-TRACE-001 | HTTP/activity/message/ProblemDetails/log context reconstructs a workflow | shared extension, publisher, consumer and error handling; incidental execution | Applicable | Decision required | Partially implemented | Indirect | Planned | Not run | Unknown | None | Nightly + Release | Observability owner | collector assertions, parentage, redaction, log linkage and all services |
 | Frontend authentication and API states (`ESHOP-FRONTEND-001`) | R-FRONTEND-001 | CTRL-FRONTEND-SESSION-001 | token handling, protected routes, errors, forms, loading and polling | api client/provider/RequireRole; ten Vitest tests | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | PR + Main | Frontend Engineering owner | refresh/session expiry, page and polling recovery |
 | Browser compatibility and accessibility (`ESHOP-FRONTEND-002`) | R-FRONTEND-001 | CTRL-FRONTEND-SESSION-001 | critical journeys across approved browsers/devices and accessibility scope | three Chromium tests; no approved support/accessibility baseline | Unknown | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Main + Nightly + Release | Frontend Engineering owner | support matrix, Firefox/WebKit/mobile, axe, keyboard and manual scope |
@@ -111,6 +111,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.2 | 2026-07-29 | Accepted TECH-03 in CI #41/#42 and TestRail R64; closed GAP-020 traceability without changing risk or gate state. | Pending review |
 | 2.1 | 2026-07-29 | Added local direct TECH-03/GAP-020 traceability for the existing ESHOP-DATA-004 aggregate without changing risk or gate state. | Pending review |
 | 2.0 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/R55–R58 traceability and closed GAP-022. | Pending review |
 | 1.9 | 2026-07-29 | Recorded local governed PR/Main cutover while retaining shared acceptance as the GAP-022 residual. | Pending review |
