@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 2.8
-> **Effective from:** 2026-07-29 TECH-07 working-tree candidate
-> **Baseline:** `main` / `411f166`; QA-04/TECH-06 accepted in CI #56 and TestRail R82–R85
+> **Version:** 2.9
+> **Effective from:** 2026-07-29 TECH-07 shared acceptance
+> **Baseline:** `main` / `4ec560f`; TECH-07 accepted in CI #62/TestRail R86–R90
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -17,7 +17,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 |---|---|---|---|---|
 | `GAP-001` Critical — implementation and shared material-variant evidence complete; longitudinal residual | `R-INVENTORY-001`; three deterministic direct PostgreSQL variants passed CI #31/TestRail R30. The two-host/two-consumer RabbitMQ variant proves last-unit contention, bounded retry, exact downstream cardinality and no main/DLQ residue; it passed CI #35/R46 plus first governed Nightly R49 and Release R50 execution. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` is Direct for the named variants; `GATE-INV-001` W2 activation prerequisite remains Future. | Accumulate scheduled repeat history and review any retry/flake signal. | Remaining longitudinal evidence XS; Nightly+Release. |
 | `GAP-002` Critical — implementation and shared material-variant evidence complete; longitudinal residual | `R-ORDER-001`; ten API/frontend variants plus QA-02 sequential and synchronized-concurrent complete-workflow variants passed on commit `a1fba95` in CI #33/TestRail R38 and in first governed Nightly R49/Release R50 execution. Local Messaging 13/13, Orders 17/17 and concurrent 5/5 support determinism. | Oracle Approved in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); `CTRL-ORDER-IDEMPOTENCY-001` is Direct for the named variants and contributes to Future `GATE-ORD-001`. | Accumulate scheduled repeat history. | Remaining longitudinal evidence XS/S; Nightly+Release. |
-| `GAP-003` High — implementation complete locally; shared acceptance pending | `R-AUTH-001`; Catalog POST/PUT/DELETE now require admin. Nine direct-service variants prove anonymous 401 and customer/support 403 with unchanged PostgreSQL state; three gateway variants prove 405 and zero forwarding while public GET remains anonymous. | Oracle Approved; `CTRL-SEC-CATALOG-BOUNDARY-001` Direct locally; `GATE-SEC-001` remains a Future W2 activation prerequisite. | Promote the exact Main and Release selectors through shared CI/TestRail. Treat full container-network topology as the separate GAP-013 residual. | Security/service integration; remaining XS; Main + Release. |
+| `GAP-003` Closed — TECH-07 accepted | `R-AUTH-001`; Catalog POST/PUT/DELETE require admin. Nine direct-service variants prove anonymous 401 and customer/support 403 with unchanged PostgreSQL state; three gateway variants prove 405 and zero forwarding while public GET remains anonymous. Main CI #62/R87 and governed Release R90 passed. | Oracle Approved; `CTRL-SEC-CATALOG-BOUNDARY-001` Direct for the named variants; `GATE-SEC-001` remains a Future W2 activation prerequisite. | No remaining GAP-003 implementation action. Retain Main/Release bindings and treat full container-network topology as the separate GAP-013 residual. | Complete; Main + Release evidence accepted. |
 | `GAP-004` High | `R-RESILIENCE-001`; parameterless health checks/status-only tests preserve false-positive health. | Dependency list Decision required; `CTRL-OPS-READINESS-001` Not implemented; `GATE-OPS-001` W3 activation prerequisite. | `/live` and `/ready`; stop DB/Redis/Rabbit/downstream; live follows contract, ready 503 with dependency, then recovers. | Component/deployment; M; Main+Release; contract first. |
 | `GAP-005` High | `R-OUTBOX-001/002`; no concurrent claims, stale reclaim, crash window, max retry or cleanup assertions. | Oracles Approved; outbox/claim/publish controls Partial/Indirect; `GATE-MSG-001/004`. | Two publishers disjoint claims/one logical publish; kill after claim and advance time; reclaim; force Dead with attempts/error; cleanup only eligible rows; publish-before-mark recovery. | PG/Rabbit/injected time/hooks; M/L; Nightly→Release; deterministic hooks first. |
 | `GAP-006` High | `R-MSG-001`; only StockReservationFailed duplicate covered. | Approved idempotency; `CTRL-MSG-INBOX-001` Partial; `GATE-MSG-002/003`. | Data-driven sequential/concurrent/commit-before-ack duplicates for all side-effecting consumers; one inbox/domain/outbox/notification/payment, ack duplicate, no DLQ. | Messaging; M; Nightly; payment/release/auth paths first. |
@@ -40,13 +40,13 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
 | `GAP-024` Low | Test infrastructure uses delays/eventual polling/CI retry. | Determinism standard Approved; potential `DEV-*` only if unavoidable. | Observable readiness/queue/DB state; injected time; preserve first-attempt logs/trace/video; retry occurrence remains failure signal. | Infrastructure; S/M; PR/Main before Nightly expansion. |
 | `GAP-025` Low | .NET net10, Node CI24/local22, Chromium only; no support matrix. | Oracle Decision required. | Approve runtime/browser/OS versions; targeted Windows/Linux builds if supported, engine smoke and architecture check. | CI/platform; M; Nightly/Release after policy. |
-| `GAP-026` Closed — TECH-05 accepted | `R-GW-AUTH-001`; the authoritative registry covers all 13 YARP proxy routes and 3 local endpoints. One 43-row theory asserts public/authenticated/role behavior and zero downstream requests after denials; the quality validator fails on route, policy, role, method, sample-path or registry drift. Main CI #52 passed and `ESHOP-GW-001` passed in TestRail R79. | Oracle Approved; `CTRL-SEC-GATEWAY-001` is Direct for the gateway boundary; `GATE-SEC-001` remains a Future W2 activation prerequisite. | No remaining GAP-026 implementation action. Retain the fail-closed registry and matrix. Direct Catalog network isolation remains GAP-003. | Complete; Main evidence accepted; Release gate not activated. |
+| `GAP-026` Closed — TECH-05 accepted | `R-GW-AUTH-001`; the authoritative registry covers all 13 YARP proxy routes and 3 local endpoints. One 43-row theory asserts public/authenticated/role behavior and zero downstream requests after denials; the quality validator fails on route, policy, role, method, sample-path or registry drift. Main CI #52 passed and `ESHOP-GW-001` passed in TestRail R79. | Oracle Approved; `CTRL-SEC-GATEWAY-001` is Direct for the gateway boundary; `GATE-SEC-001` remains a Future W2 activation prerequisite. | No remaining GAP-026 implementation action. Retain the fail-closed registry and matrix. Catalog service authorization is accepted under GAP-003; deployable topology remains GAP-013. | Complete; Main evidence accepted; Release gate not activated. |
 
 ## Duplication and indirect evidence
 
 - Messaging and Playwright checkout paths are deliberate layered overlap: durable distributed effects versus customer-visible outcome.
 - Domain transitions remain on PR even when saga tests repeat terminal states.
-- Gateway and direct-service authorization are complementary trust boundaries. TECH-05 closes gateway route exhaustiveness; TECH-07 implements the Catalog service boundary and gateway non-forwarding evidence. Shared Main/Release acceptance remains for GAP-003; full deployable topology remains GAP-013.
+- Gateway and direct-service authorization are complementary trust boundaries. TECH-05 closes gateway route exhaustiveness; TECH-07 closes GAP-003 with accepted Catalog service-boundary and gateway non-forwarding evidence. Full deployable topology remains GAP-013.
 - Keep minimal liveness smoke per process; implement dependency readiness once per relevant component without multiplying status-only checks.
 - Indirect-only risk evidence: traces (`R-OBS-001`), outbox claims (`R-OUTBOX-002`), inventory fulfillment (`R-INVENTORY-002`), real basket-clear recovery (`R-BASKET-003`), production ingress (`R-DEPLOY-001`).
 
@@ -54,7 +54,7 @@ Weak assertions retained from the audit: five service `HealthAnonymousRequestRet
 
 ## CI findings
 
-The accepted baseline narrows runtime by event without narrowing total governed coverage. The TECH-07 candidate has PR 77, Main primary 100 and cumulative Main 177, Nightly 19 and Release overlap 15 selectors. Its Main TestRail cardinality becomes `12/23/3/4`; Release becomes 8 aggregate TestIntents over 24 binding edges. QA-04/TECH-06 still requires every upstream job to succeed and validates the complete report set before the first remote call. Missing product tests, shared TECH-07 acceptance and accumulated scheduled evidence remain distinct concerns.
+The accepted baseline narrows runtime by event without narrowing total governed coverage. The TECH-07 contract has PR 77, Main primary 100 and cumulative Main 177, Nightly 19 and Release overlap 15 selectors. Main CI #62/TestRail R86–R89 accepted `12/23/3/4`; governed Release run `30481512624` accepted 8 aggregate TestIntents over 24 binding edges in R90. QA-04/TECH-06 still requires every upstream job to succeed and validates the complete report set before the first remote call. Missing product tests and accumulated scheduled evidence remain distinct concerns.
 
 ## GAP-020 / TECH-03 groomed atomic-rejection contract
 
@@ -146,12 +146,13 @@ The accepted baseline narrows runtime by event without narrowing total governed 
 8. TestRail C53 has synchronized `Automation Status=Automated`, native `Is Automated=Yes`, `Implementation Status=Implemented`, `Oracle Approval=Approved` and Automation ID `Eshop.TestIntents.ESHOP-CATALOG-001`.
 9. PR, Main and the explicit Release workflow must pass before GAP-003 is recorded as shared accepted evidence. `GATE-SEC-001` remains Future and unevaluated.
 
-**Local evidence:** Catalog 19/19 and API Gateway 68/68 pass; tier policy, mapping and C53 metadata/oracle are synchronized. Shared CI/TestRail publication is pending.
+**Accepted evidence:** Catalog 19/19 and API Gateway 68/68 passed locally. The initial Main publication exposed only the incompatible manifest-version bump; hotfix `4ec560f` restored version 1 and added a production-manifest regression test. Main [`CI #62`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30458083498) passed and published closed R86–R89 at `12/23/3/4`. Governed Release [`30481512624`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30481512624) published closed R90 with 8/8 Passed, including `ESHOP-CATALOG-001` and `ESHOP-GW-001`. GAP-003 is closed without activating or evaluating `GATE-SEC-001`.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.9 | 2026-07-29 | Closed GAP-003 after hotfix `4ec560f`, Main CI #62/R87 and governed Release R90 accepted TECH-07. | Pending review |
 | 2.8 | 2026-07-29 | Groomed and implemented TECH-07/GAP-003 locally with admin-only Catalog mutations, denial/no-write and gateway no-forwarding evidence plus synchronized C53; shared Main/Release acceptance remains pending. | Pending review |
 | 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 fail-closed publication and runner-portability controls through Main CI #56 and TestRail R82–R85. | Pending review |
 | 2.6 | 2026-07-29 | Closed GAP-026 after hotfix `daf835d`, Main CI #52 and TestRail R79 accepted the complete gateway matrix. | Pending review |

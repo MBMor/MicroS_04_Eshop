@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 2.8
+> **Version:** 2.9
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `411f166`; QA-04/TECH-06 accepted in CI #56 and TestRail R82–R85
+> **Baseline:** `main` / `4ec560f`; TECH-07 accepted in CI #62/TestRail R86–R90
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-GitHub Actions PR `CI #37` accepts PR-owned execution without Docker, browser or TestRail publication; Main `CI #38` accepts cumulative execution and locked publication. QA-03 Nightly `R49` and Release `R50` accept the preceding governed subsets. The TECH-07 candidate governs 196 selectors (`PR=77`, `Main=100`, `Nightly=19`, `Release=15`; cumulative Main 177), maps 32 automated TestIntents through 215 edges and adds direct Catalog mutation-boundary evidence. QA-04/TECH-06 still makes successful upstream execution and an exact complete report set prerequisites for TestRail publication. Main CI #56/TestRail R82–R85 remains the latest accepted shared baseline; TECH-07 shared Main/Release evidence is pending. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+GitHub Actions PR `CI #37` accepts PR-owned execution without Docker, browser or TestRail publication; Main `CI #38` accepts cumulative execution and locked publication. The accepted TECH-07 contract governs 196 selectors (`PR=77`, `Main=100`, `Nightly=19`, `Release=15`; cumulative Main 177) and maps 32 automated TestIntents through 215 edges. QA-04/TECH-06 still makes successful upstream execution and an exact complete report set prerequisites for TestRail publication. Main CI #62/TestRail R86–R89 and governed Release R90 accept the current Catalog mutation-boundary evidence. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -18,7 +18,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Sign-in and token trust (`ESHOP-AUTH-001`) | R-IDENTITY-001 | CTRL-IDENTITY-TOKEN-001 | Keycloak PKCE, bearer validation, subject/roles and `/api/v1/auth/me` | realm/client/role mapper; shared JWT extension; gateway auth tests; frontend auth provider | Applicable | Decision required | Implemented | Partial | Automated | Passed | Valid | PR/main | PR + Release | Security owner | expiry, issuer, audience, signature, clock, refresh/session and Keycloak outage |
 | Gateway and addressable-service authorization (`ESHOP-GW-001`) | R-GW-AUTH-001 | CTRL-SEC-GATEWAY-001 | customer/support/admin/public route matrix and denial non-forwarding | accepted TECH-05 registry covers 13 proxy routes and 3 local endpoints; 43 variants assert anonymous/wrong/allowed roles and zero forwarding after denial; CI #52/R79 Passed | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main + Release | Security owner | downstream ownership and direct Catalog network boundary remain separate |
-| Catalog mutation boundary (`ESHOP-CATALOG-001`) | R-AUTH-001 | CTRL-SEC-CATALOG-BOUNDARY-001 | direct POST/PUT/DELETE requires admin; gateway mutations are not forwarded | Catalog shared JWT/AdminOnly enforcement; nine direct 401/403/no-write variants; three gateway 405/no-forwarding variants; local Catalog 19/19 and Gateway 68/68; C53 synchronized | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | Local | Main + Release | Catalog Engineering owner | shared Main/Release acceptance; full deployable-network topology remains GAP-013 |
+| Catalog mutation boundary (`ESHOP-CATALOG-001`) | R-AUTH-001 | CTRL-SEC-CATALOG-BOUNDARY-001 | direct POST/PUT/DELETE requires admin; gateway mutations are not forwarded | Catalog shared JWT/AdminOnly enforcement; nine direct 401/403/no-write variants; three gateway 405/no-forwarding variants; Catalog 19/19 and Gateway 68/68; Main CI #62/R87 and Release R90 Passed; C53 synchronized | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main/release | Main + Release | Catalog Engineering owner | full deployable-network topology remains GAP-013 |
 | Gateway throttling (`ESHOP-GW-002`) | R-GW-001 | CTRL-GW-RATELIMIT-001 | fixed windows, trusted identity/address and health exemptions | rate-limit extension; seven in-process tests | Applicable | Decision required | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Release | Gateway Engineering owner | forwarded-header trust, spoofing, multi-replica consistency and reset |
 | Basket ownership and storage (`ESHOP-BASKET-001`) | R-BASKET-002 | CTRL-BASKET-CUSTOMERKEY-001 | customer-scoped Redis key, serialization, TTL and ownership | subject provider, key factory, repository; isolation/roundtrip/TTL tests | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Basket Engineering owner | key-normalization and serialization fuzz variants |
 | Concurrent basket mutation (`ESHOP-BASKET-002`) | R-BASKET-001 | CTRL-BASKET-CONCURRENCY-001 | simultaneous add/update/remove under approved merge or conflict policy | whole-value get/mutate/set; sequential tests only | Applicable | Decision required | Not implemented | Missing | Planned | Not run | Unknown | None | Nightly | Basket Engineering owner | approved semantics, CAS/version/atomic implementation and deterministic race |
@@ -56,13 +56,13 @@ Every status column below contains exactly one canonical value. Scope qualificat
 
 ## Canonical CaseGateMapping records
 
-Mappings synchronize lifecycle, wave, activation and phase from the gate policy. Gate contribution remains `Not evaluated`. `CGM-002` points to CI #52/TestRail R79; `CGM-003` points to local TECH-07 evidence pending shared promotion; `CGM-008` points to CI #33/TestRail `R38`; `CGM-010` points to CI #35/TestRail `R46`; the other mappings retain their original audit-source provenance until their exact required material variant is refreshed.
+Mappings synchronize lifecycle, wave, activation and phase from the gate policy. Gate contribution remains `Not evaluated`. `CGM-002` points to CI #52/TestRail R79; `CGM-003` points to Main CI #62/R87 and governed Release R90; `CGM-008` points to CI #33/TestRail `R38`; `CGM-010` points to CI #35/TestRail `R46`; the other mappings retain their original audit-source provenance until their exact required material variant is refreshed.
 
 | Mapping | TestIntent | Gate | Contribution | Required material variant | Lifecycle | Activation | Wave | Phase | Required tier | Applicability | Calendar profile | Evidence strength | Latest first attempt | Validity | Contribution evaluation | Waiver ref | Latest evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | CGM-001 | ESHOP-AUTH-001 | GATE-SEC-003 | Primary | token validation and session-trust matrix | Conditional mandatory | Future | W2 | Pre-deployment | Release | Unknown | CAL-TOKEN-90D | Partial | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-002 | ESHOP-GW-001 | GATE-SEC-001 | Primary | gateway/addressable-service authorization and denial non-forwarding | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | CI-52-R79@daf835d |
-| CGM-003 | ESHOP-CATALOG-001 | GATE-SEC-001 | Primary | direct Catalog mutation denial and gateway non-forwarding | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | LOCAL-TECH07@working-tree |
+| CGM-003 | ESHOP-CATALOG-001 | GATE-SEC-001 | Primary | direct Catalog mutation denial and gateway non-forwarding | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Passed | Valid | Not evaluated | — | CI-62-R87+R90@4ec560f |
 | CGM-004 | ESHOP-BASKET-001 | GATE-SEC-001 | Primary | cross-customer basket isolation | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-005 | ESHOP-ORDER-003 | GATE-SEC-001 | Primary | cross-customer order isolation | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
 | CGM-006 | ESHOP-NOTIFICATION-001 | GATE-SEC-001 | Primary | cross-customer notification isolation | Baseline mandatory | Future | W2 | Pre-deployment | Release | Applicable | None | Direct | Not run | Unknown | Not evaluated | — | AUDIT-SRC@bf3d1afbd7bc |
@@ -111,6 +111,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.9 | 2026-07-29 | Promoted TECH-07/CGM-003 to accepted Main CI #62/R87 and governed Release R90 evidence while keeping GATE-SEC-001 Future and unevaluated. | Pending review |
 | 2.8 | 2026-07-29 | Added local TECH-07 direct Catalog authorization/no-write and gateway non-forwarding traceability, synchronized C53/CGM-003, and retained GATE-SEC-001 as Future and unevaluated. | Pending review |
 | 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 publication-integrity provenance through Main CI #56/TestRail R82–R85 without changing risk, control or gate state. | Pending review |
 | 2.6 | 2026-07-29 | Promoted TECH-05/CGM-002 to accepted CI #52/TestRail R79 evidence while keeping GATE-SEC-001 Future and unevaluated. | Pending review |
