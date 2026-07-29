@@ -1,10 +1,10 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 2.2
+> **Version:** 2.3
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `c587eb9`; TECH-03/GAP-020 accepted in CI #41/#42 and TestRail R64
+> **Baseline:** `main` / `7e92102`; local TECH-04 evidence is separated from accepted TECH-03/GAP-020 evidence
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
@@ -47,7 +47,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Process liveness (`ESHOP-RESILIENCE-003`) | NONE — liveness does not reduce dependency-readiness risk | NONE — informational process-smoke capability | `/live` reports process viability without requiring dependencies | current `/health` status tests provide limited liveness evidence | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Platform owner | separate endpoint naming and explicit liveness contract |
 | PostgreSQL migration compatibility (`ESHOP-DATA-001`) | R-DATA-001 | CTRL-DATA-MIGRATION-001 | fresh plus every supported populated upgrade and rolling window | migrations/fixtures; smoke for four services | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Release | Data Migration owner | prior schema snapshots, Catalog drift, rolling window and restore linkage |
 | Persistence constraints and uniqueness (`ESHOP-DATA-002`) | R-DATA-001 | CTRL-DATA-MIGRATION-001 | SKU/product/payment/inbox/outbox constraints survive current and upgraded schemas | configuration/migrations and duplicate tests | Applicable | Approved | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Release | Data Migration owner | direct SQL bypass and cross-version preservation |
-| Atomic negative mutations (`ESHOP-DATA-004`) | R-DATA-001, R-ORDER-002 | NONE — evidence strengthening only | invalid Catalog/order input is traceable and rejected without partial persistence or basket consumption | four API selectors assert canonical error fields/correlation, unchanged Catalog count, empty Orders tables and retained basket; CI #42/TestRail R64 passed | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Catalog and Orders Engineering owners | global ProblemDetails media-type consistency is adjacent scope |
+| Atomic negative mutations (`ESHOP-DATA-004`) | R-DATA-001, R-ORDER-002 | NONE — evidence strengthening only | invalid Catalog/order input is traceable and rejected without partial persistence or basket consumption | four API selectors assert canonical error fields/correlation and atomicity; CI #42/TestRail R64 passed; TECH-04 locally adds exact Catalog `application/problem+json` evidence | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Catalog and Orders Engineering owners | TECH-04 shared acceptance; other shared-error-handling consumers lack direct media-type assertions |
 | Trace and correlation lineage (`ESHOP-OBS-001`) | R-OBS-001 | CTRL-OBS-TRACE-001 | HTTP/activity/message/ProblemDetails/log context reconstructs a workflow | shared extension, publisher, consumer and error handling; incidental execution | Applicable | Decision required | Partially implemented | Indirect | Planned | Not run | Unknown | None | Nightly + Release | Observability owner | collector assertions, parentage, redaction, log linkage and all services |
 | Frontend authentication and API states (`ESHOP-FRONTEND-001`) | R-FRONTEND-001 | CTRL-FRONTEND-SESSION-001 | token handling, protected routes, errors, forms, loading and polling | api client/provider/RequireRole; ten Vitest tests | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | PR + Main | Frontend Engineering owner | refresh/session expiry, page and polling recovery |
 | Browser compatibility and accessibility (`ESHOP-FRONTEND-002`) | R-FRONTEND-001 | CTRL-FRONTEND-SESSION-001 | critical journeys across approved browsers/devices and accessibility scope | three Chromium tests; no approved support/accessibility baseline | Unknown | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Main + Nightly + Release | Frontend Engineering owner | support matrix, Firefox/WebKit/mobile, axe, keyboard and manual scope |
@@ -111,6 +111,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.3 | 2026-07-29 | Added local TECH-04 media-type traceability without changing the accepted GAP-020 risk, control or gate state. | Pending review |
 | 2.2 | 2026-07-29 | Accepted TECH-03 in CI #41/#42 and TestRail R64; closed GAP-020 traceability without changing risk or gate state. | Pending review |
 | 2.1 | 2026-07-29 | Added local direct TECH-03/GAP-020 traceability for the existing ESHOP-DATA-004 aggregate without changing risk or gate state. | Pending review |
 | 2.0 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/R55–R58 traceability and closed GAP-022. | Pending review |
