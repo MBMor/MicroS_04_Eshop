@@ -1,8 +1,8 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 2.2
-> **Status:** Implemented — the 45-case catalogue is live; latest Main `CI #42` / TestRail `R63`–`R66`, QA-03 PR `CI #37`, Nightly `R49` and Release `R50` are accepted
+> **Version:** 2.3
+> **Status:** Implemented — the 45-case catalogue is live; latest Main `CI #46` / TestRail `R71`–`R74`, QA-03 PR `CI #37`, Nightly `R49` and Release `R50` are accepted
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
 > **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
@@ -215,11 +215,11 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
 
-The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Merge commit `c587eb9` passed GitHub Actions `CI #42`; TestRail `R63`–`R66` closed at 100% with `12/22/3/4` results. The governed subsets previously published Nightly `R49` with 11/11 and Release `R50` with 6/6 Passed without creating a case.
+The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Merge commit `b298107` passed GitHub Actions `CI #46`; TestRail `R71`–`R74` closed at 100% with `12/22/3/4` results. The governed subsets previously published Nightly `R49` with 11/11 and Release `R50` with 6/6 Passed without creating a case.
 
 TECH-03/GAP-020 strengthens all four existing `ESHOP-DATA-004` bindings in place. Selector count, mapping edges, Automation ID, Main ownership and the Backend Integration aggregate count of 22 did not change. PR CI #41 and Main CI #42 passed; `[Negative mutations]` passed in TestRail R64 and GAP-020 is closed.
 
-TECH-04 locally adds an exact `application/problem+json` assertion to the existing Catalog binding and changes only shared response serialization. It does not add a selector, binding, case or report row; shared Main/TestRail acceptance is pending at the same locked cardinality.
+TECH-04 adds an exact `application/problem+json` assertion to the existing Catalog binding and changes only shared response serialization. PR CI #45 and Main CI #46 passed; `[Negative mutations]` passed in TestRail R72 without adding a selector, binding, case or report row.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -233,6 +233,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72 without catalogue, binding or report-cardinality change. | Pending review |
 | 2.2 | 2026-07-29 | Recorded local TECH-04 media-type evidence without catalogue, binding or report-cardinality change. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R64; closed GAP-020 without catalogue or cardinality change. | Pending review |
 | 2.0 | 2026-07-29 | Recorded local TECH-03/GAP-020 strengthening of the existing ESHOP-DATA-004 bindings without catalogue or cardinality change. | Pending review |

@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #42` on merge commit `c587eb9` is the latest accepted cumulative Main publication; TestRail `R63`–`R66` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #46` on merge commit `b298107` is the latest accepted cumulative Main publication; TestRail `R71`–`R74` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
 
 ## Identity contract
 
@@ -136,4 +136,4 @@ Fail-closed validation locks both selector and publication cardinality. PR [`CI 
 
 TECH-03/GAP-020 strengthens the four selectors already bound to `ESHOP-DATA-004`; it does not change Automation IDs, mapping edges, selector ownership or report cardinality. Main `CI #42` published R63–R66 at `12/22/3/4`; the existing `[Negative mutations]` TestIntent passed in R64 and GAP-020 is closed.
 
-TECH-04 locally adds the Catalog `application/problem+json` transport assertion to that same aggregate. It changes neither identity nor cardinality; the next shared Main publication must retain Backend Integration at 22 and update the existing `[Negative mutations]` case rather than create a case.
+TECH-04 adds the Catalog `application/problem+json` transport assertion to that same aggregate. PR CI #45 and Main CI #46 passed; Main published R71–R74 at `12/22/3/4`, and the existing `[Negative mutations]` TestIntent passed in R72 without creating a case.

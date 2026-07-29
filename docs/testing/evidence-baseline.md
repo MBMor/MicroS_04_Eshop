@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.2
+> **Version:** 2.3
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `7e92102`
-> **Working-tree scope:** local TECH-04 ProblemDetails media-type evidence
+> **Repository baseline:** `main` / `b298107`
+> **Working-tree scope:** accepted TECH-04 ProblemDetails media-type evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -184,7 +184,7 @@ The locked `12/22/3/4` cardinality and existing TestRail identity were preserved
 
 TECH-03 did not claim the adjacent Catalog media-type finding; TECH-04 addresses it separately below.
 
-## TECH-04 local evidence
+## TECH-04 evidence
 
 The pre-fix targeted Catalog run failed 0/1 because the observed response media type was `application/json` despite the previous `ObjectResult.ContentTypes` declaration. TECH-04 returns the same `ValidationProblemDetails` through an explicit `JsonResult` with `application/problem+json` and adds a fail-fast header assertion to the existing selector.
 
@@ -195,7 +195,16 @@ The pre-fix targeted Catalog run failed 0/1 because the observed response media 
 | Release solution build | all projects | 0 | zero warnings and zero errors |
 | Quality/TestRail Python controls | 17 + 7 | 0 | selector, tier, mapping and transformation contracts retained |
 
-Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains a four-selector Main aggregate and the locked TestRail cardinality remains `12/22/3/4`. This evidence is local until PR/Main CI and TestRail accept the unchanged identity.
+PR run [`30442564466`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30442564466) (`CI #45`) completed successfully. Main run [`30442756343`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30442756343) (`CI #46`) then completed successfully on commit `b298107` and published four closed 100% Passed TestRail runs:
+
+| TestRail run | Area | TestIntent results | Result |
+|---|---|---:|---|
+| `R71` | Backend Unit | 12 | Passed |
+| `R72` | Backend Integration | 22 | Passed; includes `[Negative mutations]` / `ESHOP-DATA-004` |
+| `R73` | Frontend Unit | 3 | Passed |
+| `R74` | Checkout E2E | 4 | Passed |
+
+Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains a four-selector Main aggregate and the locked TestRail cardinality remains `12/22/3/4`. This accepts TECH-04 without changing TestRail identity, risk, control or gate state.
 
 ## Current interpretation
 
@@ -204,12 +213,13 @@ Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains 
 - TECH-02 and QA-02 have Passed/Valid CI plus first shared Nightly/Release evidence for the governed variants; longitudinal scheduled history remains immature.
 - QA-03 Nightly/Release selection and publication are accepted. PR CI #37 and Main CI #38/R55–R58 complete GAP-022 and its W1 workflow substrate; no gate is activated by this evidence record.
 - TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
-- TECH-04 locally fixes and locks the adjacent Catalog ProblemDetails media type; shared acceptance remains outstanding without reopening GAP-020.
+- TECH-04 fixes and locks the adjacent Catalog ProblemDetails media type; CI #45/#46 and TestRail R72 accept it without reopening GAP-020.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R71–R74 with unchanged TestRail identity and cardinality. | Pending review |
 | 2.2 | 2026-07-29 | Added local TECH-04 pre-fix failure and post-fix Catalog/build/governance evidence with unchanged TestRail identity. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R63–R66; closed GAP-020 without changing risk or gate state. | Pending review |
 | 2.0 | 2026-07-29 | Recorded local TECH-03/GAP-020 ProblemDetails, no-write and basket-retention evidence with unchanged TestRail identity/cardinality. | Pending review |
