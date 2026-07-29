@@ -200,6 +200,35 @@ public sealed class GatewayAuthorizationTests(
             forwardedResponse.Path);
     }
 
+    [Theory]
+    [InlineData("POST", "/api/v1/products")]
+    [InlineData("PUT", "/api/v1/products/00000000-0000-0000-0000-000000000001")]
+    [InlineData("DELETE", "/api/v1/products/00000000-0000-0000-0000-000000000001")]
+    public async Task
+        CatalogMutationRoutesAreNotAddressableOrForwarded(
+            string method,
+            string path)
+    {
+        fixture.ResetForwardedRequestCount();
+
+        using HttpRequestMessage request = new(
+            new HttpMethod(method),
+            path);
+
+        using HttpResponseMessage response =
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.MethodNotAllowed,
+            response.StatusCode);
+
+        Assert.Equal(
+            0,
+            fixture.ForwardedRequestCount);
+    }
+
     [Fact]
     public async Task AuthMeAnonymousReturnsUnauthorized()
     {

@@ -2,6 +2,8 @@ using Asp.Versioning;
 using CatalogService.Contracts;
 using CatalogService.Data;
 using CatalogService.Domain;
+using Eshop.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -77,6 +79,7 @@ public sealed class ProductsController(
     }
 
     [HttpPost]
+    [Authorize(Policy = EshopPolicies.AdminOnly)]
     [Consumes("application/json")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -155,6 +158,7 @@ public sealed class ProductsController(
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = EshopPolicies.AdminOnly)]
     [Consumes("application/json")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -235,6 +239,7 @@ public sealed class ProductsController(
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = EshopPolicies.AdminOnly)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]

@@ -5,6 +5,7 @@ using System.Text.Json;
 using CatalogService.Contracts;
 using CatalogService.Data;
 using CatalogService.IntegrationTests.Infrastructure;
+using Eshop.Security.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,8 @@ namespace CatalogService.IntegrationTests;
 
 public sealed class CatalogServiceIntegrationTests(
     CatalogServiceFixture fixture)
-    : IClassFixture<CatalogServiceFixture>
+    : IClassFixture<CatalogServiceFixture>,
+      IAsyncLifetime
 {
     private const string ProductsEndpoint =
         "/api/v1/products";
@@ -24,6 +26,104 @@ public sealed class CatalogServiceIntegrationTests(
         TimeSpan.FromMicroseconds(1);
 
     private readonly HttpClient _client = fixture.Client;
+
+    public ValueTask InitializeAsync()
+    {
+        return fixture.ResetDatabaseAsync();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return ValueTask.CompletedTask;
+    }
+
+    public static IEnumerable<object?[]>
+        CatalogMutationBoundaryCases()
+    {
+        string[] methods =
+        [
+            HttpMethod.Post.Method,
+            HttpMethod.Put.Method,
+            HttpMethod.Delete.Method
+        ];
+
+        foreach (string method in methods)
+        {
+            yield return
+            [
+                method,
+                null,
+                HttpStatusCode.Unauthorized
+            ];
+
+            yield return
+            [
+                method,
+                EshopRoles.Customer,
+                HttpStatusCode.Forbidden
+            ];
+
+            yield return
+            [
+                method,
+                EshopRoles.Support,
+                HttpStatusCode.Forbidden
+            ];
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(CatalogMutationBoundaryCases))]
+    public async Task
+        CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence(
+            string method,
+            string? role,
+            HttpStatusCode expectedStatus)
+    {
+        ProductResponse existingProduct =
+            await CreateProductAsync(
+                CreateRequest(
+                    CreateUniqueSku("BOUNDARY")));
+
+        int productCountBefore =
+            await GetProductCountAsync();
+
+        using HttpRequestMessage request =
+            CreateMutationBoundaryRequest(
+                method,
+                role,
+                existingProduct);
+
+        using HttpResponseMessage response =
+            await _client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            expectedStatus,
+            response.StatusCode);
+
+        Assert.Equal(
+            productCountBefore,
+            await GetProductCountAsync());
+
+        using HttpResponseMessage getResponse =
+            await _client.GetAsync(
+                $"{ProductsEndpoint}/{existingProduct.Id}",
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            getResponse.StatusCode);
+
+        ProductResponse persistedProduct =
+            await ReadRequiredAsync<ProductResponse>(
+                getResponse);
+
+        AssertProductResponse(
+            existingProduct,
+            persistedProduct);
+    }
 
     [Fact]
     public async Task GetProductsDefaultReturnsOnlyActiveProducts()
@@ -129,7 +229,8 @@ public sealed class CatalogServiceIntegrationTests(
         };
 
         using HttpResponseMessage createResponse =
-            await _client.PostAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Post,
                 ProductsEndpoint,
                 request, Xunit.TestContext.Current.CancellationToken);
 
@@ -211,7 +312,8 @@ public sealed class CatalogServiceIntegrationTests(
         };
 
         using HttpResponseMessage response =
-            await _client.PostAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Post,
                 ProductsEndpoint,
                 request, Xunit.TestContext.Current.CancellationToken);
 
@@ -287,7 +389,8 @@ public sealed class CatalogServiceIntegrationTests(
                 sku.ToLowerInvariant());
 
         using HttpResponseMessage response =
-            await _client.PostAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Post,
                 ProductsEndpoint,
                 duplicateRequest, Xunit.TestContext.Current.CancellationToken);
 
@@ -316,7 +419,8 @@ public sealed class CatalogServiceIntegrationTests(
         };
 
         using HttpResponseMessage updateResponse =
-            await _client.PutAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Put,
                 $"{ProductsEndpoint}/{createdProduct.Id}",
                 request, Xunit.TestContext.Current.CancellationToken);
 
@@ -406,7 +510,8 @@ public sealed class CatalogServiceIntegrationTests(
         };
 
         using HttpResponseMessage response =
-            await _client.PutAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Put,
                 $"{ProductsEndpoint}/{secondProduct.Id}",
                 request, Xunit.TestContext.Current.CancellationToken);
 
@@ -424,8 +529,10 @@ public sealed class CatalogServiceIntegrationTests(
                     CreateUniqueSku("DELETE")));
 
         using HttpResponseMessage deleteResponse =
-            await _client.DeleteAsync(
-                $"{ProductsEndpoint}/{createdProduct.Id}", Xunit.TestContext.Current.CancellationToken);
+            await SendAdminAsync(
+                HttpMethod.Delete,
+                $"{ProductsEndpoint}/{createdProduct.Id}",
+                Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NoContent,
@@ -472,8 +579,10 @@ public sealed class CatalogServiceIntegrationTests(
         Guid unknownProductId = Guid.NewGuid();
 
         using HttpResponseMessage response =
-            await _client.DeleteAsync(
-                $"{ProductsEndpoint}/{unknownProductId}", Xunit.TestContext.Current.CancellationToken);
+            await SendAdminAsync(
+                HttpMethod.Delete,
+                $"{ProductsEndpoint}/{unknownProductId}",
+                Xunit.TestContext.Current.CancellationToken);
 
         Assert.Equal(
             HttpStatusCode.NotFound,
@@ -484,7 +593,8 @@ public sealed class CatalogServiceIntegrationTests(
         CreateProductRequest request)
     {
         using HttpResponseMessage response =
-            await _client.PostAsJsonAsync(
+            await SendAdminJsonAsync(
+                HttpMethod.Post,
                 ProductsEndpoint,
                 request, Xunit.TestContext.Current.CancellationToken);
 
@@ -494,6 +604,134 @@ public sealed class CatalogServiceIntegrationTests(
 
         return await ReadRequiredAsync<ProductResponse>(
             response);
+    }
+
+    private static HttpRequestMessage
+        CreateMutationBoundaryRequest(
+            string method,
+            string? role,
+            ProductResponse existingProduct)
+    {
+        HttpRequestMessage request =
+            method switch
+            {
+                "POST" => new HttpRequestMessage(
+                    HttpMethod.Post,
+                    ProductsEndpoint)
+                {
+                    Content = JsonContent.Create(
+                        CreateRequest(
+                            CreateUniqueSku(
+                                "DENIED-CREATE")))
+                },
+
+                "PUT" => new HttpRequestMessage(
+                    HttpMethod.Put,
+                    $"{ProductsEndpoint}/{existingProduct.Id}")
+                {
+                    Content = JsonContent.Create(
+                        new UpdateProductRequest
+                        {
+                            Name = "Denied update",
+                            Sku = CreateUniqueSku(
+                                "DENIED-UPDATE"),
+                            Description =
+                                "This update must not persist.",
+                            Category = "Security tests",
+                            PriceAmount = 9999m,
+                            Currency = "EUR",
+                            IsActive = false
+                        })
+                },
+
+                "DELETE" => new HttpRequestMessage(
+                    HttpMethod.Delete,
+                    $"{ProductsEndpoint}/{existingProduct.Id}"),
+
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(method),
+                    method,
+                    "Unsupported mutation method.")
+            };
+
+        if (role is not null)
+        {
+            AddAuthenticationHeaders(
+                request,
+                $"boundary-{role}-{Guid.NewGuid():N}",
+                role);
+        }
+
+        return request;
+    }
+
+    private async Task<HttpResponseMessage>
+        SendAdminAsync(
+            HttpMethod method,
+            string path,
+            CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                method,
+                path,
+                EshopRoles.Admin);
+
+        return await _client.SendAsync(
+            request,
+            cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage>
+        SendAdminJsonAsync<TBody>(
+            HttpMethod method,
+            string path,
+            TBody body,
+            CancellationToken cancellationToken)
+    {
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                method,
+                path,
+                EshopRoles.Admin);
+
+        request.Content =
+            JsonContent.Create(body);
+
+        return await _client.SendAsync(
+            request,
+            cancellationToken);
+    }
+
+    private static HttpRequestMessage
+        CreateAuthenticatedRequest(
+            HttpMethod method,
+            string path,
+            params string[] roles)
+    {
+        HttpRequestMessage request =
+            new(method, path);
+
+        AddAuthenticationHeaders(
+            request,
+            $"catalog-{Guid.NewGuid():N}",
+            roles);
+
+        return request;
+    }
+
+    private static void AddAuthenticationHeaders(
+        HttpRequestMessage request,
+        string subject,
+        params string[] roles)
+    {
+        request.Headers.Add(
+            TestAuthenticationHandler.SubjectHeaderName,
+            subject);
+
+        request.Headers.Add(
+            TestAuthenticationHandler.RolesHeaderName,
+            string.Join(',', roles));
     }
 
     private static CreateProductRequest CreateRequest(
