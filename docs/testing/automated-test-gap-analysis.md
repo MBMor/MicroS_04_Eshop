@@ -1,13 +1,13 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 1.6
+> **Version:** 1.7
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `a1fba95`
+> **Baseline:** `main` / `192fa2c`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Analysis date:** 2026-07-28 (Europe/Prague)
+> **Analysis date:** 2026-07-29 (Europe/Prague)
 
-Initial working tree was clean. Evidence cites repository-relative files and symbols. Gap severity is test-investment priority, separate from product risk. Cost: XS current isolated fixture; S small extension; M new fixture/container scenario; L substantial cross-service/environment work; XL major platform/architecture prerequisite.
+The original point-in-time audit started from a clean working tree. Evidence cites repository-relative files and symbols. Gap severity is test-investment priority, separate from product risk. Cost: XS current isolated fixture; S small extension; M new fixture/container scenario; L substantial cross-service/environment work; XL major platform/architecture prerequisite.
 
 Canonical governance fields are explicit: missing approved behavior is `Oracle approval status: Decision required`; planned tests are `Evidence strength: Missing`, never passing coverage. Because all gates are Future in version 2.1, gap rows describe activation prerequisites rather than current blocking gate evaluations. Risk acceptance is not implied.
 
@@ -15,7 +15,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 
 | Gap / priority | Risk and evidence gap | Oracle / controls / gates | Recommended direct evidence | Layer / cost / tier / sequencing |
 |---|---|---|---|---|
-| `GAP-001` Critical — implementation complete; shared broker/scheduled residual | `R-INVENTORY-001`; three deterministic direct PostgreSQL variants passed CI #31/TestRail R30. A two-host/two-consumer RabbitMQ variant now proves last-unit contention, bounded retry, exact downstream cardinality and no main/DLQ residue locally: targeted 3/3 and Messaging 13/13. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` is Direct for the named variants; `GATE-INV-001` W2 activation prerequisite remains Future. | Publish the broker variant through CI/TestRail and establish scheduled repeat history. | Remaining shared/scheduled evidence XS/S; Nightly+Release. |
+| `GAP-001` Critical — implementation and shared material-variant evidence complete; scheduled residual | `R-INVENTORY-001`; three deterministic direct PostgreSQL variants passed CI #31/TestRail R30. The two-host/two-consumer RabbitMQ variant proves last-unit contention, bounded retry, exact downstream cardinality and no main/DLQ residue; commit `192fa2c` passed CI #34 and both `ESHOP-INVENTORY-002` and `ESHOP-DATA-002` passed in R42. | Oracle Approved; `CTRL-DATA-CONCURRENCY-001` is Direct for the named variants; `GATE-INV-001` W2 activation prerequisite remains Future. | Establish scheduled repeat history through QA-03 Nightly and Release runs. | Remaining scheduled evidence XS; Nightly+Release. |
 | `GAP-002` Critical — implementation and shared material-variant evidence complete; scheduled residual | `R-ORDER-001`; ten API/frontend variants plus QA-02 sequential and synchronized-concurrent complete-workflow variants passed on commit `a1fba95` in CI #33 and TestRail R38. Local Messaging 13/13, Orders 17/17 and concurrent 5/5 support determinism. | Oracle Approved in [ADR 0002](../architecture/0002-checkout-command-idempotency.md); `CTRL-ORDER-IDEMPOTENCY-001` is Direct for the named variants and contributes to Future `GATE-ORD-001`. | Establish scheduled repeat history. | Remaining scheduled evidence XS/S; Nightly+Release. |
 | `GAP-003` High | `R-AUTH-001`; Catalog mutation actions lack direct auth boundary. | Network oracle Decision required; `CTRL-SEC-CATALOG-BOUNDARY-001` Missing; `GATE-SEC-001` W2 activation prerequisite. | From deployable network, direct POST/PUT/DELETE anonymously is unreachable or 401/403; gateway mutations no-route/not forwarded. | Security/deployment; M; PR service auth + Release network. |
 | `GAP-004` High | `R-RESILIENCE-001`; parameterless health checks/status-only tests preserve false-positive health. | Dependency list Decision required; `CTRL-OPS-READINESS-001` Not implemented; `GATE-OPS-001` W3 activation prerequisite. | `/live` and `/ready`; stop DB/Redis/Rabbit/downstream; live follows contract, ready 503 with dependency, then recovers. | Component/deployment; M; Main+Release; contract first. |
@@ -36,7 +36,7 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-019` Medium | `R-GW-001`; remote IP behind proxy/multiple replicas unknown. | Ingress trust/distributed-limit Decision required; rate-limit control Partial. | Intended proxy + two gateways; trusted versus spoofed forwarded headers, independent subjects, attacker sharing/reset and documented replica behavior. | Security/performance ingress; L; Release; design first. |
 | `GAP-020` Medium | `R-DATA-001/R-ORDER-002`; several 400 tests are status-only. | Approved negative behavior; controls unaffected. | Assert ProblemDetails fields/trace and zero product/order/history/outbox writes; unchanged basket. | Existing API fixtures; XS; PR/Main; immediate. |
 | `GAP-021` Medium | `R-MSG-001/R-INVENTORY-001`; direct DB multiline atomicity is covered by TECH-01, but late/reordered broker delivery is absent. | Late-event oracle Decision required; inbox/concurrency controls Partial. | PaymentAuthorized before StockReserved; late failure after terminal; broker-delivered mixed lines; correct ack/DLQ, terminal immutability and no extra outbox. | Messaging; M; Nightly; late policy first. |
-| `GAP-022` Medium | All; no formal tiering—193 tests on PR/main. | Governance approved; not a product control reduction alone. | Split PR deterministic, Main integrations/images/E2E, Nightly concurrency/outage/perf, Release migration/security/recovery; publish results and fail visible skips. | CI workflow; M; after suite tags/categories. |
+| `GAP-022` Medium — implementation local; shared execution residual | All 193 selectors now have a fail-closed primary classification (`PR=77`, `Main=97`, `Nightly=19`) and explicit Release overlap (`13`). Existing PR/main execution remains unchanged; the dedicated workflow has not yet produced shared Nightly/Release history. | Governance approved; not a product control reduction alone. | Commit the QA-03 policy/workflow, run Nightly via schedule or dispatch, run Release via dispatch, verify exact discovery/TestRail publication and then consider narrowing PR/main. | CI/TestRail workflow; remaining XS/S. |
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
 | `GAP-024` Low | Test infrastructure uses delays/eventual polling/CI retry. | Determinism standard Approved; potential `DEV-*` only if unavoidable. | Observable readiness/queue/DB state; injected time; preserve first-attempt logs/trace/video; retry occurrence remains failure signal. | Infrastructure; S/M; PR/Main before Nightly expansion. |
 | `GAP-025` Low | .NET net10, Node CI24/local22, Chromium only; no support matrix. | Oracle Decision required. | Approve runtime/browser/OS versions; targeted Windows/Linux builds if supported, engine smoke and architecture check. | CI/platform; M; Nightly/Release after policy. |
@@ -54,12 +54,13 @@ Weak assertions retained from the audit: five service `HealthAnonymousRequestRet
 
 ## CI findings
 
-All identified existing tests are scheduled by checked-in CI. Docker-heavy API, broker outage and browser E2E currently run on every PR and main push. There is no Nightly or Release workflow. Missing tests and missing tier implementation are distinct gaps.
+All identified existing tests remain scheduled by checked-in PR/main CI. QA-03 locally adds a daily Nightly and manually dispatched Nightly/Release workflow for governed .NET subsets, without narrowing the established baseline. Missing tests, tier implementation and accumulated scheduled evidence remain distinct concerns.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.7 | 2026-07-29 | Promoted GAP-001 through CI #34/TestRail R42 and implemented the QA-03 tier contract/workflow locally. | Pending review |
 | 1.6 | 2026-07-28 | Implemented the remaining GAP-001 broker-delivery/no-DLQ variant locally; retained shared CI/TestRail and scheduled-history residuals. | Pending review |
 | 1.5 | 2026-07-28 | Promoted GAP-002 workflow variants to shared evidence after CI #33/TestRail R38; only scheduled history remains. | Pending review |
 | 1.4 | 2026-07-28 | Marked GAP-002 implementation locally complete after QA-02 exact downstream workflow proof; retained shared CI/TestRail and scheduled-history residuals. | Pending review |

@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 1.6
+> **Version:** 1.7
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `a1fba95`
-> **Analysis date:** 2026-07-28 (Europe/Prague)
+> **Baseline:** `main` / `192fa2c`
+> **Analysis date:** 2026-07-29 (Europe/Prague)
 
-One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The current working tree has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by checked-in CI. Current scheduling is PR and main events, not formal tiers.
+One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The current working tree has **193 logical tests and 198 executable cases**; five two-row theories add five executable cases. All 193 are active; none is skipped, disabled, quarantined, conditionally returned or filtered by the established PR/main CI. QA-03 adds governed Nightly/Release subsets without yet narrowing that shared baseline.
 
-GitHub Actions `CI #33` supplied Valid, Passed evidence on the committed 192/197 baseline and published TestRail runs `R37`–`R40`, all 100% Passed. Both QA-02 aggregates passed in backend run `R38`. The additional GAP-001 messaging variant currently has local evidence only. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
+GitHub Actions `CI #34` supplied Valid, Passed evidence on the committed 193/198 baseline and published TestRail runs `R41`–`R44`, all 100% Passed. The GAP-001 aggregates `ESHOP-INVENTORY-002` and `ESHOP-DATA-002` passed in backend run `R42`. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations. The row-level assessment describes assertion scope, not a release pass; indirect risk evidence remains separate.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -283,7 +283,7 @@ Inherited: xUnit v3, `WebApplicationFactory`, service fixtures/test auth, Testco
 
 ## Cross-service messaging integration (13)
 
-Inherited: xUnit v2 serialized `MessagingIntegration`, shared fixture, PostgreSQL/RabbitMQ Testcontainers, real service hosts/topology, HTTP/broker clients and bounded eventual polling. Current PR/main. First four target Main; the remaining nine target Nightly, with both duplicate-checkout variants and the Inventory concurrency variant also proposed for Release. Timing/reset windows are determinism risks.
+Inherited: xUnit v2 serialized `MessagingIntegration`, shared fixture, PostgreSQL/RabbitMQ Testcontainers, real service hosts/topology, HTTP/broker clients and bounded eventual polling. Current PR/main. The first four remain Main; the remaining nine are governed Nightly, with both duplicate-checkout variants and the Inventory concurrency variant also in the Release overlap. Timing/reset windows are determinism risks.
 
 | Test | Risk | Verified scope / limitation |
 |---|---|---|
@@ -338,14 +338,15 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 - The nine legacy Partially covered rows are six status-only health/migration smoke rows plus Catalog invalid create and two Orders validations.
 - Indirect risk evidence: trace propagation, outbox claims, inventory fulfillment, real basket-clear recovery and production ingress.
 - Principal timing/flakiness sources: Redis TTL tolerance, fixed reset delays, eventual polling, browser polling, Keycloak login, Testcontainers startup and CI retry 1.
-- No existing executable test was found outside current checked-in CI scheduling; no formal Nightly/Release tier exists.
-- TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants; CI #31/TestRail R30 passed and a five-run local repeat supports determinism. The two-consumer broker-delivery/no-DLQ variant passed locally 3/3 and the complete messaging suite passed 13/13; shared CI/TestRail and scheduled history remain open for that variant.
+- No executable test is omitted from current PR/main CI. QA-03 adds a local fail-closed policy and dedicated Nightly/Release workflow; its first shared executions remain pending.
+- TECH-01 closes the direct service/DB last-unit, multiline atomicity and retry-exhaustion variants. The two-consumer broker-delivery/no-DLQ variant passed in CI #34/TestRail R42; scheduled history remains open.
 - TECH-02 closes the direct API/persistence and frontend key-lifecycle variants; QA-02 proves sequential and concurrent duplicate HTTP delivery produce one complete downstream workflow. CI #33/TestRail R38 passed the committed variants, while the five-run local concurrency smoke supports determinism. Scheduled repeat history remains open.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.7 | 2026-07-29 | Promoted the 193/198 GAP-001 baseline through CI #34/R41–R44 and recorded the local QA-03 tier contract. | Pending review |
 | 1.6 | 2026-07-28 | Added the GAP-001 broker-delivery/no-DLQ variant and reconciled the working tree to 193/198 tests and 193 selectors/211 edges. | Pending review |
 | 1.5 | 2026-07-28 | Promoted the 192/197 QA-02 baseline to shared evidence after CI #33/TestRail R37–R40 passed. | Pending review |
 | 1.4 | 2026-07-28 | Added two QA-02 complete-workflow messaging variants, updated the inventory to 192/197 and separated local evidence from the accepted CI #31 baseline. | Pending review |

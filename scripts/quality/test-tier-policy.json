@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "description": "Authoritative classification of governed test selectors into one primary execution tier plus optional Release overlap.",
+  "expected_counts": {
+    "PR": 77,
+    "Main": 97,
+    "Nightly": 19,
+    "Release": 13
+  },
+  "expected_aggregate_counts": {
+    "Nightly": 11,
+    "Release": 6
+  },
+  "expected_mapping_edges": {
+    "Nightly": 25,
+    "Release": 21
+  },
+  "sources": [
+    {
+      "id": "backend-unit",
+      "kind": "dotnet",
+      "project": "tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj",
+      "default_primary_tier": "PR",
+      "selector_prefixes": [
+        "BasketApplicationServiceTests",
+        "FakePaymentProcessorTests",
+        "InventoryItemTests",
+        "NotificationTests",
+        "OrderTests",
+        "PaymentTests",
+        "ProductTests",
+        "ShoppingBasketTests"
+      ]
+    },
+    {
+      "id": "frontend-unit",
+      "kind": "vitest",
+      "project": "src/frontend",
+      "default_primary_tier": "PR",
+      "selector_prefixes": [
+        "CheckoutPage idempotency",
+        "RequireRole",
+        "apiRequest",
+        "createOrder"
+      ]
+    },
+    {
+      "id": "api-gateway",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/ApiGateway.IntegrationTests/ApiGateway.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": [
+        "GatewayAuthorizationTests",
+        "GatewayRateLimitingTests"
+      ]
+    },
+    {
+      "id": "basket-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/BasketService.IntegrationTests/BasketService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["BasketServiceIntegrationTests"]
+    },
+    {
+      "id": "catalog-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/CatalogService.IntegrationTests/CatalogService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["CatalogServiceIntegrationTests"]
+    },
+    {
+      "id": "inventory-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/InventoryService.IntegrationTests/InventoryService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["InventoryServiceIntegrationTests"]
+    },
+    {
+      "id": "orders-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/OrdersService.IntegrationTests/OrdersService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["OrdersServiceIntegrationTests"]
+    },
+    {
+      "id": "payments-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/PaymentsService.IntegrationTests/PaymentsService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["PaymentsServiceIntegrationTests"]
+    },
+    {
+      "id": "notifications-service",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/NotificationsService.IntegrationTests/NotificationsService.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": ["NotificationsServiceIntegrationTests"]
+    },
+    {
+      "id": "messaging-integration",
+      "kind": "dotnet",
+      "project": "tests/backend/integration/Eshop.Messaging.IntegrationTests/Eshop.Messaging.IntegrationTests.csproj",
+      "default_primary_tier": "Main",
+      "selector_prefixes": [
+        "DeliveryLimitDeadLetterTests",
+        "DuplicateMessageDeliveryTests",
+        "InventoryConcurrencyMessagingTests",
+        "MalformedMessageDeadLetterTests",
+        "MessagingInfrastructureSmokeTests",
+        "OrderHappyPathMessagingTests",
+        "OrderPaymentFailureCompensationTests",
+        "OrderStockFailureMessagingTests",
+        "PermanentBusinessFailureDeadLetterTests",
+        "RabbitMqOutageRecoveryTests",
+        "TransientConsumerRetryTests"
+      ]
+    },
+    {
+      "id": "checkout-e2e",
+      "kind": "playwright",
+      "project": "tests/e2e",
+      "default_primary_tier": "Main",
+      "selector_prefixes": [
+        "checkout failure paths",
+        "checkout-success"
+      ]
+    }
+  ],
+  "nightly_selectors": [
+    "InventoryServiceIntegrationTests.ConcurrentReservationsForLastUnitDoNotOversellAndRetryLoser",
+    "InventoryServiceIntegrationTests.ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder",
+    "InventoryServiceIntegrationTests.ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged",
+    "OrdersServiceIntegrationTests.CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence",
+    "OrdersServiceIntegrationTests.CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket",
+    "OrdersServiceIntegrationTests.CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects",
+    "OrdersServiceIntegrationTests.ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox",
+    "OrdersServiceIntegrationTests.SameIdempotencyKeyIsScopedToAuthenticatedCustomer",
+    "OrdersServiceIntegrationTests.NewIdempotencyKeyUsesCurrentBasket",
+    "OrdersServiceIntegrationTests.CommittedOrderReplaysWhenBasketClearFails",
+    "OrderPaymentFailureCompensationTests.CreateOrderWhenPaymentFailsReleasesStockAndCancelsOrder",
+    "OrderStockFailureMessagingTests.CreateOrderWithInsufficientStockMarksReservationAsFailed",
+    "DuplicateMessageDeliveryTests.StockReservationFailedConsumerDuplicateDeliveryAppliesSideEffectsOnce",
+    "MalformedMessageDeadLetterTests.StockReservedConsumerInvalidJsonDeadLettersMessageWithoutSideEffects",
+    "PermanentBusinessFailureDeadLetterTests.StockReservedConsumerUnknownOrderDeadLettersMessageWithoutRetry",
+    "TransientConsumerRetryTests.StockReservationFailedConsumerTransientFailureRequeuesAndProcessesMessage",
+    "DeliveryLimitDeadLetterTests.QuorumQueueDeliveryLimitExceededDeadLettersMessage",
+    "RabbitMqOutageRecoveryTests.OrdersOutboxRabbitMqOutageRetriesAndPublishesAfterRecovery",
+    "InventoryConcurrencyMessagingTests.ConcurrentOrderCreatedDeliveriesForLastUnitDoNotOversellOrDeadLetter"
+  ],
+  "release_selectors": [
+    "InventoryServiceIntegrationTests.ConcurrentReservationsForLastUnitDoNotOversellAndRetryLoser",
+    "InventoryServiceIntegrationTests.ConcurrentMultiLineReservationsDoNotPartiallyReserveLosingOrder",
+    "InventoryServiceIntegrationTests.ReservationConcurrencyRetryExhaustionLeavesDatabaseUnchanged",
+    "OrdersServiceIntegrationTests.CreateOrderMissingOrMalformedIdempotencyKeyReturnsBadRequestWithoutPersistence",
+    "OrdersServiceIntegrationTests.CreateOrderSameKeyReplaysStoredOrderWithoutReloadingChangedBasket",
+    "OrdersServiceIntegrationTests.CreateOrderSameKeyWithChangedRequestReturnsConflictWithoutSideEffects",
+    "OrdersServiceIntegrationTests.ConcurrentIdenticalCreateOrderRequestsCreateOneOrderAndOutbox",
+    "OrdersServiceIntegrationTests.SameIdempotencyKeyIsScopedToAuthenticatedCustomer",
+    "OrdersServiceIntegrationTests.NewIdempotencyKeyUsesCurrentBasket",
+    "OrdersServiceIntegrationTests.CommittedOrderReplaysWhenBasketClearFails",
+    "OrderHappyPathMessagingTests.DuplicateCheckoutReplayCreatesOneCompleteWorkflow",
+    "OrderHappyPathMessagingTests.ConcurrentDuplicateCheckoutCreatesOneCompleteWorkflow",
+    "InventoryConcurrencyMessagingTests.ConcurrentOrderCreatedDeliveriesForLastUnitDoNotOversellOrDeadLetter"
+  ]
+}

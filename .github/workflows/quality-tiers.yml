@@ -1,0 +1,228 @@
+name: Quality tiers
+
+on:
+  schedule:
+    - cron: "17 1 * * *"
+
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Governed evidence tier to execute
+        required: true
+        default: nightly
+        type: choice
+        options:
+          - nightly
+          - release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-tier-${{ github.event_name == 'schedule' && 'nightly' || inputs.tier }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  plan:
+    name: Plan governed tier
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.tier.outputs.value }}
+      display_tier: ${{ steps.tier.outputs.display }}
+      matrix: ${{ steps.matrix.outputs.value }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Resolve requested tier
+        id: tier
+        shell: bash
+        env:
+          REQUESTED_TIER: ${{ inputs.tier }}
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            tier="nightly"
+          else
+            tier="${REQUESTED_TIER}"
+          fi
+          case "$tier" in
+            nightly) display="Nightly" ;;
+            release) display="Release" ;;
+            *) echo "::error::Unsupported tier: $tier"; exit 1 ;;
+          esac
+          echo "value=$tier" >> "$GITHUB_OUTPUT"
+          echo "display=$display" >> "$GITHUB_OUTPUT"
+
+      - name: Validate governed test tiers
+        run: python scripts/quality/test_tiers.py validate
+
+      - name: Test tier policy tooling
+        run: python -m unittest discover -s scripts/quality/tests -v
+
+      - name: Build execution matrix
+        id: matrix
+        shell: bash
+        env:
+          TIER: ${{ steps.tier.outputs.value }}
+        run: |
+          matrix="$(python scripts/quality/test_tiers.py matrix --tier "$TIER")"
+          echo "value=$matrix" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: ${{ needs.plan.outputs.display_tier }} | ${{ matrix.name }} (${{ matrix.logical_tests }})
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Verify Docker availability
+        run: |
+          docker version
+          docker info
+
+      - name: Restore selected project
+        run: dotnet restore "${{ matrix.project }}"
+
+      - name: Build selected project
+        run: >
+          dotnet build
+          "${{ matrix.project }}"
+          --configuration Release
+          --no-restore
+
+      - name: Run governed selector subset
+        run: >
+          dotnet test
+          "${{ matrix.project }}"
+          --configuration Release
+          --no-build
+          --filter "${{ matrix.filter }}"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=${{ matrix.name }}.trx"
+          --logger "junit;LogFileName=${{ matrix.name }}.junit.xml;MethodFormat=Default;FailureBodyFormat=Verbose"
+          --results-directory "artifacts/test-results/${{ matrix.name }}"
+
+      - name: Upload tier test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: quality-tier-${{ needs.plan.outputs.tier }}-${{ matrix.name }}-results
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-results/**/*.junit.xml
+          if-no-files-found: error
+          retention-days: 30
+
+  testrail:
+    name: Publish ${{ needs.plan.outputs.display_tier }} TestRail results
+    needs:
+      - plan
+      - test
+    if: ${{ always() && needs.test.result == 'success' && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      TESTRAIL_HOST: ${{ vars.TESTRAIL_HOST }}
+      TESTRAIL_PROJECT: ${{ vars.TESTRAIL_PROJECT }}
+      TESTRAIL_USERNAME: ${{ secrets.TESTRAIL_USERNAME }}
+      TESTRAIL_API_KEY: ${{ secrets.TESTRAIL_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Validate TestRail configuration
+        shell: bash
+        run: |
+          missing=0
+          for variable in TESTRAIL_HOST TESTRAIL_PROJECT TESTRAIL_USERNAME TESTRAIL_API_KEY; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error::Required GitHub secret or variable is empty: ${variable}"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install pinned TRCLI
+        run: python -m pip install --disable-pip-version-check --no-input trcli==1.15.1
+
+      - name: Download tier test results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: quality-tier-${{ needs.plan.outputs.tier }}-*-results
+          path: artifacts/download/backend
+          merge-multiple: true
+
+      - name: Aggregate selected results by TestIntent
+        run: >
+          python scripts/testrail/prepare_ci_results.py
+          --backend-root artifacts/download/backend
+          --frontend-root artifacts/download/absent-frontend
+          --e2e-root artifacts/download/absent-e2e
+          --output-dir artifacts/testrail
+
+      - name: Validate Automation IDs exist uniquely in TestRail
+        run: >
+          python scripts/testrail/validate_testrail_automation_ids.py
+          --host "$TESTRAIL_HOST"
+          --project "$TESTRAIL_PROJECT"
+          --username "$TESTRAIL_USERNAME"
+          --api-key "$TESTRAIL_API_KEY"
+          artifacts/testrail/backend-integration.junit.xml
+
+      - name: Publish governed TestRail run
+        env:
+          TESTRAIL_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >
+          trcli
+          -y
+          -n
+          -h "$TESTRAIL_HOST"
+          --project "$TESTRAIL_PROJECT"
+          -u "$TESTRAIL_USERNAME"
+          -k "$TESTRAIL_API_KEY"
+          parse_junit
+          -f artifacts/testrail/backend-integration.junit.xml
+          --title "${{ needs.plan.outputs.display_tier }} #${GITHUB_RUN_NUMBER} | Backend Integration"
+          --run-description "GitHub Actions run: ${TESTRAIL_RUN_URL}; governed tier: ${{ needs.plan.outputs.display_tier }}"
+          --close-run
+
+      - name: Upload TestRail transformation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: quality-tier-${{ needs.plan.outputs.tier }}-testrail-results
+          path: artifacts/testrail/
+          if-no-files-found: warn
+          retention-days: 30

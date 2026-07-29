@@ -1,31 +1,31 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 1.5
-> **As of:** 2026-07-28 (Europe/Prague)  
-> **Repository baseline:** `main` / `a1fba95`
-> **Working-tree scope:** shared QA-02 evidence promotion and local GAP-001 broker-delivery proof
+> **Version:** 1.6
+> **As of:** 2026-07-29 (Europe/Prague)
+> **Repository baseline:** `main` / `192fa2c`
+> **Working-tree scope:** CI #34 evidence promotion and local QA-03 tier implementation
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
 ## Committed CI and TestRail evidence
 
-GitHub Actions run [`30388080798`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30388080798) (`CI #33`) on commit `a1fba95` completed successfully on 2026-07-28. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. TestRail received four closed runs, all 100% Passed:
+GitHub Actions run [`30395617904`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30395617904) (`CI #34`) on commit `192fa2c` completed successfully on 2026-07-28. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. TestRail received four closed runs, all 100% Passed:
 
 | TestRail run | Area | TestIntent results | Result |
 |---|---|---:|---|
-| `R37` | Backend Unit | 12 | Passed |
-| `R38` | Backend Integration | 28 | Passed |
-| `R39` | Frontend Unit | 3 | Passed |
-| `R40` | Checkout E2E | 4 | Passed |
+| `R41` | Backend Unit | 12 | Passed |
+| `R42` | Backend Integration | 28 | Passed |
+| `R43` | Frontend Unit | 3 | Passed |
+| `R44` | Checkout E2E | 4 | Passed |
 
-The 45-case suite did not grow. The automation map contains 31 automated TestIntents; deliberate overlap between execution areas produced 47 aggregate result rows across the four runs. Planned/manual cases remained in the governed suite without synthetic results. The new QA-02 selectors resolved without creating cases; `ESHOP-ORDER-002` and `ESHOP-E2E-001` both passed in `R38`.
+The 45-case suite did not grow. The automation map contains 31 automated TestIntents, 193 unique selectors and 211 binding edges; deliberate overlap between execution areas produced 47 aggregate result rows across the four runs. Planned/manual cases remained in the governed suite without synthetic results. The GAP-001 broker selector resolved without creating cases; both `ESHOP-INVENTORY-002` and `ESHOP-DATA-002` passed in `R42`.
 
-Evidence validity is **Valid** for the exact commit, environment and variants exercised by CI #33. `CI #31` remains the historical TECH-01/TECH-02 direct-variant baseline, and `CI #28` / `R17`–`R20` remains the acceptance of the publication mechanism.
+Evidence validity is **Valid** for the exact commit, environment and variants exercised by CI #34. `CI #33` remains the initial shared QA-02 baseline, `CI #31` the historical TECH-01/TECH-02 direct-variant baseline, and `CI #28` / `R17`–`R20` the acceptance of the publication mechanism.
 
 ## Current source baseline
 
-The committed QA-02 baseline contains 192/197 tests. The current working tree adds one GAP-001 messaging Fact and contains:
+The committed CI #34 baseline contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
@@ -119,19 +119,28 @@ Local execution on 2026-07-28 produced:
 | Messaging project build | 1 | 0 | n/a |
 | TestRail transformation unit tests | 7 | 0 | 0 |
 
-The runtime map now has 193 selectors and 211 edges. The new selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. This is local evidence until a commit passes CI and TestRail publication; scheduled Nightly/Release history remains pending.
+The runtime map has 193 selectors and 211 edges. The new selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Commit `192fa2c` passed CI #34; both aggregates passed in TestRail R42. The broker-delivery variant therefore has shared evidence, while scheduled Nightly/Release history remains pending.
+
+## QA-03 tier policy evidence
+
+The working tree introduces [`scripts/quality/test-tier-policy.json`](../../scripts/quality/test-tier-policy.json) as the authoritative classification contract. Every governed selector matches exactly one source/project and one primary tier; Release is an explicit overlap. Fail-closed validation reports `PR=77`, `Main=97`, `Nightly=19` and `Release=13` for all 193 selectors.
+
+[`scripts/quality/test_tiers.py`](../../scripts/quality/test_tiers.py) validates mapping drift and produces exact .NET execution matrices. Local execution passed Nightly project counts `Inventory=3/3`, `Messaging=9/9`, `Orders=8/8`; Release-specific messaging overlap passed `3/3`. Because Release reuses the same Inventory and Orders selectors, all 14 executable rows in its current selection have passing local evidence. The Orders subset has eight executable rows because its seven logical selectors include one two-row Theory. The policy also locks publication cardinality: Nightly produces 11 TestIntent aggregates from 25 binding edges, while Release produces 6 aggregates from 21 edges.
+
+The local [`quality-tiers.yml`](../../.github/workflows/quality-tiers.yml) schedules Nightly daily and exposes Nightly/Release through `workflow_dispatch`. It publishes a separately named, closed TestRail backend-integration run after successful execution. Existing PR/main CI remains intentionally unchanged until the first shared tier runs prove the selection contract.
 
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
-- TECH-01 implementation and its named direct variants have Passed/Valid shared CI evidence; the broker-delivery/no-DLQ variant has Passed local evidence and scheduled/shared evidence remains pending.
+- TECH-01 and the broker-delivery/no-DLQ variant have Passed/Valid shared CI/TestRail evidence; scheduled history remains pending.
 - TECH-02 and QA-02 have Passed/Valid shared CI/TestRail evidence for the direct and downstream one-workflow variants; scheduled history remains pending.
-- Formal Nightly and Release tiers remain future work; all checked-in tests are still scheduled by the current PR/main workflow.
+- QA-03 Nightly/Release policy, validation and workflow are implemented locally; shared execution history remains pending, and existing PR/main execution is intentionally unchanged.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.6 | 2026-07-29 | Promoted GAP-001 through CI #34/TestRail R42 and recorded the local QA-03 77/97/19/13 tier contract and workflow. | Pending review |
 | 1.5 | 2026-07-28 | Added local GAP-001 two-consumer broker-delivery/no-DLQ proof, three-run stability evidence and the 193/198 source baseline. | Pending review |
 | 1.4 | 2026-07-28 | Promoted QA-02 to shared evidence after CI #33 and TestRail R37–R40 passed on commit `a1fba95`. | Pending review |
 | 1.3 | 2026-07-28 | Recorded QA-02 local cross-service duplicate-checkout evidence, five-run concurrency smoke, stable replay Location fix and 192/197 source baseline. | Pending review |

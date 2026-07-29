@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The current working tree maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the added GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #33` on commit `a1fba95`, which published the preceding 192-selector/209-edge baseline, is the latest accepted shared publication.
+The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #34` on commit `192fa2c` is the latest accepted shared publication.
 
 ## Identity contract
 
@@ -93,11 +93,28 @@ The run areas intentionally overlap where several automation layers support the 
 
 ## Latest shared evidence
 
-GitHub Actions run [`30388080798`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30388080798) (`CI #33`) completed successfully on July 28, 2026. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
+GitHub Actions run [`30395617904`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30395617904) (`CI #34`) completed successfully on July 28, 2026. Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
 
-- `R37` / Backend Unit: 12 TestIntent results;
-- `R38` / Backend Integration: 28 TestIntent results;
-- `R39` / Frontend Unit: 3 TestIntent results;
-- `R40` / Checkout E2E: 4 TestIntent results.
+- `R41` / Backend Unit: 12 TestIntent results;
+- `R42` / Backend Integration: 28 TestIntent results;
+- `R43` / Frontend Unit: 3 TestIntent results;
+- `R44` / Checkout E2E: 4 TestIntent results.
 
-The 47 aggregate rows deliberately overlap. The two QA-02 backend selectors support both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; both aggregates passed in `R38` without creating a new case. This promotes the exact QA-02 variants to shared evidence but does not activate a Future gate or replace scheduled history.
+The 47 aggregate rows deliberately overlap. The broker-delivery selector supports both `ESHOP-INVENTORY-002` and `ESHOP-DATA-002`; both aggregates passed in `R42` without creating a new case. This promotes the exact GAP-001 material variant to shared evidence but does not activate a Future gate or replace scheduled history.
+
+## Governed Nightly and Release publication
+
+QA-03 defines the source-of-truth classification in [`test-tier-policy.json`](../../scripts/quality/test-tier-policy.json). [`test_tiers.py`](../../scripts/quality/test_tiers.py) fails closed when a TestRail-bound selector is unclassified, ambiguously sourced, unknown in an override or changes the approved `77/97/19/13` counts.
+
+The dedicated [`quality-tiers.yml`](../../.github/workflows/quality-tiers.yml) runs Nightly on a daily schedule and exposes Nightly/Release via `workflow_dispatch`. It builds an exact project/filter matrix, retains raw TRX/JUnit for 30 days, aggregates only the selected results and publishes one closed TestRail run named `Nightly #<run> | Backend Integration` or `Release #<run> | Backend Integration`. Current PR/main execution is intentionally unchanged until these new runs have accepted shared evidence.
+
+Validate the governed classification locally before a commit:
+
+```powershell
+python scripts/quality/test_tiers.py validate
+python -m unittest discover -s scripts/quality/tests -v
+python scripts/quality/test_tiers.py matrix --tier nightly
+python scripts/quality/test_tiers.py matrix --tier release
+```
+
+For the first shared acceptance, push the committed workflow, open **GitHub Actions → Quality tiers → Run workflow**, select `nightly` and run it from `main`. Accept the tier only when all three matrix jobs pass, the TestRail publishing job passes, one closed `Nightly #<number> | Backend Integration` run exists, and its expected 11 TestIntent rows are 100% Passed. Repeat with `release`; its current 13 selectors aggregate through 21 bindings to 6 governed TestIntents. Record both GitHub run links and TestRail run IDs in the evidence baseline before changing the existing PR/main execution contract.

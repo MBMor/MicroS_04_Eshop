@@ -25,6 +25,26 @@ env:
   NUGET_XMLDOC_MODE: skip
 
 jobs:
+  quality-policy:
+    name: Quality policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Validate governed test tiers
+        run: python scripts/quality/test_tiers.py validate
+
+      - name: Test tier policy tooling
+        run: python -m unittest discover -s scripts/quality/tests -v
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
