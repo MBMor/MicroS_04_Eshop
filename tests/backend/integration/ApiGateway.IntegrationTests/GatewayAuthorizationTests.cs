@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ApiGateway.IntegrationTests.Infrastructure;
 using Eshop.Security.Authorization;
 using Xunit;
@@ -12,6 +14,150 @@ public sealed class GatewayAuthorizationTests(
 {
     private readonly HttpClient _client =
         fixture.Client;
+
+    public static IEnumerable<object?[]>
+        RouteAuthorizationCases()
+    {
+        GatewayRouteRegistry registry =
+            LoadRouteRegistry();
+
+        string[] knownRoles =
+        [
+            EshopRoles.Customer,
+            EshopRoles.Support,
+            EshopRoles.Admin
+        ];
+
+        foreach (GatewayRouteContract route
+                 in registry.Routes)
+        {
+            bool forwards =
+                string.Equals(
+                    route.Kind,
+                    "proxy",
+                    StringComparison.Ordinal);
+
+            if (route.AuthorizationPolicy is null)
+            {
+                yield return CreateRouteCase(
+                    route,
+                    subject: null,
+                    role: null,
+                    HttpStatusCode.OK,
+                    forwards);
+
+                continue;
+            }
+
+            yield return CreateRouteCase(
+                route,
+                subject: null,
+                role: null,
+                HttpStatusCode.Unauthorized,
+                expectedForwarding: false);
+
+            if (string.Equals(
+                    route.AuthorizationPolicy,
+                    "AuthenticatedUser",
+                    StringComparison.Ordinal))
+            {
+                yield return CreateRouteCase(
+                    route,
+                    subject: "matrix.authenticated",
+                    role: null,
+                    HttpStatusCode.OK,
+                    forwards);
+
+                continue;
+            }
+
+            string deniedRole =
+                knownRoles.Except(
+                    route.AllowedRoles,
+                    StringComparer.Ordinal)
+                .First();
+
+            yield return CreateRouteCase(
+                route,
+                subject: $"matrix.{deniedRole}",
+                deniedRole,
+                HttpStatusCode.Forbidden,
+                expectedForwarding: false);
+
+            foreach (string allowedRole
+                     in route.AllowedRoles)
+            {
+                yield return CreateRouteCase(
+                    route,
+                    subject: $"matrix.{allowedRole}",
+                    allowedRole,
+                    HttpStatusCode.OK,
+                    forwards);
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(RouteAuthorizationCases))]
+    public async Task
+        EveryAddressableRouteEnforcesAuthorizationAndForwarding(
+            string routeId,
+            string method,
+            string path,
+            string? subject,
+            string? role,
+            HttpStatusCode expectedStatus,
+            bool expectedForwarding)
+    {
+        fixture.ResetForwardedRequestCount();
+
+        using HttpRequestMessage request =
+            subject is null
+                ? new HttpRequestMessage(
+                    new HttpMethod(method),
+                    path)
+                : CreateAuthenticatedRequest(
+                    new HttpMethod(method),
+                    path,
+                    subject,
+                    role is null ? [] : [role]);
+
+        using HttpResponseMessage response =
+            await _client.SendAsync(
+                request,
+                TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            expectedStatus,
+            response.StatusCode);
+
+        Assert.Equal(
+            expectedForwarding ? 1 : 0,
+            fixture.ForwardedRequestCount);
+
+        if (!expectedForwarding)
+        {
+            return;
+        }
+
+        ForwardedResponse? forwardedResponse =
+            await response.Content
+                .ReadFromJsonAsync<ForwardedResponse>(
+                    TestContext.Current.CancellationToken);
+
+        Assert.NotNull(forwardedResponse);
+
+        Assert.Equal(
+            method,
+            forwardedResponse.Method);
+
+        Assert.Equal(
+            path,
+            forwardedResponse.Path);
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(routeId));
+    }
 
     [Fact]
     public async Task RootAnonymousReturnsOk()
@@ -337,10 +483,64 @@ public sealed class GatewayAuthorizationTests(
         return request;
     }
 
+    private static object?[] CreateRouteCase(
+        GatewayRouteContract route,
+        string? subject,
+        string? role,
+        HttpStatusCode expectedStatus,
+        bool expectedForwarding)
+    {
+        return
+        [
+            route.Id,
+            route.SampleMethod,
+            route.SamplePath,
+            subject,
+            role,
+            expectedStatus,
+            expectedForwarding
+        ];
+    }
+
+    private static GatewayRouteRegistry
+        LoadRouteRegistry()
+    {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "gateway-route-policy.json");
+
+        using FileStream stream =
+            File.OpenRead(path);
+
+        return JsonSerializer.Deserialize<
+                GatewayRouteRegistry>(
+                stream)
+            ?? throw new InvalidOperationException(
+                "Gateway route policy could not be deserialized.");
+    }
+
     private sealed record
         AuthenticatedUserResponse(
             string? Subject,
             string? PreferredUsername,
             string? Email,
             string[] Roles);
+
+    private sealed record GatewayRouteRegistry(
+        [property: JsonPropertyName("routes")]
+        GatewayRouteContract[] Routes);
+
+    private sealed record GatewayRouteContract(
+        [property: JsonPropertyName("id")]
+        string Id,
+        [property: JsonPropertyName("kind")]
+        string Kind,
+        [property: JsonPropertyName("sample_method")]
+        string SampleMethod,
+        [property: JsonPropertyName("sample_path")]
+        string SamplePath,
+        [property: JsonPropertyName("authorization_policy")]
+        string? AuthorizationPolicy,
+        [property: JsonPropertyName("allowed_roles")]
+        string[] AllowedRoles);
 }

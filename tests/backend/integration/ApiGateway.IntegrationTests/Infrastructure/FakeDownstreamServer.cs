@@ -15,15 +15,27 @@ internal sealed class FakeDownstreamServer
 
     private readonly WebApplication _application;
 
+    private readonly RequestCounter _requestCounter;
+
     private FakeDownstreamServer(
         WebApplication application,
-        Uri baseAddress)
+        Uri baseAddress,
+        RequestCounter requestCounter)
     {
         _application = application;
+        _requestCounter = requestCounter;
         BaseAddress = baseAddress;
     }
 
     public Uri BaseAddress { get; }
+
+    public int RequestCount =>
+        _requestCounter.Value;
+
+    public void ResetRequestCount()
+    {
+        _requestCounter.Reset();
+    }
 
     public static async Task<FakeDownstreamServer>
         StartAsync(
@@ -47,14 +59,21 @@ internal sealed class FakeDownstreamServer
         WebApplication application =
             builder.Build();
 
+        RequestCounter requestCounter = new();
+
         application.Map(
             "/{**path}",
             (HttpRequest request) =>
+            {
+                requestCounter.Increment();
+
+                return
                 Results.Ok(
                     new ForwardedResponse(
                         request.Method,
                         request.Path.Value
-                        ?? string.Empty)));
+                        ?? string.Empty));
+            });
 
         await application.StartAsync(
             cancellationToken);
@@ -78,13 +97,34 @@ internal sealed class FakeDownstreamServer
 
         return new FakeDownstreamServer(
             application,
-            baseAddress);
+            baseAddress,
+            requestCounter);
     }
 
     public async ValueTask DisposeAsync()
     {
         await _application.StopAsync();
         await _application.DisposeAsync();
+    }
+
+    private sealed class RequestCounter
+    {
+        private int _value;
+
+        public int Value =>
+            Volatile.Read(ref _value);
+
+        public void Increment()
+        {
+            Interlocked.Increment(ref _value);
+        }
+
+        public void Reset()
+        {
+            Interlocked.Exchange(
+                ref _value,
+                0);
+        }
     }
 }
 

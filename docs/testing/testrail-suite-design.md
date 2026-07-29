@@ -1,10 +1,10 @@
 # TestRail Suite Design
 
 > **Document type:** Repository-specific implementation design for TestRail governance  
-> **Version:** 2.3
-> **Status:** Implemented — the 45-case catalogue is live; latest Main `CI #46` / TestRail `R71`–`R74`, QA-03 PR `CI #37`, Nightly `R49` and Release `R50` are accepted
+> **Version:** 2.4
+> **Status:** Implemented — the 45-case catalogue is live; latest publication is Main `CI #46` / TestRail `R71`–`R74`; docs-only `CI #47/#48` and QA-03 PR `CI #37`, Nightly `R49`, Release `R50` are accepted; TECH-05 is local
 > **Effective from:** July 28, 2026 for the personal-instance CI integration; broader governance adoption remains out of scope
-> **Baseline:** `main`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
+> **Baseline:** `main` / `06b8895`; operational CI integration introduced by `90c35bf929535fac6896a4b4606c98d87f52c0d6`
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -30,7 +30,7 @@ This design implements [TestRail and Traceability Governance](testrail-governanc
 | 00. Governance and Test Management | audit, risks, gates, mappings, environments, defects, quarantine, evidence retention, deviations | Proposed |
 | 01. Build Verification and Smoke | .NET/frontend build/static/test, liveness, topology/migration smoke, images/config | Active evidence; formal tiering future |
 | 02. Identity and Authentication | Keycloak, PKCE, JWT negatives, subject/roles, refresh/logout/session | Partial |
-| 03. API Gateway | routes/policies, auth-me, throttling, CORS, proxy identity, denial non-forwarding | Partial |
+| 03. API Gateway | routes/policies, auth-me, throttling, CORS, proxy identity, denial non-forwarding | Direct locally for route authorization; shared acceptance pending |
 | 04. Catalog | public queries, mutations, validation/SKU, price contract, direct service boundary | Functional active; security boundary unresolved |
 | 05. Basket | identity, Redis keys/TTL, mutations, concurrency and recovery | Concurrency/recovery future |
 | 06. Orders | creation, totals, ownership, states, basket clear and idempotency | Idempotency/freshness future |
@@ -175,7 +175,7 @@ Stores release scope, activation/applicability, complete required mapping/input 
 | Post-deployment completion | target digest/schema/config, ingress synthetic, health and telemetry |
 | Periodic operational | restore, alerts, runbooks, recovery objectives and other calendar-profile evidence |
 
-All 193 logical tests remain governed. QA-03 defines authoritative primary ownership `PR=77`, `Main=97`, `Nightly=19` plus `Release=13 overlap`. Nightly `R49` and Release `R50` accepted shared execution/publication. PR `CI #37` accepted PR ownership alone while retaining compilation of integration projects; Main `CI #38` accepted cumulative PR+Main (`174`) execution for direct pushes/dispatch and published R55–R58 at `12/22/3/4`. GAP-022 is complete.
+All 194 local logical tests remain governed. QA-03 defines authoritative primary ownership `PR=77`, `Main=98`, `Nightly=19` plus `Release=13 overlap`; Main is cumulative at 175 selectors. Nightly `R49` and Release `R50` accepted shared execution/publication. PR `CI #37` and Main `CI #38` accepted the earlier cutover and GAP-022 is complete. TECH-05 changes counts only after that acceptance baseline and still needs its own shared PR/Main evidence.
 
 ---
 
@@ -215,11 +215,13 @@ Before live synchronization, implement a version-controlled registry/manifest an
 
 The original import catalogue and its reviewable representation are intentionally archived outside this repository. Import version 1.1 contained 45 TestIntents and 184 exact AutomationBindings for 177 logical checked-in tests; seven additional bindings intentionally associated the same executable with a distinct material subset of another TestIntent.
 
-The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). It contains 31 automated TestIntents, 193 unique source selectors and 211 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Merge commit `b298107` passed GitHub Actions `CI #46`; TestRail `R71`–`R74` closed at 100% with `12/22/3/4` results. The governed subsets previously published Nightly `R49` with 11/11 and Release `R50` with 6/6 Passed without creating a case.
+The repository runtime contract is [`scripts/testrail/automation-id-map.json`](../../scripts/testrail/automation-id-map.json). The local TECH-05 state contains 31 automated TestIntents, 194 unique source selectors and 212 binding edges. The two QA-02 messaging selectors bind to both `ESHOP-ORDER-002` and `ESHOP-E2E-001`; the GAP-001 broker selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. Merge commit `b298107` passed GitHub Actions `CI #46`; TestRail `R71`–`R74` remain the latest closed 100% publication with `12/22/3/4` results. Docs-only CI #47/#48 correctly created no run. The governed subsets previously published Nightly `R49` with 11/11 and Release `R50` with 6/6 Passed without creating a case.
 
 TECH-03/GAP-020 strengthens all four existing `ESHOP-DATA-004` bindings in place. Selector count, mapping edges, Automation ID, Main ownership and the Backend Integration aggregate count of 22 did not change. PR CI #41 and Main CI #42 passed; `[Negative mutations]` passed in TestRail R64 and GAP-020 is closed.
 
 TECH-04 adds an exact `application/problem+json` assertion to the existing Catalog binding and changes only shared response serialization. PR CI #45 and Main CI #46 passed; `[Negative mutations]` passed in TestRail R72 without adding a selector, binding, case or report row.
+
+TECH-05 adds one Main selector with 43 runtime rows to existing `ESHOP-GW-001`. The authoritative registry covers 13 YARP routes and 3 local endpoints and the validator rejects configuration drift. The catalogue remains 45 cases and Main publication remains `12/22/3/4`; the next accepted Main run must update the existing gateway TestIntent rather than create a case. No Future gate is activated.
 
 The 36 identifiers already present in traceability-matrix.md are preserved without renumbering or semantic reuse. Nine materially distinct additions are ESHOP-AUTH-002, ESHOP-BASKET-004, ESHOP-MSG-004, ESHOP-E2E-004, ESHOP-RESILIENCE-004, ESHOP-DATA-003, ESHOP-DATA-004, ESHOP-OBS-002 and ESHOP-DEPLOY-003. They cover security-header/origin policy, sequential basket behavior, replay/reconciliation, exploratory failure discovery, capacity, restore, atomic negative contracts, alert delivery and post-deployment completion. These additions remain Proposed and do not activate any gate.
 
@@ -233,6 +235,7 @@ The browser-UI import was completed in the personal evaluation instance on 2026-
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.4 | 2026-07-29 | Recorded docs-only CI #47/#48 acceptance and local TECH-05 binding of the complete gateway matrix to existing ESHOP-GW-001; shared acceptance remains pending. | Pending review |
 | 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72 without catalogue, binding or report-cardinality change. | Pending review |
 | 2.2 | 2026-07-29 | Recorded local TECH-04 media-type evidence without catalogue, binding or report-cardinality change. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R64; closed GAP-020 without catalogue or cardinality change. | Pending review |

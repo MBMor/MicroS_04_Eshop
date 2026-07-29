@@ -1,14 +1,14 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.3
+> **Version:** 2.4
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `b298107`
-> **Working-tree scope:** accepted TECH-04 ProblemDetails media-type evidence
+> **Repository baseline:** `main` / `06b8895`
+> **Working-tree scope:** local TECH-05/GAP-026 gateway authorization evidence, pending shared acceptance
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
-## Committed CI and TestRail evidence
+## GAP-001 committed CI and TestRail evidence
 
 GitHub Actions run [`30429176555`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30429176555) (`CI #35`) on commit `1da2ccb` completed successfully on 2026-07-29. Quality policy, Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. TestRail received four closed runs, all 100% Passed:
 
@@ -25,18 +25,18 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The committed CI #35 baseline contains:
+The local TECH-05 source baseline contains the counts below. Accepted shared publication remains CI #46/R71–R74 until the change reaches Main.
 
 | Metric | Count | Definition |
 |---|---:|---|
-| Logical tests | 193 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
-| Executable cases | 198 | logical tests plus five additional Theory rows |
-| xUnit logical / executable | 177 / 182 | 172 Facts and five two-row Theories |
+| Logical tests | 194 | one xUnit method, Vitest `it`, or Playwright `test`; a Theory counts once |
+| Executable cases | 241 | logical tests plus five two-row Theory increments and 42 additional gateway-matrix rows |
+| xUnit logical / executable | 178 / 225 | 172 Facts, five two-row Theories and one 43-row Theory |
 | Frontend Vitest | 13 | executable tests |
 | Playwright | 3 | executable scenarios |
 | TestRail automated TestIntents | 31 | aggregate IDs in `automation-id-map.json` |
-| TestRail source selectors | 193 | unique selectors in `automation-id-map.json` |
-| TestRail binding edges | 211 | selector-to-TestIntent mappings; eighteen are deliberate multi-intent overlaps |
+| TestRail source selectors | 194 | unique selectors in `automation-id-map.json` |
+| TestRail binding edges | 212 | selector-to-TestIntent mappings; eighteen are deliberate multi-intent overlaps |
 
 Every logical test has exactly one unique source selector. Multiple TestIntent bindings are allowed and explain the difference between selectors and edges.
 
@@ -206,6 +206,23 @@ PR run [`30442564466`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/304
 
 Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains a four-selector Main aggregate and the locked TestRail cardinality remains `12/22/3/4`. This accepts TECH-04 without changing TestRail identity, risk, control or gate state.
 
+## Docs-only gate acceptance
+
+PR run [`30444117840`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30444117840) (`CI #47`) and Main run [`30444165223`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30444165223) (`CI #48`) passed on the docs-only change ending at `06b8895`. Only Change scope and Quality policy executed. Backend, Frontend, Container images, Checkout E2E and TestRail publication were skipped, so TestRail stayed at 62 completed runs and R71–R74 remained the latest publication. This accepts the docs-only optimization without creating redundant execution evidence.
+
+## TECH-05 local evidence
+
+The authoritative gateway registry and integration matrix were verified locally on 2026-07-29:
+
+| Verification | Passed | Failed | Result |
+|---|---:|---:|---|
+| Targeted gateway authorization matrix | 43 | 0 | all 13 proxy routes and 3 local endpoints; denial non-forwarding and successful exact forwarding |
+| Full `ApiGateway.IntegrationTests` regression | 65 | 0 | 0 skipped; all existing gateway behavior retained |
+| Quality policy unit tests | 24 | 0 | route registry, tier, mapping and report-cardinality drift controls |
+| TestRail transformation unit tests | 7 | 0 | aggregate/publication contract retained |
+
+[`gateway_routes.py`](../../scripts/quality/gateway_routes.py) reconciles [`gateway-route-policy.json`](../../scripts/quality/gateway-route-policy.json) against the production gateway configuration and reports `16` routes (`13` proxy, `3` local). The new Main selector binds to existing `ESHOP-GW-001`, so the local contract becomes 194 selectors/212 edges, Main primary 98 and cumulative Main 175. The four Main report aggregates remain locked at `12/22/3/4`; no TestRail case or gate state changes. This evidence is local until PR and Main CI pass and Main republishes the aggregate.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
@@ -214,11 +231,14 @@ Selector count remains 193, mapping remains 211 edges, `ESHOP-DATA-004` remains 
 - QA-03 Nightly/Release selection and publication are accepted. PR CI #37 and Main CI #38/R55–R58 complete GAP-022 and its W1 workflow substrate; no gate is activated by this evidence record.
 - TECH-03 supplies accepted direct atomic-rejection evidence for the existing `ESHOP-DATA-004` aggregate; CI #41/#42 and TestRail R64 close GAP-020.
 - TECH-04 fixes and locks the adjacent Catalog ProblemDetails media type; CI #45/#46 and TestRail R72 accept it without reopening GAP-020.
+- The docs-only gate is accepted by CI #47/#48 and correctly produced no TestRail runs.
+- TECH-05 supplies local direct gateway route/policy/non-forwarding evidence; shared Main/TestRail acceptance is still pending and direct Catalog network isolation remains GAP-003.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.4 | 2026-07-29 | Recorded docs-only CI #47/#48 acceptance and local TECH-05 evidence: 16 endpoints, 43 matrix rows, 65/65 gateway regression and 194/212 runtime mapping. | Pending review |
 | 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R71–R74 with unchanged TestRail identity and cardinality. | Pending review |
 | 2.2 | 2026-07-29 | Added local TECH-04 pre-fix failure and post-fix Catalog/build/governance evidence with unchanged TestRail identity. | Pending review |
 | 2.1 | 2026-07-29 | Accepted TECH-03 through CI #41/#42 and TestRail R63–R66; closed GAP-020 without changing risk or gate state. | Pending review |

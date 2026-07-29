@@ -42,4 +42,10 @@
     <ProjectReference Include="..\..\..\..\src\backend\shared\Security.Shared\Security.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\..\..\scripts\quality\gateway-route-policy.json"
+             Link="gateway-route-policy.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

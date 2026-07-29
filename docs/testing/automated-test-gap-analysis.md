@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 2.4
+> **Version:** 2.5
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `b298107`; TECH-04 accepted in CI #45/#46 and TestRail R72
+> **Baseline:** `main` / `06b8895`; TECH-05/GAP-026 evidence is local and pending shared acceptance
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -40,13 +40,13 @@ Canonical governance fields are explicit: missing approved behavior is `Oracle a
 | `GAP-023` Medium | `R-IDENTITY-001/R-DEPLOY-001`; token negatives and production origin/header matrix are absent. | Token/session and security-header/origin policies partly Decision required; `GATE-SEC-003`. | Table tokens: absent/expired/nbf/issuer/audience/signature/sub/roles; origin allow/deny; CSP/HSTS/nosniff/frame at production ingress. | Security integration; M; PR tokens + Release headers/TLS. |
 | `GAP-024` Low | Test infrastructure uses delays/eventual polling/CI retry. | Determinism standard Approved; potential `DEV-*` only if unavoidable. | Observable readiness/queue/DB state; injected time; preserve first-attempt logs/trace/video; retry occurrence remains failure signal. | Infrastructure; S/M; PR/Main before Nightly expansion. |
 | `GAP-025` Low | .NET net10, Node CI24/local22, Chromium only; no support matrix. | Oracle Decision required. | Approve runtime/browser/OS versions; targeted Windows/Linux builds if supported, engine smoke and architecture check. | CI/platform; M; Nightly/Release after policy. |
-| `GAP-026` High | `R-GW-AUTH-001`; sampled gateway and direct-service tests do not prove complete route/policy/non-forwarding coverage. | Oracle Approved; `CTRL-SEC-GATEWAY-001` Partial; `GATE-SEC-001` W2 activation prerequisite. | Generate an authoritative route/endpoint matrix; assert anonymous/wrong-role/allowed role, ownership where applicable and denial non-forwarding for every addressable route; detect route-policy drift in CI. | Gateway plus direct-service security integration; M; Main + Release; registry/matrix first. |
+| `GAP-026` High — TECH-05 locally complete; shared acceptance residual | `R-GW-AUTH-001`; the authoritative registry covers all 13 YARP proxy routes and 3 local endpoints. One 43-row theory asserts public/authenticated/role behavior and zero downstream requests after denials; the quality validator fails on route, policy, role, method, sample-path or registry drift. | Oracle Approved; `CTRL-SEC-GATEWAY-001` advances to Direct locally for the gateway boundary; `GATE-SEC-001` remains a Future W2 activation prerequisite. | Obtain PR/Main acceptance and the existing `ESHOP-GW-001` TestRail publication, then retain the fail-closed registry. Direct Catalog network isolation remains GAP-003. | Remaining shared acceptance XS; Main; Release gate not activated. |
 
 ## Duplication and indirect evidence
 
 - Messaging and Playwright checkout paths are deliberate layered overlap: durable distributed effects versus customer-visible outcome.
 - Domain transitions remain on PR even when saga tests repeat terminal states.
-- Gateway and direct-service authorization are complementary trust boundaries; Catalog mutation authorization and route exhaustiveness are separate gaps.
+- Gateway and direct-service authorization are complementary trust boundaries. TECH-05 closes local gateway route exhaustiveness; direct Catalog mutation isolation remains GAP-003.
 - Keep minimal liveness smoke per process; implement dependency readiness once per relevant component without multiplying status-only checks.
 - Indirect-only risk evidence: traces (`R-OBS-001`), outbox claims (`R-OUTBOX-002`), inventory fulfillment (`R-INVENTORY-002`), real basket-clear recovery (`R-BASKET-003`), production ingress (`R-DEPLOY-001`).
 
@@ -54,7 +54,7 @@ Weak assertions retained from the audit: five service `HealthAnonymousRequestRet
 
 ## CI findings
 
-The accepted baseline narrows runtime by event without narrowing total governed coverage: PR runs 77 logical selectors; Main runs the cumulative 174; Nightly retains 19. CI #37 and CI #38 accepted both shared event paths. Missing tests and accumulated scheduled evidence remain distinct concerns.
+The accepted baseline narrows runtime by event without narrowing total governed coverage. The local TECH-05 contract has PR 77, Main primary 98 and cumulative Main 175, Nightly 19 and Release overlap 13 selectors. CI #37/#38 accepted the earlier event paths; TECH-05 still requires its own PR/Main acceptance. Missing tests and accumulated scheduled evidence remain distinct concerns.
 
 ## GAP-020 / TECH-03 groomed atomic-rejection contract
 
@@ -106,10 +106,29 @@ The accepted baseline narrows runtime by event without narrowing total governed 
 
 **Accepted evidence:** PR CI #45 and Main CI #46 passed. Main commit `b298107` published closed TestRail R71–R74 at `12/22/3/4`; `[Negative mutations]` passed in R72. TECH-04 is complete without reopening GAP-020 or changing a gate lifecycle.
 
+## GAP-026 / TECH-05 groomed gateway-authorization contract
+
+**User outcome:** every endpoint addressable through the API Gateway has an explicit, reviewable access policy, and a denied request cannot reach a downstream service.
+
+**Approved oracle:** the gateway configuration and authoritative registry contain the same 13 YARP routes with identical cluster, path, method, authorization and rate-limit metadata, plus the three known local endpoints. Public endpoints accept anonymous requests; authenticated endpoints reject anonymous users; role-protected endpoints reject anonymous and authenticated wrong-role users and accept every configured role. Every denied proxy request leaves the downstream request count at zero; every successful proxy variant forwards exactly once with the representative method and path.
+
+**In scope:** gateway route/configuration drift, `AuthenticatedUser`, `CustomerOnly` and `SupportOrAdmin` behavior, all configured allowed roles, representative public routes, local `/`, `/health` and `/api/v1/auth/me`, and the existing `ESHOP-GW-001` TestRail aggregate. **Out of scope:** downstream resource ownership after forwarding, direct Catalog mutation reachability, production ingress/TLS, distributed rate limiting, new TestRail cases and gate activation.
+
+**Acceptance criteria:**
+
+1. [`gateway-route-policy.json`](../../scripts/quality/gateway-route-policy.json) contains exactly 16 unique addressable entries: 13 proxy routes and 3 local endpoints.
+2. [`gateway_routes.py`](../../scripts/quality/gateway_routes.py) fails closed on missing/extra routes or drift in cluster, path, methods, authorization policy, rate limiter, roles or representative request matching.
+3. `EveryAddressableRouteEnforcesAuthorizationAndForwarding` executes 43 variants and proves the approved status/role/forwarding oracle for every registry entry.
+4. A denied proxy request produces no fake-downstream request; a successful proxy request produces exactly one with the expected method and path.
+5. The full gateway suite passes `65/65`; quality unit tests, TestRail tooling tests and tier/map validation pass locally.
+6. The selector is Main-owned and binds to existing `ESHOP-GW-001`; the runtime contract becomes 194 selectors/212 edges and cumulative Main 175 without changing locked TestRail report cardinality `12/22/3/4`.
+7. PR and Main CI pass, Main republishes `ESHOP-GW-001`, and only then is shared acceptance recorded. `GATE-SEC-001` remains Future and unevaluated.
+
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.5 | 2026-07-29 | Groomed and implemented TECH-05/GAP-026 locally with a 16-endpoint registry, 43 authorization variants and fail-closed drift validation; shared acceptance remains pending. | Pending review |
 | 2.4 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72; removed the transport follow-up residual with unchanged cardinality. | Pending review |
 | 2.3 | 2026-07-29 | Groomed and implemented TECH-04 locally; retained shared Main/TestRail acceptance as the only transport follow-up residual. | Pending review |
 | 2.2 | 2026-07-29 | Closed GAP-020 after PR CI #41 and Main CI #42/TestRail R64 accepted TECH-03 with unchanged cardinality. | Pending review |

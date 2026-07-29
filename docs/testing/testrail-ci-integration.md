@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #46` on merge commit `b298107` is the latest accepted cumulative Main publication; TestRail `R71`–`R74` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The local TECH-05 contract maps 194 unique source selectors through 212 binding edges to 31 automated TestIntents; the new gateway selector binds to existing `ESHOP-GW-001`, so no TestRail case is added. GitHub Actions `CI #46` on merge commit `b298107` remains the latest accepted cumulative Main publication; TestRail `R71`–`R74` contain the locked `12/22/3/4` Passed results. Docs-only CI #47/#48 correctly published nothing. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
 
 ## Identity contract
 
@@ -91,7 +91,7 @@ The pilot was accepted on July 28, 2026 using GitHub Actions run `30356073486` (
 
 The run areas intentionally overlap where several automation layers support the same TestIntent. All individual result rows were assigned to governed suite cases, and the suite remained at 45 cases, confirming that `trcli -n` created no new cases. Following this acceptance, the job-level pilot `continue-on-error` setting was removed and TestRail publication became a blocking quality gate.
 
-## Latest shared evidence
+## GAP-001 shared evidence
 
 GitHub Actions run [`30429176555`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30429176555) (`CI #35`) completed successfully on July 29, 2026 for commit `1da2ccb`. Quality policy, Backend, Frontend, Container images, Checkout E2E and Publish TestRail results all concluded `success`. The publishing job created four closed, 100% Passed runs linked to that workflow:
 
@@ -104,7 +104,7 @@ The 47 aggregate rows deliberately overlap. The broker-delivery selector support
 
 ## Governed Nightly and Release publication
 
-QA-03 defines the source-of-truth classification in [`test-tier-policy.json`](../../scripts/quality/test-tier-policy.json). [`test_tiers.py`](../../scripts/quality/test_tiers.py) fails closed when a TestRail-bound selector is unclassified, ambiguously sourced, unknown in an override or changes the approved `77/97/19/13` counts.
+QA-03 defines the source-of-truth classification in [`test-tier-policy.json`](../../scripts/quality/test-tier-policy.json). [`test_tiers.py`](../../scripts/quality/test_tiers.py) fails closed when a TestRail-bound selector is unclassified, ambiguously sourced, unknown in an override or changes the local TECH-05 `77/98/19/13` counts.
 
 The dedicated [`quality-tiers.yml`](../../.github/workflows/quality-tiers.yml) runs Nightly on a daily schedule and exposes Nightly/Release via `workflow_dispatch`. It builds an exact project/filter matrix, retains raw TRX/JUnit for 30 days, aggregates only the selected results and publishes one closed TestRail run named `Nightly #<run> | Backend Integration` or `Release #<run> | Backend Integration`.
 
@@ -112,6 +112,7 @@ Validate the governed classification locally before a commit:
 
 ```powershell
 python scripts/quality/test_tiers.py validate
+python scripts/quality/gateway_routes.py validate
 python -m unittest discover -s scripts/quality/tests -v
 python scripts/quality/test_tiers.py matrix --tier nightly
 python scripts/quality/test_tiers.py matrix --tier release
@@ -124,7 +125,7 @@ The first shared tier acceptance completed on 2026-07-29. GitHub run [`304307883
 The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
 
 - pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
-- pushes to `main` and manual CI dispatch execute PR + Main ownership, 174 logical selectors in total;
+- pushes to `main` and manual CI dispatch execute PR + Main ownership, 175 logical selectors in the local TECH-05 contract;
 - Nightly remains an independent 19-selector execution rather than being folded into Main;
 - Release remains a 13-selector overlap and is not inferred from a normal Main pass.
 
@@ -137,3 +138,7 @@ Fail-closed validation locks both selector and publication cardinality. PR [`CI 
 TECH-03/GAP-020 strengthens the four selectors already bound to `ESHOP-DATA-004`; it does not change Automation IDs, mapping edges, selector ownership or report cardinality. Main `CI #42` published R63–R66 at `12/22/3/4`; the existing `[Negative mutations]` TestIntent passed in R64 and GAP-020 is closed.
 
 TECH-04 adds the Catalog `application/problem+json` transport assertion to that same aggregate. PR CI #45 and Main CI #46 passed; Main published R71–R74 at `12/22/3/4`, and the existing `[Negative mutations]` TestIntent passed in R72 without creating a case.
+
+PR CI #47 and Main CI #48 accepted the docs-only gate on `06b8895`. Both ran Change scope and Quality policy only; no TestRail run was created, leaving R71–R74 as the latest publication.
+
+TECH-05 adds `GatewayAuthorizationTests.EveryAddressableRouteEnforcesAuthorizationAndForwarding` to existing `ESHOP-GW-001`. Its 43 xUnit rows aggregate into that one TestIntent, so Main remains exactly `12/22/3/4` result rows. The local mapping is 194 selectors/212 edges and cumulative Main 175. Shared acceptance requires PR CI, Main CI and a Passed `ESHOP-GW-001` result in the next Backend Integration run; `trcli -n` must not create a case.

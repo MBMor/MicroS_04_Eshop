@@ -1,15 +1,15 @@
 {
-  "version": 2,
+  "version": 3,
   "description": "Authoritative primary ownership plus cumulative PR/Main event execution and explicit Release overlap for governed test selectors.",
   "expected_counts": {
     "PR": 77,
-    "Main": 97,
+    "Main": 98,
     "Nightly": 19,
     "Release": 13
   },
   "expected_execution_selector_counts": {
     "PR": 77,
-    "Main": 174,
+    "Main": 175,
     "Nightly": 19,
     "Release": 13
   },
@@ -21,7 +21,7 @@
   },
   "expected_mapping_edges": {
     "PR": 80,
-    "Main": 186,
+    "Main": 187,
     "Nightly": 25,
     "Release": 21
   },
