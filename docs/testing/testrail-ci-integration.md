@@ -2,7 +2,7 @@
 
 This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
 
-The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #35` on commit `1da2ccb` is the latest accepted broad publication; Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
+The committed baseline maps 193 unique source selectors through 211 binding edges to 31 automated TestIntents; the GAP-001 selector binds to both `ESHOP-DATA-002` and `ESHOP-INVENTORY-002`. GitHub Actions `CI #38` on merge commit `a41aa71` is the latest accepted cumulative Main publication; TestRail `R55`–`R58` contain the locked `12/22/3/4` Passed results. Nightly `R49` and Release `R50` are the first accepted governed-tier publications.
 
 ## Identity contract
 
@@ -117,11 +117,11 @@ python scripts/quality/test_tiers.py matrix --tier nightly
 python scripts/quality/test_tiers.py matrix --tier release
 ```
 
-The first shared acceptance completed on 2026-07-29. GitHub run [`30430788377`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430788377) published closed TestRail Nightly `R49` with 11/11 Passed; run [`30430855956`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430855956) published closed Release `R50` with 6/6 Passed. The suite remained at 45 cases, so fail-closed identity matching did not create catalogue drift. Current PR/main execution remains broad until its cumulative/direct-push semantics are groomed and accepted separately.
+The first shared tier acceptance completed on 2026-07-29. GitHub run [`30430788377`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430788377) published closed TestRail Nightly `R49` with 11/11 Passed; run [`30430855956`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30430855956) published closed Release `R50` with 6/6 Passed. The suite remained at 45 cases, so fail-closed identity matching did not create catalogue drift. PR `CI #37` and Main `CI #38` subsequently accepted the cumulative/direct-push semantics described below.
 
 ## Governed PR and Main execution
 
-The local GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
+The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
 
 - pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
 - pushes to `main` and manual CI dispatch execute PR + Main ownership, 174 logical selectors in total;
@@ -130,4 +130,4 @@ The local GAP-022 cutover uses primary tier as selector ownership and cumulative
 
 Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
 
-Fail-closed validation locks both selector and publication cardinality. A successful Main run must publish four closed TestRail runs containing 12 Backend Unit, 22 Backend Integration, 3 Frontend Unit and 4 Checkout E2E TestIntent results. The local pre-acceptance run passed 66 unit and 96 integration executable rows, then produced the expected `12/22/3` non-browser aggregates with zero failure/error/skip. Shared Main and PR acceptance remains required before GAP-022 is complete.
+Fail-closed validation locks both selector and publication cardinality. PR [`CI #37`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433749355) passed only Quality policy, Backend and Frontend; Containers, E2E and TestRail were skipped. Main [`CI #38`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30433934594) passed all jobs and published four closed TestRail runs: R55 Backend Unit 12, R56 Backend Integration 22, R57 Frontend Unit 3 and R58 Checkout E2E 4, all Passed. Both event paths are accepted and GAP-022 is complete.

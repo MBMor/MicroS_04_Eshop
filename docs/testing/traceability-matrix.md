@@ -1,14 +1,14 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 1.9
+> **Version:** 2.0
 > **Status:** Refreshed evidence baseline — pending governance approval
 > **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `fcd051b`; governed PR/Main cutover is local until shared acceptance
+> **Baseline:** `main` / `a41aa71`; governed PR/Main cutover accepted in CI #37/#38
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-GitHub Actions `CI #35` on commit `1da2ccb` and TestRail runs `R45`–`R48` provide Passed/Valid evidence for the committed 31 automated TestIntents. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. The working tree implements PR-owned 77 and cumulative Main 174 execution while retaining all 193 selectors across tiers; shared event-path acceptance is pending. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+GitHub Actions PR `CI #37` accepts PR-owned 77 execution without Docker, browser or TestRail publication. Main `CI #38` on merge commit `a41aa71` accepts cumulative Main 174 execution and TestRail `R55`–`R58` at `12/22/3/4`, all Passed. QA-03 Nightly `R49` and Release `R50` accept those governed subsets. All 193 selectors remain governed across tiers; GAP-022 is complete. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -110,6 +110,7 @@ Mappings synchronize lifecycle, wave, activation and phase from the gate policy.
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.0 | 2026-07-29 | Accepted PR CI #37 and Main CI #38/R55–R58 traceability and closed GAP-022. | Pending review |
 | 1.9 | 2026-07-29 | Recorded local governed PR/Main cutover while retaining shared acceptance as the GAP-022 residual. | Pending review |
 | 1.8 | 2026-07-29 | Promoted the committed tier contract through CI #35 and accepted Nightly R49 plus Release R50 traceability. | Pending review |
 | 1.7 | 2026-07-29 | Promoted GAP-001 broker traceability to CI #34/TestRail R42 and recorded QA-03 as a local scheduling implementation. | Pending review |
