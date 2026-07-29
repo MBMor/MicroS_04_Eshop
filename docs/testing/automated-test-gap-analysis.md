@@ -1,9 +1,9 @@
 # Automated Test Gap Analysis
 
 > **Document type:** Point-in-time test investment roadmap input  
-> **Version:** 2.6
+> **Version:** 2.7
 > **Effective from:** 2026-07-28 evidence refresh
-> **Baseline:** `main` / `daf835d`; TECH-05/GAP-026 accepted in CI #52 and TestRail R79
+> **Baseline:** `main` / `b259026`; QA-04/TECH-06 accepted in CI #56 and TestRail R82–R85
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
@@ -54,7 +54,7 @@ Weak assertions retained from the audit: five service `HealthAnonymousRequestRet
 
 ## CI findings
 
-The accepted baseline narrows runtime by event without narrowing total governed coverage. The TECH-05 contract has PR 77, Main primary 98 and cumulative Main 175, Nightly 19 and Release overlap 13 selectors. Main CI #52 accepted the expanded cumulative path and its TestRail publication. Missing tests and accumulated scheduled evidence remain distinct concerns.
+The accepted baseline narrows runtime by event without narrowing total governed coverage. The TECH-05 contract has PR 77, Main primary 98 and cumulative Main 175, Nightly 19 and Release overlap 13 selectors. QA-04/TECH-06 accepts the evidence-integrity follow-up exposed by partial CI #50 publication: TestRail publication now requires every upstream job to succeed, validates all four reports and exact `12/22/3/4` cardinality before the first remote call, and executes a regression-tested portable E2E port check. Main CI #56 and TestRail R82–R85 accepted the controls. Missing product tests and accumulated scheduled evidence remain distinct concerns.
 
 ## GAP-020 / TECH-03 groomed atomic-rejection contract
 
@@ -130,6 +130,7 @@ The accepted baseline narrows runtime by event without narrowing total governed 
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 fail-closed publication and runner-portability controls through Main CI #56 and TestRail R82–R85. | Pending review |
 | 2.6 | 2026-07-29 | Closed GAP-026 after hotfix `daf835d`, Main CI #52 and TestRail R79 accepted the complete gateway matrix. | Pending review |
 | 2.5 | 2026-07-29 | Groomed and implemented TECH-05/GAP-026 locally with a 16-endpoint registry, 43 authorization variants and fail-closed drift validation; shared acceptance remains pending. | Pending review |
 | 2.4 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R72; removed the transport follow-up residual with unchanged cardinality. | Pending review |

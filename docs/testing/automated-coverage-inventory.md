@@ -1,15 +1,15 @@
 # Automated Coverage Inventory
 
 > **Document type:** Point-in-time executable-test inventory  
-> **Version:** 2.6
+> **Version:** 2.7
 > **Effective from:** 2026-07-28 evidence refresh
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Baseline:** `main` / `daf835d`; TECH-05/GAP-026 accepted in CI #52 and TestRail R79
+> **Baseline:** `main` / `b259026`; QA-04/TECH-06 accepted in CI #56 and TestRail R82–R85
 > **Analysis date:** 2026-07-29 (Europe/Prague)
 
 One row is one xUnit method, Vitest `it`, or Playwright `test`. A theory is one logical test when rows prove the same risk. The accepted TECH-05 baseline has **194 logical tests and 241 executable cases**: five two-row theories add five executable cases and the 43-row gateway authorization theory adds 42. All 194 are active; none is skipped, disabled, quarantined or conditionally returned. QA-03 assigns every selector to PR, cumulative Main or Nightly runtime while Release remains an explicit overlap.
 
-GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 first reached Main in CI #50, whose Checkout E2E startup exposed an incompatible `ss` option; its three partial TestRail runs are not acceptance evidence. Commit `daf835d` fixed the runner portability issue, Main `CI #52` passed, and TestRail `R78`–`R81` retained locked `12/22/3/4` cardinality. `ESHOP-GW-001` passed in R79. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
+GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` accepted the cumulative runtime. TECH-03 passed Main `CI #42`, TECH-04 Main `CI #46`, and the docs-only gate Main `CI #48`. TECH-05 first reached Main in CI #50, whose Checkout E2E startup exposed an incompatible `ss` option; its three partial TestRail runs are not acceptance evidence. Commit `daf835d` fixed the runner portability issue and Main `CI #52` passed. QA-04/TECH-06 then made upstream success and exact report completeness prerequisites for publication and added a shell-portability contract. Main `CI #56` passed and TestRail `R82`–`R85` retained locked `12/22/3/4` cardinality. No Future gate is activated. See the [executable evidence baseline](evidence-baseline.md) for provenance and limitations.
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
@@ -347,6 +347,7 @@ Inherited: Chromium only, workers 1, serialized, CI retry 1, trace on first retr
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.7 | 2026-07-29 | Accepted QA-04/TECH-06 publication integrity and E2E shell-portability controls through Main CI #56 and TestRail R82–R85 without changing governed test counts. | Pending review |
 | 2.6 | 2026-07-29 | Accepted TECH-05 after the E2E runner-portability fix: Main CI #52 and TestRail R78–R81 passed, including ESHOP-GW-001 in R79. | Pending review |
 | 2.5 | 2026-07-29 | Added local TECH-05 complete gateway authorization/non-forwarding matrix: 16 endpoints, 43 variants, 194 selectors and 212 bindings; shared acceptance remains pending. | Pending review |
 | 2.4 | 2026-07-29 | Accepted TECH-04 through PR CI #45 and Main CI #46/TestRail R72 with unchanged selectors, bindings and report cardinality. | Pending review |

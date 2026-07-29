@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.5
+> **Version:** 2.6
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `daf835d`
-> **Working-tree scope:** accepted TECH-05/GAP-026 gateway authorization and E2E runner-portability evidence
+> **Repository baseline:** `main` / `b259026`
+> **Working-tree scope:** accepted QA-04/TECH-06 publication-integrity and E2E shell-portability evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -236,6 +236,21 @@ Commit `daf835d` replaced the unsupported option with portable `ss -ltn`/`ss -lt
 
 The project now has 69 completed TestRail runs and no open run. R79 proves the new selector aggregated into the existing gateway TestIntent without creating a case or changing report cardinality. This accepts TECH-05/GAP-026 while `GATE-SEC-001` remains Future and unevaluated.
 
+## QA-04 / TECH-06 evidence
+
+QA-04/TECH-06 addresses the evidence-integrity weakness exposed by diagnostic CI #50. The workflow now requires successful Change scope, Backend, Frontend and Checkout E2E jobs before TestRail publication. It also requires all four reports to be non-empty valid XML with exact `12/22/3/4` cardinality before Automation ID preflight or the first remote publication call. The E2E port probe is isolated behind a Linux/Windows contract test and Quality policy runs Bash syntax validation and ShellCheck.
+
+Before merge, 38/38 quality-policy unit tests, 7/7 TestRail transformation tests and the deterministic Bash port contract passed. Commit `b259026` then passed every Main job in [`CI #56`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30451634130) and published one complete closed set:
+
+| TestRail run | Area | TestIntent results | Result |
+|---|---|---:|---|
+| `R82` | Backend Unit | 12 | Passed |
+| `R83` | Backend Integration | 22 | Passed |
+| `R84` | Frontend Unit | 3 | Passed |
+| `R85` | Checkout E2E | 4 | Passed |
+
+All four runs are 100% Passed and link to CI #56. The project has 73 completed TestRail runs and no open run. This accepts the positive Main path for QA-04/TECH-06 without changing selectors, bindings, TestIntent catalogue or any Future gate. Failure and incomplete-report paths are accepted by deterministic policy tests; deliberately failing Main solely to create negative external evidence is unnecessary.
+
 ## Current interpretation
 
 - QA-01 baseline refresh is complete for counts, provenance and CI/TestRail acceptance.
@@ -246,11 +261,13 @@ The project now has 69 completed TestRail runs and no open run. R79 proves the n
 - TECH-04 fixes and locks the adjacent Catalog ProblemDetails media type; CI #45/#46 and TestRail R72 accept it without reopening GAP-020.
 - The docs-only gate is accepted by CI #47/#48 and correctly produced no TestRail runs.
 - TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed. Direct Catalog network isolation remains GAP-003.
+- QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.6 | 2026-07-29 | Accepted QA-04/TECH-06 after Main CI #56 passed and TestRail R82–R85 closed at 100% with locked `12/22/3/4` cardinality. | Pending review |
 | 2.5 | 2026-07-29 | Accepted TECH-05 after CI #50 exposed the E2E `ss` portability defect and hotfix `daf835d` passed Main CI #52/TestRail R78–R81. | Pending review |
 | 2.4 | 2026-07-29 | Recorded docs-only CI #47/#48 acceptance and local TECH-05 evidence: 16 endpoints, 43 matrix rows, 65/65 gateway regression and 194/212 runtime mapping. | Pending review |
 | 2.3 | 2026-07-29 | Accepted TECH-04 through CI #45/#46 and TestRail R71–R74 with unchanged TestRail identity and cardinality. | Pending review |
