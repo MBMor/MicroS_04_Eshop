@@ -1,10 +1,10 @@
 # Executable Test Evidence Baseline
 
 > **QA work item:** QA-01  
-> **Version:** 2.7
+> **Version:** 2.8
 > **As of:** 2026-07-29 (Europe/Prague)
-> **Repository baseline:** `main` / `411f166`
-> **Working-tree scope:** TECH-07/GAP-003 Catalog mutation-boundary candidate; shared Main/Release acceptance pending
+> **Repository baseline:** `main` / `4ec560f`
+> **Working-tree scope:** accepted TECH-07/GAP-003 Main and governed Release evidence
 
 This record separates shared CI/TestRail evidence from the additional local repeat evidence. It does not activate or pass any future quality gate.
 
@@ -25,7 +25,7 @@ Evidence validity is **Valid** for the exact commit, environment and variants ex
 
 ## Current source baseline
 
-The TECH-07 working-tree source candidate contains:
+The accepted TECH-07 source baseline contains:
 
 | Metric | Count | Definition |
 |---|---:|---|
@@ -251,15 +251,19 @@ Before merge, 38/38 quality-policy unit tests, 7/7 TestRail transformation tests
 
 All four runs are 100% Passed and link to CI #56. The project has 73 completed TestRail runs and no open run. This accepts the positive Main path for QA-04/TECH-06 without changing selectors, bindings, TestIntent catalogue or any Future gate. Failure and incomplete-report paths are accepted by deterministic policy tests; deliberately failing Main solely to create negative external evidence is unnecessary.
 
-## TECH-07 / GAP-003 local evidence
+## TECH-07 / GAP-003 accepted evidence
 
 TECH-07 adds the shared JWT/auth middleware to Catalog Service and applies `AdminOnly` to POST, PUT and DELETE while keeping public GET anonymous. `CatalogMutationBoundaryRejectsUnauthorizedCallersWithoutPersistence` executes nine anonymous/customer/support variants and proves both the 401/403 contract and unchanged product state. Existing mutation scenarios now authenticate as admin and the complete Catalog project passes 19/19.
 
 `CatalogMutationRoutesAreNotAddressableOrForwarded` executes POST, PUT and DELETE against the actual configured gateway surface. All three return 405 and the fake downstream count remains zero; the complete gateway project passes 68/68. This is direct service/configuration evidence, not a substitute for the full container-network topology tracked by GAP-013.
 
-The two selectors bind to `ESHOP-CATALOG-001`; the gateway selector also binds to `ESHOP-GW-001`. Local validation reports 196 selectors/215 edges and tier counts `PR=77`, `Main primary=100`, `Main cumulative=177`, `Nightly=19`, `Release=15`. Main publication is locked to `12/23/3/4`; Release aggregates 8 TestIntents over 24 edges. TestRail C53 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes` and Automation ID `Eshop.TestIntents.ESHOP-CATALOG-001`.
+The two selectors bind to `ESHOP-CATALOG-001`; the gateway selector also binds to `ESHOP-GW-001`. Validation reports 196 selectors/215 edges and tier counts `PR=77`, `Main primary=100`, `Main cumulative=177`, `Nightly=19`, `Release=15`. Main publication is locked to `12/23/3/4`; Release aggregates 8 TestIntents over 24 edges. TestRail C53 is synchronized as Automated/Implemented/Approved with native `Is Automated=Yes` and Automation ID `Eshop.TestIntents.ESHOP-CATALOG-001`.
 
-Evidence validity is **Valid locally** for the named variants. It is not yet shared acceptance: PR, Main publication and explicit Release execution remain pending, and `GATE-SEC-001` remains Future and unevaluated.
+The first Main publication attempt exposed an unsupported map version rather than a test failure. Hotfix `4ec560f` restored the unchanged version-1 schema and added a regression test that loads the production manifest. Main [`CI #62`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30458083498) then passed and published one complete closed set: R86 Backend Unit 12, R87 Backend Integration 23, R88 Frontend Unit 3 and R89 Checkout E2E 4, all Passed.
+
+Governed Release [`30481512624`](https://github.com/MBMor/MicroS_04_Eshop/actions/runs/30481512624) published closed R90 with 8/8 Passed. R90 contains Passed `ESHOP-CATALOG-001` and `ESHOP-GW-001`; no case was created and no run remains open. The three missing-report annotations for backend-unit, frontend-unit and checkout-e2e are expected because this governed profile executes and publishes backend integration only.
+
+Evidence validity is **Valid** for the named Main and Release variants. TECH-07 is accepted and GAP-003 is closed. `GATE-SEC-001` remains Future and unevaluated; full deployable-network topology remains GAP-013.
 
 ## Current interpretation
 
@@ -272,12 +276,13 @@ Evidence validity is **Valid locally** for the named variants. It is not yet sha
 - The docs-only gate is accepted by CI #47/#48 and correctly produced no TestRail runs.
 - TECH-05 supplies accepted direct gateway route/policy/non-forwarding evidence through CI #52/TestRail R79; GAP-026 is closed.
 - QA-04/TECH-06 makes successful upstream execution and exact complete reports prerequisites for TestRail publication; CI #56/R82–R85 accepts the positive path and policy tests cover rejection paths.
-- TECH-07 supplies local direct Catalog authorization/no-write and gateway no-forwarding evidence. Shared Main/Release acceptance remains for GAP-003; deployable-network topology remains GAP-013.
+- TECH-07 supplies accepted direct Catalog authorization/no-write and gateway no-forwarding evidence through Main CI #62/R87 and governed Release R90; GAP-003 is closed. Deployable-network topology remains GAP-013.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 2.8 | 2026-07-29 | Accepted TECH-07/GAP-003 after manifest hotfix `4ec560f`, Main CI #62/R86–R89 and governed Release R90 passed at 100%. | Pending review |
 | 2.7 | 2026-07-29 | Added local TECH-07/GAP-003 Catalog mutation-boundary evidence, synchronized C53 and the 196-selector/215-edge candidate; shared Main/Release acceptance remains pending. | Pending review |
 | 2.6 | 2026-07-29 | Accepted QA-04/TECH-06 after Main CI #56 passed and TestRail R82–R85 closed at 100% with locked `12/22/3/4` cardinality. | Pending review |
 | 2.5 | 2026-07-29 | Accepted TECH-05 after CI #50 exposed the E2E `ss` portability defect and hotfix `daf835d` passed Main CI #52/TestRail R78–R81. | Pending review |
