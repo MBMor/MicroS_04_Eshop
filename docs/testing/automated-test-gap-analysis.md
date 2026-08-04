@@ -1,5 +1,7 @@
 # Automated Test Gap Analysis
 
+> Reconstructed left-shift work items are maintained in the [`work-items` catalogue](work-items/README.md). This document remains authoritative for coverage gaps and residuals.
+
 > **Document type:** Point-in-time test investment roadmap input  
 > **Version:** 3.1
 > **Effective from:** 2026-07-29 TECH-08 accepted baseline
