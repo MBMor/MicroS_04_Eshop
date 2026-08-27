@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Eshop.Operations.Desktop.ViewModels;
 
 namespace Eshop.Operations.Desktop;
 
@@ -88,18 +89,8 @@ public partial class App : Application
                     DesktopOptions.SectionName))
             .ValidateOnStart();
 
-        builder.Services.AddSingleton(serviceProvider =>
-        {
-            var options = serviceProvider
-                .GetRequiredService<IOptions<DesktopOptions>>()
-                .Value;
-
-            return new MainWindow
-            {
-                Title =
-                    $"Eshop Operations Console — {options.EnvironmentName}"
-            };
-        });
+        builder.Services.AddSingleton<ShellViewModel>();
+        builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();
     }
