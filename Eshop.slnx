@@ -37,6 +37,9 @@
   <Folder Name="/src/backend/tools/">
     <Project Path="src/backend/tools/RabbitMq.TopologyInitializer/RabbitMq.TopologyInitializer.csproj" />
   </Folder>
+  <Folder Name="/src/desktop/">
+    <Project Path="src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj" />
+  </Folder>
   <Folder Name="/src/frontend/">
     <Project Path="src/frontend/Eshop.Frontend.esproj">
       <Build />
@@ -57,5 +60,8 @@
   </Folder>
   <Folder Name="/tests/backend/unit/">
     <Project Path="tests/backend/unit/Eshop.Domain.UnitTests/Eshop.Domain.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/desktop/">
+    <Project Path="tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj" />
   </Folder>
 </Solution>
