@@ -5,6 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.ViewModels;
+using Eshop.Operations.Desktop.Api;
+using Eshop.Operations.Desktop.Api.Catalog;
 
 namespace Eshop.Operations.Desktop;
 
@@ -91,6 +93,46 @@ public partial class App : Application
                 builder.Configuration.GetSection(
                     DesktopOptions.SectionName))
             .ValidateOnStart();
+
+        builder.Services
+            .AddOptions<ApiGatewayOptions>()
+            .Bind(
+                builder.Configuration.GetSection(
+                    ApiGatewayOptions.SectionName))
+            .Validate(
+                static options =>
+                    Uri.TryCreate(
+                        options.BaseAddress,
+                        UriKind.Absolute,
+                        out Uri? baseAddress)
+                    && (baseAddress.Scheme == Uri.UriSchemeHttp
+                        || baseAddress.Scheme == Uri.UriSchemeHttps),
+                "ApiGateway:BaseAddress must be an absolute HTTP or HTTPS URI.")
+            .Validate(
+                static options =>
+                    options.TimeoutSeconds is >= 1 and <= 120,
+                "ApiGateway:TimeoutSeconds must be between 1 and 120.")
+            .ValidateOnStart();
+
+        builder.Services.AddHttpClient(
+            "ApiGateway",
+            static (serviceProvider, httpClient) =>
+            {
+                ApiGatewayOptions options = serviceProvider
+                    .GetRequiredService<IOptions<ApiGatewayOptions>>()
+                    .Value;
+
+                httpClient.BaseAddress =
+                    new Uri(
+                        options.BaseAddress,
+                        UriKind.Absolute);
+
+                httpClient.Timeout =
+                    TimeSpan.FromSeconds(
+                        options.TimeoutSeconds);
+            });
+
+        builder.Services.AddSingleton<CatalogApiClient>();
 
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();
