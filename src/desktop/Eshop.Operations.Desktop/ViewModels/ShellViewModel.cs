@@ -6,6 +6,8 @@ namespace Eshop.Operations.Desktop.ViewModels;
 
 public sealed partial class ShellViewModel : ObservableObject
 {
+    private readonly string _applicationTitle = "Eshop Operations Console";
+
     public ShellViewModel(IOptions<DesktopOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -13,7 +15,7 @@ public sealed partial class ShellViewModel : ObservableObject
         EnvironmentName = options.Value.EnvironmentName;
     }
 
-    public string ApplicationTitle => "Eshop Operations Console";
+    public string ApplicationTitle => _applicationTitle;
 
     public string EnvironmentName { get; }
 

@@ -11,7 +11,7 @@ public sealed class DesktopOptionsValidatorTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("   ")]
-    public void Validate_WhenEnvironmentNameIsMissing_ReturnsFailure(
+    public void ValidateWhenEnvironmentNameIsMissingReturnsFailure(
         string environmentName)
     {
         var options = new DesktopOptions
@@ -28,7 +28,7 @@ public sealed class DesktopOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenEnvironmentNameIsConfigured_ReturnsSuccess()
+    public void ValidateWhenEnvironmentNameIsConfiguredReturnsSuccess()
     {
         var options = new DesktopOptions
         {

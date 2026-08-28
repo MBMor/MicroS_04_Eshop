@@ -8,7 +8,7 @@ namespace Eshop.Operations.Desktop.Tests.ViewModels;
 public sealed class ShellViewModelTests
 {
     [Fact]
-    public void Constructor_InitializesShellPresentationState()
+    public void ConstructorInitializesShellPresentationState()
     {
         var viewModel = CreateViewModel();
 
@@ -30,7 +30,7 @@ public sealed class ShellViewModelTests
     }
 
     [Fact]
-    public void StatusText_WhenChanged_RaisesPropertyChanged()
+    public void StatusTextWhenChangedRaisesPropertyChanged()
     {
         var viewModel = CreateViewModel();
 
@@ -53,7 +53,7 @@ public sealed class ShellViewModelTests
     }
 
     [Fact]
-    public void StatusText_WhenAssignedSameValue_DoesNotRaisePropertyChanged()
+    public void StatusTextWhenAssignedSameValueDoesNotRaisePropertyChanged()
     {
         var viewModel = CreateViewModel();
 
