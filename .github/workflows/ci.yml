@@ -443,6 +443,46 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  desktop:
+    name: Desktop
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.application_changed == 'true' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Display .NET information
+        run: dotnet --info
+
+      - name: Restore desktop tests
+        run: >
+          dotnet restore
+          tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
+
+      - name: Build desktop tests
+        run: >
+          dotnet build
+          tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
+          --configuration Release
+          --no-restore
+          -warnaserror
+
+      - name: Run desktop tests
+        run: >
+          dotnet test
+          tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
+          --configuration Release
+          --no-build
+
   frontend:
     name: Frontend
     needs:
