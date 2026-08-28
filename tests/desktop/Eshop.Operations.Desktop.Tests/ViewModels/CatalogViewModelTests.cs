@@ -422,6 +422,207 @@ public sealed class CatalogViewModelTests
             viewModel.Products);
     }
 
+    [Fact]
+    public async Task SearchTextFiltersLoadedProducts()
+    {
+        CatalogProductDto keyboard =
+            CreateProduct() with
+            {
+                Name = "Mechanical Keyboard",
+                Sku = "KEY-001"
+            };
+
+        CatalogProductDto monitor =
+            CreateProduct() with
+            {
+                Id = Guid.NewGuid(),
+                Name = "Office Monitor",
+                Sku = "MON-001"
+            };
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<
+                    IReadOnlyList<CatalogProductDto>>(
+                    [keyboard, monitor]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SearchText = "KEY";
+
+        CatalogProductDto visible =
+            Assert.Single(
+                viewModel.ProductsView
+                    .Cast<CatalogProductDto>());
+
+        Assert.Same(
+            keyboard,
+            visible);
+    }
+
+    [Fact]
+    public async Task SelectedCategoryFiltersLoadedProducts()
+    {
+        CatalogProductDto peripheral =
+            CreateProduct() with
+            {
+                Category = "Peripherals"
+            };
+
+        CatalogProductDto display =
+            CreateProduct() with
+            {
+                Id = Guid.NewGuid(),
+                Category = "Displays"
+            };
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<
+                    IReadOnlyList<CatalogProductDto>>(
+                    [peripheral, display]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedCategory = "Displays";
+
+        CatalogProductDto visible =
+            Assert.Single(
+                viewModel.ProductsView
+                    .Cast<CatalogProductDto>());
+
+        Assert.Same(
+            display,
+            visible);
+    }
+
+    [Fact]
+    public async Task SelectedSortOptionSortsProductView()
+    {
+        CatalogProductDto expensive =
+            CreateProduct() with
+            {
+                Name = "Expensive",
+                PriceAmount = 500m
+            };
+
+        CatalogProductDto cheap =
+            CreateProduct() with
+            {
+                Id = Guid.NewGuid(),
+                Name = "Cheap",
+                PriceAmount = 50m
+            };
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<
+                    IReadOnlyList<CatalogProductDto>>(
+                    [expensive, cheap]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedSortOption =
+            Assert.Single(
+                viewModel.SortOptions,
+                option =>
+                    option.DisplayName == "Price low to high");
+
+        CatalogProductDto[] visibleProducts =
+            viewModel.ProductsView
+                .Cast<CatalogProductDto>()
+                .ToArray();
+
+        Assert.Equal(
+            [cheap, expensive],
+            visibleProducts);
+    }
+
+    [Fact]
+    public async Task FilteringClearsSelectionWhenSelectedProductIsHidden()
+    {
+        CatalogProductDto keyboard =
+            CreateProduct() with
+            {
+                Name = "Keyboard"
+            };
+
+        CatalogProductDto monitor =
+            CreateProduct() with
+            {
+                Id = Guid.NewGuid(),
+                Name = "Monitor"
+            };
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<
+                    IReadOnlyList<CatalogProductDto>>(
+                    [keyboard, monitor]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedProduct =
+            keyboard;
+
+        viewModel.SearchText =
+            "Monitor";
+
+        Assert.Null(
+            viewModel.SelectedProduct);
+    }
+
+    [Fact]
+    public async Task ResetViewCommandRestoresDefaultViewState()
+    {
+        CatalogProductDto product =
+            CreateProduct();
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<
+                    IReadOnlyList<CatalogProductDto>>(
+                    [product]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SearchText = "missing";
+        viewModel.SelectedCategory = product.Category;
+        viewModel.SelectedSortOption = viewModel.SortOptions[^1];
+
+        viewModel.ResetViewCommand.Execute(null);
+
+        Assert.Equal(
+            string.Empty,
+            viewModel.SearchText);
+
+        Assert.Equal(
+            "All categories",
+            viewModel.SelectedCategory);
+
+        Assert.Same(
+            viewModel.SortOptions[0],
+            viewModel.SelectedSortOption);
+
+        Assert.Single(
+            viewModel.ProductsView.Cast<CatalogProductDto>());
+    }
+
     private static CatalogViewModel CreateViewModel(
         ICatalogApiClient apiClient)
     {

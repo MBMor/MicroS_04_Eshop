@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Net;
 using System.Net.Http;
+using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eshop.Operations.Desktop.Api;
@@ -12,6 +14,8 @@ namespace Eshop.Operations.Desktop.ViewModels;
 
 public sealed partial class CatalogViewModel : ObservableObject
 {
+    private const string AllCategoriesLabel = "All categories";
+
     private readonly ICatalogApiClient _catalogApiClient;
     private readonly ILogger<CatalogViewModel> _logger;
 
@@ -24,11 +28,57 @@ public sealed partial class CatalogViewModel : ObservableObject
 
         _catalogApiClient = catalogApiClient;
         _logger = logger;
+
+        ProductsView =
+            CollectionViewSource.GetDefaultView(Products);
+
+        ProductsView.Filter =
+            FilterProduct;
+
+        SelectedSortOption =
+            SortOptions[0];
     }
 
     public ObservableCollection<CatalogProductDto> Products { get; } = [];
 
-    public bool HasProducts => Products.Count > 0;
+    public ICollectionView ProductsView { get; }
+
+    public ObservableCollection<string> Categories { get; } =
+        [AllCategoriesLabel];
+
+    public IReadOnlyList<CatalogSortOption> SortOptions { get; } =
+    [
+        new(
+            "Name A–Z",
+            nameof(CatalogProductDto.Name),
+            ListSortDirection.Ascending),
+
+        new(
+            "Name Z–A",
+            nameof(CatalogProductDto.Name),
+            ListSortDirection.Descending),
+
+        new(
+            "SKU A–Z",
+            nameof(CatalogProductDto.Sku),
+            ListSortDirection.Ascending),
+
+        new(
+            "Price low to high",
+            nameof(CatalogProductDto.PriceAmount),
+            ListSortDirection.Ascending),
+
+        new(
+            "Price high to low",
+            nameof(CatalogProductDto.PriceAmount),
+            ListSortDirection.Descending)
+    ];
+
+    public bool HasProducts =>
+        Products.Count > 0;
+
+    public bool HasVisibleProducts =>
+        !ProductsView.IsEmpty;
 
     public bool IsInitialState =>
         !HasLoaded
@@ -41,30 +91,73 @@ public sealed partial class CatalogViewModel : ObservableObject
         && Error is null
         && Products.Count == 0;
 
-    public bool HasError => Error is not null;
+    public bool IsFilteredEmpty =>
+        HasLoaded
+        && Products.Count > 0
+        && !IsLoading
+        && Error is null
+        && ProductsView.IsEmpty;
+
+    public bool HasError =>
+        Error is not null;
 
     [ObservableProperty]
     public partial CatalogProductDto? SelectedProduct { get; set; }
 
     [ObservableProperty]
+    public partial string SearchText { get; set; } =
+        string.Empty;
+
+    [ObservableProperty]
+    public partial string SelectedCategory { get; set; } =
+        AllCategoriesLabel;
+
+    [ObservableProperty]
+    public partial CatalogSortOption? SelectedSortOption { get; set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInitialState))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
     public partial bool HasLoaded { get; private set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInitialState))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
     public partial bool IsLoading { get; private set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     [NotifyPropertyChangedFor(nameof(IsInitialState))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
     public partial CatalogLoadError? Error { get; private set; }
 
     [ObservableProperty]
     public partial string LoadStatus { get; private set; } =
         "Catalog not loaded.";
+
+    partial void OnSearchTextChanged(
+        string value)
+    {
+        RefreshProductsView();
+    }
+
+    partial void OnSelectedCategoryChanged(
+        string value)
+    {
+        RefreshProductsView();
+    }
+
+    partial void OnSelectedSortOptionChanged(
+        CatalogSortOption? value)
+    {
+        if (value is not null)
+        {
+            ApplySort(value);
+        }
+    }
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadProductsAsync(
@@ -146,6 +239,128 @@ public sealed partial class CatalogViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void ResetView()
+    {
+        SearchText =
+            string.Empty;
+
+        SelectedCategory =
+            AllCategoriesLabel;
+
+        SelectedSortOption =
+            SortOptions[0];
+    }
+
+    private bool FilterProduct(
+        object item)
+    {
+        if (item is not CatalogProductDto product)
+        {
+            return false;
+        }
+
+        if (!string.Equals(
+                SelectedCategory,
+                AllCategoriesLabel,
+                StringComparison.Ordinal)
+            && !string.Equals(
+                product.Category,
+                SelectedCategory,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string searchText =
+            SearchText.Trim();
+
+        if (searchText.Length == 0)
+        {
+            return true;
+        }
+
+        return product.Name.Contains(
+                   searchText,
+                   StringComparison.CurrentCultureIgnoreCase)
+            || product.Sku.Contains(
+                   searchText,
+                   StringComparison.CurrentCultureIgnoreCase)
+            || product.Category.Contains(
+                   searchText,
+                   StringComparison.CurrentCultureIgnoreCase);
+    }
+
+    private void RefreshProductsView()
+    {
+        ProductsView.Refresh();
+
+        if (SelectedProduct is not null
+            && !ProductsView.Contains(SelectedProduct))
+        {
+            SelectedProduct = null;
+        }
+
+        OnPropertyChanged(
+            nameof(HasVisibleProducts));
+
+        OnPropertyChanged(
+            nameof(IsFilteredEmpty));
+    }
+
+    private void ApplySort(
+        CatalogSortOption sortOption)
+    {
+        ProductsView.SortDescriptions.Clear();
+
+        ProductsView.SortDescriptions.Add(
+            new SortDescription(
+                sortOption.PropertyName,
+                sortOption.Direction));
+    }
+
+    private void RebuildCategories()
+    {
+        string previousCategory =
+            SelectedCategory;
+
+        Categories.Clear();
+
+        Categories.Add(
+            AllCategoriesLabel);
+
+        IEnumerable<string> categories =
+            Products
+                .Select(
+                    product => product.Category)
+                .Where(
+                    category =>
+                        !string.IsNullOrWhiteSpace(category))
+                .Distinct(
+                    StringComparer.CurrentCultureIgnoreCase)
+                .OrderBy(
+                    category => category,
+                    StringComparer.CurrentCultureIgnoreCase);
+
+        foreach (string category in categories)
+        {
+            Categories.Add(category);
+        }
+
+        bool categoryStillExists =
+            Categories.Any(
+                category =>
+                    string.Equals(
+                        category,
+                        previousCategory,
+                        StringComparison.OrdinalIgnoreCase));
+
+        SelectedCategory =
+            categoryStillExists
+                ? previousCategory
+                : AllCategoriesLabel;
+    }
+
     private void ReplaceProducts(
         IReadOnlyList<CatalogProductDto> products)
     {
@@ -159,22 +374,33 @@ public sealed partial class CatalogViewModel : ObservableObject
             Products.Add(product);
         }
 
-        SelectedProduct =
+        RebuildCategories();
+
+        ProductsView.Refresh();
+
+        CatalogProductDto? refreshedSelection =
             selectedProductId is null
                 ? null
                 : Products.FirstOrDefault(
                     product =>
                         product.Id == selectedProductId.Value);
 
+        SelectedProduct =
+            refreshedSelection is not null
+            && ProductsView.Contains(refreshedSelection)
+                ? refreshedSelection
+                : null;
+
         OnPropertyChanged(nameof(HasProducts));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(HasVisibleProducts));
+        OnPropertyChanged(nameof(IsFilteredEmpty));
     }
 
     private static CatalogLoadError CreateApiError(
         ApiRequestException exception)
     {
         HttpStatusCode? statusCode = exception.StatusCode;
-
         CatalogLoadErrorKind kind;
         string message;
 
