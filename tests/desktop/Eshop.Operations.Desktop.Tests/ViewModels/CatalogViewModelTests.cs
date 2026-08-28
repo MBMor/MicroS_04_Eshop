@@ -3,6 +3,9 @@ using Eshop.Operations.Desktop.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System.Globalization;
+using System.Net;
+using Eshop.Operations.Desktop.Api;
+using Eshop.Operations.Desktop.Models;
 
 namespace Eshop.Operations.Desktop.Tests.ViewModels;
 
@@ -151,6 +154,173 @@ public sealed class CatalogViewModelTests
         Assert.Equal(
             nameof(CatalogViewModel.SelectedProduct),
             propertyName);
+    }
+
+    [Fact]
+    public async Task LoadProductsCommandShowsEmptyStateForEmptyResponse()
+    {
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult<IReadOnlyList<CatalogProductDto>>([]));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.HasLoaded);
+        Assert.True(viewModel.IsEmpty);
+        Assert.False(viewModel.HasProducts);
+        Assert.Null(viewModel.Error);
+    }
+
+    [Fact]
+    public async Task LoadProductsCommandMapsConnectivityFailure()
+    {
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromException<IReadOnlyList<CatalogProductDto>>(
+                    new HttpRequestException(
+                        "Connection refused.")));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(viewModel.Error);
+
+        Assert.Equal(
+            CatalogLoadErrorKind.Connectivity,
+            viewModel.Error.Kind);
+
+        Assert.False(viewModel.HasLoaded);
+    }
+
+    [Fact]
+    public async Task LoadProductsCommandMapsTimeoutSeparatelyFromUserCancellation()
+    {
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromException<IReadOnlyList<CatalogProductDto>>(
+                    new OperationCanceledException()));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(viewModel.Error);
+
+        Assert.Equal(
+            CatalogLoadErrorKind.Timeout,
+            viewModel.Error.Kind);
+    }
+
+    [Fact]
+    public async Task LoadProductsCommandPreservesApiDiagnosticReference()
+    {
+        var problemDetails = new ApiProblemDetails
+        {
+            Status = 429,
+            Title = "Too many requests",
+            TraceId = "trace-123",
+            RequestId = "request-456"
+        };
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromException<IReadOnlyList<CatalogProductDto>>(
+                    new ApiRequestException(
+                        HttpStatusCode.TooManyRequests,
+                        problemDetails)));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(viewModel.Error);
+
+        Assert.Equal(
+            CatalogLoadErrorKind.RateLimited,
+            viewModel.Error.Kind);
+
+        Assert.Equal(
+            "trace-123",
+            viewModel.Error.DiagnosticReference);
+    }
+
+    [Fact]
+    public async Task FailedRefreshKeepsPreviouslyLoadedProducts()
+    {
+        CatalogProductDto product = CreateProduct();
+
+        var callCount = 0;
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+            {
+                callCount++;
+
+                if (callCount == 1)
+                {
+                    return Task.FromResult<
+                        IReadOnlyList<CatalogProductDto>>(
+                        [product]);
+                }
+
+                return Task.FromException<
+                    IReadOnlyList<CatalogProductDto>>(
+                    new HttpRequestException(
+                        "Gateway unavailable."));
+            });
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        CatalogProductDto remainingProduct =
+            Assert.Single(viewModel.Products);
+
+        Assert.Same(
+            product,
+            remainingProduct);
+
+        Assert.True(viewModel.HasLoaded);
+
+        Assert.NotNull(viewModel.Error);
+
+        Assert.Equal(
+            CatalogLoadErrorKind.Connectivity,
+            viewModel.Error.Kind);
+    }
+
+    [Fact]
+    public async Task LoadProductsCommandIsDisabledWhileRequestIsRunning()
+    {
+        var apiClient =
+            new CancellationObservingCatalogApiClient();
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        Task requestTask =
+            viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        await apiClient.RequestStarted;
+
+        Assert.False(
+            viewModel.LoadProductsCommand.CanExecute(null));
+
+        viewModel.LoadProductsCancelCommand.Execute(null);
+
+        await requestTask;
+
+        Assert.True(
+            viewModel.LoadProductsCommand.CanExecute(null));
     }
 
     private static CatalogViewModel CreateViewModel(
