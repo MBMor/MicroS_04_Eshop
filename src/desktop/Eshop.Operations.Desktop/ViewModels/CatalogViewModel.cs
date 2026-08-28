@@ -149,7 +149,8 @@ public sealed partial class CatalogViewModel : ObservableObject
     private void ReplaceProducts(
         IReadOnlyList<CatalogProductDto> products)
     {
-        SelectedProduct = null;
+        Guid? selectedProductId =
+            SelectedProduct?.Id;
 
         Products.Clear();
 
@@ -157,6 +158,13 @@ public sealed partial class CatalogViewModel : ObservableObject
         {
             Products.Add(product);
         }
+
+        SelectedProduct =
+            selectedProductId is null
+                ? null
+                : Products.FirstOrDefault(
+                    product =>
+                        product.Id == selectedProductId.Value);
 
         OnPropertyChanged(nameof(HasProducts));
         OnPropertyChanged(nameof(IsEmpty));

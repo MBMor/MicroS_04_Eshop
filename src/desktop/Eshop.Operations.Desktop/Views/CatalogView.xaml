@@ -60,60 +60,262 @@
 
 		<Grid Grid.Row="2">
 
+			<!-- Initial state -->
 			<TextBlock HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Text="Catalog has not been loaded."
-                       Visibility="{Binding IsInitialState,
-                                            Converter={StaticResource BooleanToVisibilityConverter}}" />
+					   VerticalAlignment="Center"
+					   Text="Catalog has not been loaded."
+					   Visibility="{Binding IsInitialState,
+                                    Converter={StaticResource BooleanToVisibilityConverter}}" />
 
+			<!-- Empty state -->
 			<TextBlock HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Text="No Catalog products were returned."
-                       Visibility="{Binding IsEmpty,
-                                            Converter={StaticResource BooleanToVisibilityConverter}}" />
+					   VerticalAlignment="Center"
+					   Text="No Catalog products were returned."
+					   Visibility="{Binding IsEmpty,
+                                    Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-			<DataGrid ItemsSource="{Binding Products}"
-                      SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      CanUserSortColumns="False"
-                      SelectionMode="Single"
-                      SelectionUnit="FullRow"
-                      EnableRowVirtualization="True"
-                      EnableColumnVirtualization="True"
-                      HeadersVisibility="Column"
-                      Visibility="{Binding HasProducts,
-                                           Converter={StaticResource BooleanToVisibilityConverter}}">
+			<!-- Master-detail content -->
+			<Grid Visibility="{Binding HasProducts,
+                               Converter={StaticResource BooleanToVisibilityConverter}}">
 
-				<DataGrid.Columns>
-					<DataGridTextColumn Header="Name"
-                                        Binding="{Binding Name}"
-                                        Width="2*" />
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="3*"
+									  MinWidth="420" />
 
-					<DataGridTextColumn Header="SKU"
-                                        Binding="{Binding Sku}"
-                                        Width="*" />
+					<ColumnDefinition Width="5" />
 
-					<DataGridTextColumn Header="Category"
-                                        Binding="{Binding Category}"
-                                        Width="*" />
+					<ColumnDefinition Width="2*"
+									  MinWidth="260" />
+				</Grid.ColumnDefinitions>
 
-					<DataGridTextColumn Header="Price"
-                                        Binding="{Binding PriceAmount,
-                                                          StringFormat=N2}"
-                                        Width="100" />
+				<!-- Master: product list -->
+				<DataGrid Grid.Column="0"
+						  ItemsSource="{Binding Products}"
+						  SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+						  AutoGenerateColumns="False"
+						  IsReadOnly="True"
+						  CanUserAddRows="False"
+						  CanUserDeleteRows="False"
+						  CanUserSortColumns="False"
+						  SelectionMode="Single"
+						  SelectionUnit="FullRow"
+						  EnableRowVirtualization="True"
+						  EnableColumnVirtualization="True"
+						  HeadersVisibility="Column">
 
-					<DataGridTextColumn Header="Currency"
-                                        Binding="{Binding Currency}"
-                                        Width="80" />
+					<DataGrid.Columns>
+						<DataGridTextColumn Header="Name"
+											Binding="{Binding Name}"
+											Width="2*" />
 
-					<DataGridCheckBoxColumn Header="Active"
-                                            Binding="{Binding IsActive}"
-                                            Width="70" />
-				</DataGrid.Columns>
-			</DataGrid>
+						<DataGridTextColumn Header="SKU"
+											Binding="{Binding Sku}"
+											Width="*" />
+
+						<DataGridTextColumn Header="Category"
+											Binding="{Binding Category}"
+											Width="*" />
+
+						<DataGridTextColumn Header="Price"
+											Binding="{Binding PriceAmount,
+                                                      StringFormat=N2}"
+											Width="100" />
+
+						<DataGridTextColumn Header="Currency"
+											Binding="{Binding Currency}"
+											Width="80" />
+
+						<DataGridCheckBoxColumn Header="Active"
+												Binding="{Binding IsActive}"
+												Width="70" />
+					</DataGrid.Columns>
+				</DataGrid>
+
+				<!-- Resizable boundary -->
+				<GridSplitter Grid.Column="1"
+							  Width="5"
+							  HorizontalAlignment="Stretch"
+							  VerticalAlignment="Stretch"
+							  ResizeDirection="Columns"
+							  ResizeBehavior="PreviousAndNext" />
+
+				<!-- Detail pane -->
+				<Border Grid.Column="2"
+						Margin="16,0,0,0"
+						Padding="16"
+						BorderBrush="Gray"
+						BorderThickness="1">
+
+					<Grid>
+
+						<!-- Nothing selected -->
+						<TextBlock HorizontalAlignment="Center"
+								   VerticalAlignment="Center"
+								   Foreground="Gray"
+								   Text="Select a product to view details.">
+
+							<TextBlock.Style>
+								<Style TargetType="TextBlock">
+									<Setter Property="Visibility"
+											Value="Collapsed" />
+
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding SelectedProduct}"
+													 Value="{x:Null}">
+											<Setter Property="Visibility"
+													Value="Visible" />
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</TextBlock.Style>
+						</TextBlock>
+
+						<!-- Selected product -->
+						<ContentControl Content="{Binding SelectedProduct}">
+
+							<ContentControl.Style>
+								<Style TargetType="ContentControl">
+									<Setter Property="Visibility"
+											Value="Visible" />
+
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding SelectedProduct}"
+													 Value="{x:Null}">
+											<Setter Property="Visibility"
+													Value="Collapsed" />
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</ContentControl.Style>
+
+							<ContentControl.ContentTemplate>
+								<DataTemplate>
+									<ScrollViewer VerticalScrollBarVisibility="Auto">
+
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="Auto" />
+												<ColumnDefinition Width="*" />
+											</Grid.ColumnDefinitions>
+
+											<Grid.RowDefinitions>
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+												<RowDefinition Height="Auto" />
+											</Grid.RowDefinitions>
+
+											<!-- Product name -->
+											<TextBlock Grid.Row="0"
+													   Grid.ColumnSpan="2"
+													   Margin="0,0,0,16"
+													   FontSize="20"
+													   FontWeight="SemiBold"
+													   Text="{Binding Name}"
+													   TextWrapping="Wrap" />
+
+											<!-- SKU -->
+											<TextBlock Grid.Row="1"
+													   FontWeight="SemiBold"
+													   Text="SKU:" />
+
+											<TextBlock Grid.Row="1"
+													   Grid.Column="1"
+													   Margin="12,0,0,0"
+													   Text="{Binding Sku}" />
+
+											<!-- Category -->
+											<TextBlock Grid.Row="2"
+													   Margin="0,8,0,0"
+													   FontWeight="SemiBold"
+													   Text="Category:" />
+
+											<TextBlock Grid.Row="2"
+													   Grid.Column="1"
+													   Margin="12,8,0,0"
+													   Text="{Binding Category}" />
+
+											<!-- Price -->
+											<TextBlock Grid.Row="3"
+													   Margin="0,8,0,0"
+													   FontWeight="SemiBold"
+													   Text="Price:" />
+
+											<StackPanel Grid.Row="3"
+														Grid.Column="1"
+														Margin="12,8,0,0"
+														Orientation="Horizontal">
+
+												<TextBlock Text="{Binding PriceAmount,
+                                                                 StringFormat=N2}" />
+
+												<TextBlock Margin="4,0,0,0"
+														   Text="{Binding Currency}" />
+											</StackPanel>
+
+											<!-- Active -->
+											<TextBlock Grid.Row="4"
+													   Margin="0,8,0,0"
+													   FontWeight="SemiBold"
+													   Text="Active:" />
+
+											<CheckBox Grid.Row="4"
+													  Grid.Column="1"
+													  Margin="12,8,0,0"
+													  IsChecked="{Binding IsActive}"
+													  IsEnabled="False" />
+
+											<!-- Created -->
+											<TextBlock Grid.Row="5"
+													   Margin="0,8,0,0"
+													   FontWeight="SemiBold"
+													   Text="Created:" />
+
+											<TextBlock Grid.Row="5"
+													   Grid.Column="1"
+													   Margin="12,8,0,0"
+													   Text="{Binding CreatedAtUtc,
+                                                              StringFormat=g}" />
+
+											<!-- Updated -->
+											<TextBlock Grid.Row="6"
+													   Margin="0,8,0,0"
+													   FontWeight="SemiBold"
+													   Text="Updated:" />
+
+											<TextBlock Grid.Row="6"
+													   Grid.Column="1"
+													   Margin="12,8,0,0"
+													   Text="{Binding UpdatedAtUtc,
+                                                              StringFormat=g,
+                                                              TargetNullValue=—}" />
+
+											<!-- Description heading -->
+											<TextBlock Grid.Row="7"
+													   Grid.ColumnSpan="2"
+													   Margin="0,20,0,4"
+													   FontWeight="SemiBold"
+													   Text="Description" />
+
+											<!-- Description -->
+											<TextBlock Grid.Row="8"
+													   Grid.ColumnSpan="2"
+													   Text="{Binding Description,
+                                                              TargetNullValue=—}"
+													   TextWrapping="Wrap" />
+										</Grid>
+									</ScrollViewer>
+								</DataTemplate>
+							</ContentControl.ContentTemplate>
+						</ContentControl>
+					</Grid>
+				</Border>
+			</Grid>
 		</Grid>
 	</Grid>
 </UserControl>

@@ -280,6 +280,10 @@ public sealed class CatalogViewModelTests
             CreateViewModel(apiClient);
 
         await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedProduct =
+            Assert.Single(viewModel.Products);
+
         await viewModel.LoadProductsCommand.ExecuteAsync(null);
 
         CatalogProductDto remainingProduct =
@@ -288,6 +292,10 @@ public sealed class CatalogViewModelTests
         Assert.Same(
             product,
             remainingProduct);
+
+        Assert.Same(
+            product,
+            viewModel.SelectedProduct);
 
         Assert.True(viewModel.HasLoaded);
 
@@ -321,6 +329,97 @@ public sealed class CatalogViewModelTests
 
         Assert.True(
             viewModel.LoadProductsCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task SuccessfulRefreshPreservesSelectionByProductId()
+    {
+        Guid productId = Guid.NewGuid();
+
+        CatalogProductDto original =
+            CreateProduct() with
+            {
+                Id = productId,
+                Name = "Original name"
+            };
+
+        CatalogProductDto refreshed =
+            original with
+            {
+                Name = "Updated name"
+            };
+
+        var responses =
+            new Queue<IReadOnlyList<CatalogProductDto>>(
+            [
+                [original],
+            [refreshed]
+            ]);
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult(
+                    responses.Dequeue()));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedProduct =
+            Assert.Single(viewModel.Products);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.NotNull(
+            viewModel.SelectedProduct);
+
+        Assert.Equal(
+            productId,
+            viewModel.SelectedProduct.Id);
+
+        Assert.Equal(
+            "Updated name",
+            viewModel.SelectedProduct.Name);
+
+        Assert.Same(
+            refreshed,
+            viewModel.SelectedProduct);
+    }
+
+    [Fact]
+    public async Task SuccessfulRefreshClearsSelectionWhenProductWasRemoved()
+    {
+        CatalogProductDto product =
+            CreateProduct();
+
+        var responses =
+            new Queue<IReadOnlyList<CatalogProductDto>>(
+            [
+                [product],
+            []
+            ]);
+
+        var apiClient = new StubCatalogApiClient(
+            (_, _) =>
+                Task.FromResult(
+                    responses.Dequeue()));
+
+        CatalogViewModel viewModel =
+            CreateViewModel(apiClient);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        viewModel.SelectedProduct =
+            Assert.Single(viewModel.Products);
+
+        await viewModel.LoadProductsCommand.ExecuteAsync(null);
+
+        Assert.Null(
+            viewModel.SelectedProduct);
+
+        Assert.Empty(
+            viewModel.Products);
     }
 
     private static CatalogViewModel CreateViewModel(
