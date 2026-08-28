@@ -114,6 +114,45 @@ public sealed class CatalogViewModelTests
             viewModel.LoadStatus);
     }
 
+    [Fact]
+    public void SelectedProductIsInitiallyNull()
+    {
+        CatalogViewModel viewModel =
+            CreateViewModel(
+                new StubCatalogApiClient(
+                    (_, _) =>
+                        Task.FromResult<
+                            IReadOnlyList<CatalogProductDto>>([])));
+
+        Assert.Null(viewModel.SelectedProduct);
+    }
+
+    [Fact]
+    public void SelectedProductRaisesPropertyChangedWhenChanged()
+    {
+        CatalogProductDto product = CreateProduct();
+
+        CatalogViewModel viewModel =
+            CreateViewModel(
+                new StubCatalogApiClient(
+                    (_, _) =>
+                        Task.FromResult<
+                            IReadOnlyList<CatalogProductDto>>([])));
+
+        string? propertyName = null;
+
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            propertyName = args.PropertyName;
+        };
+
+        viewModel.SelectedProduct = product;
+
+        Assert.Equal(
+            nameof(CatalogViewModel.SelectedProduct),
+            propertyName);
+    }
+
     private static CatalogViewModel CreateViewModel(
         ICatalogApiClient apiClient)
     {

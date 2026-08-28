@@ -28,6 +28,9 @@ public sealed partial class CatalogViewModel : ObservableObject
     public partial string LoadStatus { get; private set; } =
         "Catalog not loaded.";
 
+    [ObservableProperty]
+    public partial CatalogProductDto? SelectedProduct { get; set; }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadProductsAsync(
         CancellationToken cancellationToken)
