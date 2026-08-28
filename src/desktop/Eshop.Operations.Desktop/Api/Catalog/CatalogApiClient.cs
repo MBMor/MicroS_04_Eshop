@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Eshop.Operations.Desktop.Api.Catalog;
 
-public sealed partial class CatalogApiClient
+public sealed partial class CatalogApiClient : ICatalogApiClient
 {
     private const string HttpClientName = "ApiGateway";
     private const string ProductsPath = "api/v1/products";

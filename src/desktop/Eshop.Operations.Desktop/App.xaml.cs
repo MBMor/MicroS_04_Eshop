@@ -132,7 +132,9 @@ public partial class App : Application
                         options.TimeoutSeconds);
             });
 
-        builder.Services.AddSingleton<CatalogApiClient>();
+        builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
+
+        builder.Services.AddSingleton<CatalogViewModel>();
 
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();

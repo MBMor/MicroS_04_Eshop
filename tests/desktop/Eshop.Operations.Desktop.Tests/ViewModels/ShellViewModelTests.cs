@@ -2,6 +2,8 @@ using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.ViewModels;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Eshop.Operations.Desktop.Api.Catalog;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eshop.Operations.Desktop.Tests.ViewModels;
 
@@ -77,6 +79,22 @@ public sealed class ShellViewModelTests
                 EnvironmentName = "Local"
             });
 
-        return new ShellViewModel(options);
+        var catalogViewModel = new CatalogViewModel(
+            new StubCatalogApiClient(),
+            NullLogger<CatalogViewModel>.Instance);
+
+        return new ShellViewModel(
+            options,
+            catalogViewModel);
+    }
+
+    private sealed class StubCatalogApiClient : ICatalogApiClient
+    {
+        public Task<IReadOnlyList<CatalogProductDto>> GetProductsAsync(
+            bool includeInactive,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<CatalogProductDto>>([]);
+        }
     }
 }

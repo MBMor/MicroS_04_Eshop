@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:Eshop.Operations.Desktop.ViewModels"
+        xmlns:views="clr-namespace:Eshop.Operations.Desktop.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=viewModels:ShellViewModel,
                                         IsDesignTimeCreatable=False}"
@@ -35,20 +36,8 @@
             <TextBlock Text="{Binding EnvironmentName}" />
         </StackPanel>
 
-        <Border Grid.Row="2"
-                Padding="20"
-                BorderBrush="Gray"
-                BorderThickness="1">
-            <StackPanel>
-                <TextBlock FontSize="18"
-                           FontWeight="SemiBold"
-                           Text="Operations Console" />
-
-                <TextBlock Margin="0,8,0,0"
-                           Text="The application shell is ready for operational modules."
-                           TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
+        <views:CatalogView Grid.Row="2"
+                   DataContext="{Binding Catalog}" />
 
         <StackPanel Grid.Row="3"
                     Margin="0,20,0,0"
