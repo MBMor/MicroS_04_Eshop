@@ -26,6 +26,10 @@
             <views:InventoryView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type viewModels:PaymentsViewModel}">
+            <views:PaymentsView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}">
             <views:DiagnosticsView />
         </DataTemplate>
@@ -122,6 +126,14 @@
                   IsChecked="{Binding IsInventoryActive, Mode=OneWay}"
                   Command="{Binding ShowInventoryCommand}"
                   Content="Inventory"
+                  Visibility="{Binding Authentication.CanAccessOperations,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <ToggleButton Margin="0,8,0,0"
+                  Style="{StaticResource NavigationToggleButtonStyle}"
+                  IsChecked="{Binding IsPaymentsActive, Mode=OneWay}"
+                  Command="{Binding ShowPaymentsCommand}"
+                  Content="Payments"
                   Visibility="{Binding Authentication.CanAccessOperations,
                            Converter={StaticResource BooleanToVisibilityConverter}}" />
                 

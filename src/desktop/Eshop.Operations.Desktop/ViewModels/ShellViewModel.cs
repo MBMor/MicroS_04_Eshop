@@ -15,6 +15,7 @@ public sealed partial class ShellViewModel : ObservableObject
         IOptions<DesktopOptions> options,
         CatalogViewModel catalog,
         InventoryViewModel inventory,
+        PaymentsViewModel payments,
         DiagnosticsViewModel diagnostics,
         IAuthenticationService authenticationService,
         AuthenticationState authentication)
@@ -22,6 +23,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(inventory);
+        ArgumentNullException.ThrowIfNull(payments);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(authenticationService);
         ArgumentNullException.ThrowIfNull(authentication);
@@ -31,6 +33,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         Catalog = catalog;
         Inventory = inventory;
+        Payments = payments;
         Diagnostics = diagnostics;
 
         CurrentViewModel = Catalog;
@@ -49,6 +52,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public CatalogViewModel Catalog { get; }
     public InventoryViewModel Inventory { get; }
+    public PaymentsViewModel Payments { get; }
 
     public bool IsCatalogActive =>
         ReferenceEquals(
@@ -56,9 +60,18 @@ public sealed partial class ShellViewModel : ObservableObject
             Catalog);
 
     public bool IsInventoryActive =>
-    ReferenceEquals(
-        CurrentViewModel,
-        Inventory);
+        ReferenceEquals(
+            CurrentViewModel,
+            Inventory);
+
+    public bool IsPaymentsActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Payments);
+
+    private bool IsProtectedOperationActive =>
+        IsInventoryActive
+        || IsPaymentsActive;
 
     public bool IsDiagnosticsActive =>
         ReferenceEquals(
@@ -80,6 +93,7 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             CatalogViewModel => "Catalog",
             InventoryViewModel => "Inventory",
+            PaymentsViewModel => "Payments",
             DiagnosticsViewModel => "Diagnostics",
             _ => "Operations"
         };
@@ -88,6 +102,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CurrentSectionTitle))]
     [NotifyPropertyChangedFor(nameof(IsCatalogActive))]
     [NotifyPropertyChangedFor(nameof(IsInventoryActive))]
+    [NotifyPropertyChangedFor(nameof(IsPaymentsActive))]
     [NotifyPropertyChangedFor(nameof(IsDiagnosticsActive))]
     public partial object CurrentViewModel { get; private set; }
 
@@ -114,6 +129,21 @@ public sealed partial class ShellViewModel : ObservableObject
 
         CurrentViewModel =
             Inventory;
+    }
+
+    [RelayCommand]
+    private void ShowPayments()
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Payments.";
+
+            return;
+        }
+
+        CurrentViewModel =
+            Payments;
     }
 
     [RelayCommand]
@@ -170,13 +200,13 @@ public sealed partial class ShellViewModel : ObservableObject
         }
 
         if (!Authentication.CanAccessOperations
-            && IsInventoryActive)
+            && IsProtectedOperationActive)
         {
             CurrentViewModel =
                 Catalog;
 
             StatusText =
-                "Inventory access is no longer available.";
+                "Operational access is no longer available.";
         }
     }
 }

@@ -1,6 +1,7 @@
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
 using Eshop.Operations.Desktop.Api.Inventory;
+using Eshop.Operations.Desktop.Api.Payments;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.ViewModels;
@@ -219,7 +220,25 @@ public sealed class ShellViewModelTests
             authentication.CanAccessOperations);
     }
 
-    private static ShellViewModel CreateViewModel()
+    [Fact]
+    public void ShowPaymentsCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowPaymentsCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to access Payments.",
+            viewModel.StatusText);
+    }
+
+    private static ShellViewModel CreateViewModel(
+        AuthenticationState? authentication = null)
     {
         IOptions<DesktopOptions> options =
             Options.Create(
@@ -238,10 +257,15 @@ public sealed class ShellViewModelTests
                 new StubInventoryApiClient(),
                 NullLogger<InventoryViewModel>.Instance);
 
+        var paymentsViewModel =
+            new PaymentsViewModel(
+                new StubPaymentsApiClient(),
+                NullLogger<PaymentsViewModel>.Instance);
+
         DiagnosticsViewModel diagnosticsViewModel =
             CreateDiagnosticsViewModel();
 
-        var authentication =
+        authentication ??=
             new AuthenticationState();
 
         var authenticationService =
@@ -251,6 +275,7 @@ public sealed class ShellViewModelTests
             options,
             catalogViewModel,
             inventoryViewModel,
+            paymentsViewModel,
             diagnosticsViewModel,
             authenticationService,
             authentication);
@@ -301,6 +326,18 @@ public sealed class ShellViewModelTests
         {
             return Task.FromResult<
                 IReadOnlyList<InventoryItemDto>>(
+                []);
+        }
+    }
+
+    private sealed class StubPaymentsApiClient
+        : IPaymentsApiClient
+    {
+        public Task<IReadOnlyList<PaymentDto>> GetPaymentsAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<
+                IReadOnlyList<PaymentDto>>(
                 []);
         }
     }
