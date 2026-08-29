@@ -145,6 +145,35 @@ public sealed class ShellViewModelTests
             catalog.SearchText);
     }
 
+    [Fact]
+    public void NavigationUpdatesActiveDestinationState()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        Assert.True(
+            viewModel.IsCatalogActive);
+
+        Assert.False(
+            viewModel.IsDiagnosticsActive);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        Assert.False(
+            viewModel.IsCatalogActive);
+
+        Assert.True(
+            viewModel.IsDiagnosticsActive);
+
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.True(
+            viewModel.IsCatalogActive);
+
+        Assert.False(
+            viewModel.IsDiagnosticsActive);
+    }
+
     private static ShellViewModel CreateViewModel()
     {
         IOptions<DesktopOptions> options =

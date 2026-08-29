@@ -13,7 +13,9 @@
         Height="700"
         MinWidth="800"
         MinHeight="480"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}">
 
     <Window.Resources>
         <DataTemplate DataType="{x:Type viewModels:CatalogViewModel}">
@@ -25,7 +27,7 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="{StaticResource PageMargin}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -34,9 +36,8 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0"
-                   FontSize="24"
-                   FontWeight="SemiBold"
-                   Text="{Binding ApplicationTitle}" />
+           Style="{StaticResource ApplicationTitleTextStyle}"
+           Text="{Binding ApplicationTitle}" />
 
         <StackPanel Grid.Row="1"
                     Margin="0,8,0,24"
@@ -66,30 +67,43 @@
                            FontWeight="SemiBold"
                            Text="Navigation" />
 
-                <Button Padding="10,6"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding ShowCatalogCommand}"
-                        Content="Catalog" />
+                <ToggleButton Style="{StaticResource NavigationToggleButtonStyle}"
+                  IsChecked="{Binding IsCatalogActive, Mode=OneWay}"
+                  Command="{Binding ShowCatalogCommand}"
+                  Content="Catalog" />
 
-                <Button Margin="0,8,0,0"
-                        Padding="10,6"
-                        HorizontalContentAlignment="Left"
-                        Command="{Binding ShowDiagnosticsCommand}"
-                        Content="Diagnostics" />
+                    <ToggleButton Margin="0,8,0,0"
+                  Style="{StaticResource NavigationToggleButtonStyle}"
+                  IsChecked="{Binding IsDiagnosticsActive, Mode=OneWay}"
+                  Command="{Binding ShowDiagnosticsCommand}"
+                  Content="Diagnostics" />
             </StackPanel>
 
-            <ContentControl Grid.Column="2"
-                            Content="{Binding CurrentViewModel}" />
+            <Border Grid.Column="2"
+                Style="{StaticResource PanelBorderStyle}">
+
+                <ContentControl Content="{Binding CurrentViewModel}" />
+
+            </Border>
         </Grid>
 
-        <StackPanel Grid.Row="3"
-                    Margin="0,20,0,0"
-                    Orientation="Horizontal">
+        <Border Grid.Row="3"
+        Margin="0,20,0,0"
+        Padding="10,6"
+        Background="{StaticResource SurfaceMutedBrush}"
+        BorderBrush="{StaticResource BorderBrush}"
+        BorderThickness="1">
 
-            <TextBlock FontWeight="SemiBold"
-                       Text="Status: " />
+            <StackPanel Orientation="Horizontal">
 
-            <TextBlock Text="{Binding StatusText}" />
-        </StackPanel>
+                <TextBlock Style="{StaticResource FieldLabelTextStyle}"
+                   Text="Status: " />
+
+                <TextBlock Style="{StaticResource MutedTextStyle}"
+                   Text="{Binding StatusText}" />
+
+            </StackPanel>
+
+        </Border>
     </Grid>
 </Window>

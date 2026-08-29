@@ -30,6 +30,16 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public CatalogViewModel Catalog { get; }
 
+    public bool IsCatalogActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Catalog);
+
+    public bool IsDiagnosticsActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Diagnostics);
+
     public DiagnosticsViewModel Diagnostics { get; }
 
     public string ApplicationTitle =>
@@ -50,6 +60,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentSectionTitle))]
+    [NotifyPropertyChangedFor(nameof(IsCatalogActive))]
+    [NotifyPropertyChangedFor(nameof(IsDiagnosticsActive))]
     public partial object CurrentViewModel { get; private set; }
 
     [ObservableProperty]

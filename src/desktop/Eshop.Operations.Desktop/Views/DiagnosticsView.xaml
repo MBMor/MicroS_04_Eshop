@@ -6,12 +6,11 @@
         <StackPanel MaxWidth="760"
                     HorizontalAlignment="Left">
 
-            <TextBlock FontSize="22"
-                       FontWeight="SemiBold"
-                       Text="Diagnostics" />
+			<TextBlock Style="{StaticResource PageTitleTextStyle}"
+                        Text="Diagnostics" />
 
-            <TextBlock Margin="0,6,0,24"
-                       Foreground="DimGray"
+			<TextBlock Margin="0,6,0,24"
+                       Style="{StaticResource MutedTextStyle}"
                        Text="Runtime and connection configuration for this Operations Console instance."
                        TextWrapping="Wrap" />
 
@@ -32,7 +31,7 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="Environment" />
 
                 <TextBlock Grid.Row="0"
@@ -41,7 +40,7 @@
 
                 <TextBlock Grid.Row="1"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="API Gateway" />
 
                 <TextBlock Grid.Row="1"
@@ -52,7 +51,7 @@
 
                 <TextBlock Grid.Row="2"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="HTTP timeout" />
 
                 <StackPanel Grid.Row="2"
@@ -66,7 +65,7 @@
 
                 <TextBlock Grid.Row="3"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="Application version" />
 
                 <TextBlock Grid.Row="3"
@@ -76,7 +75,7 @@
 
                 <TextBlock Grid.Row="4"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text=".NET runtime" />
 
                 <TextBlock Grid.Row="4"
@@ -86,7 +85,7 @@
 
                 <TextBlock Grid.Row="5"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="Operating system" />
 
                 <TextBlock Grid.Row="5"
@@ -97,7 +96,7 @@
 
                 <TextBlock Grid.Row="6"
                            Margin="0,10,0,0"
-                           FontWeight="SemiBold"
+                           Style="{StaticResource FieldLabelTextStyle}"
                            Text="Process architecture" />
 
                 <TextBlock Grid.Row="6"
@@ -106,15 +105,14 @@
                            Text="{Binding ProcessArchitecture}" />
             </Grid>
 
-            <Border Margin="0,28,0,0"
-                    Padding="12"
-                    BorderBrush="LightGray"
-                    BorderThickness="1">
+			<Border Margin="0,28,0,0"
+					Style="{StaticResource MutedPanelBorderStyle}">
 
-                <TextBlock Foreground="DimGray"
-                           Text="This screen displays configuration only. It does not perform network health checks."
-                           TextWrapping="Wrap" />
-            </Border>
+				<TextBlock Style="{StaticResource MutedTextStyle}"
+						   Text="This screen displays configuration only. It does not perform network health checks."
+						   TextWrapping="Wrap" />
+
+			</Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
