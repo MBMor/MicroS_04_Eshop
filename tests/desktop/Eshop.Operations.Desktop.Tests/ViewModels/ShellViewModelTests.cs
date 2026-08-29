@@ -1,5 +1,6 @@
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
+using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -69,7 +70,9 @@ public sealed class ShellViewModelTests
 
         viewModel.StatusText = "Ready";
 
-        Assert.Equal(0, notificationCount);
+        Assert.Equal(
+            0,
+            notificationCount);
     }
 
     [Fact]
@@ -86,8 +89,6 @@ public sealed class ShellViewModelTests
             "Catalog",
             viewModel.CurrentSectionTitle);
     }
-
-
 
     [Fact]
     public void ShowDiagnosticsCommandNavigatesToDiagnostics()
@@ -183,17 +184,26 @@ public sealed class ShellViewModelTests
                     EnvironmentName = "Local"
                 });
 
-        var catalogViewModel = new CatalogViewModel(
-            new StubCatalogApiClient(),
-            NullLogger<CatalogViewModel>.Instance);
+        var catalogViewModel =
+            new CatalogViewModel(
+                new StubCatalogApiClient(),
+                NullLogger<CatalogViewModel>.Instance);
 
         DiagnosticsViewModel diagnosticsViewModel =
             CreateDiagnosticsViewModel();
 
+        var authentication =
+            new AuthenticationState();
+
+        var authenticationService =
+            new StubAuthenticationService();
+
         return new ShellViewModel(
             options,
             catalogViewModel,
-            diagnosticsViewModel);
+            diagnosticsViewModel,
+            authenticationService,
+            authentication);
     }
 
     private static DiagnosticsViewModel CreateDiagnosticsViewModel()
@@ -218,13 +228,31 @@ public sealed class ShellViewModelTests
             apiGatewayOptions);
     }
 
-    private sealed class StubCatalogApiClient : ICatalogApiClient
+    private sealed class StubCatalogApiClient
+        : ICatalogApiClient
     {
         public Task<IReadOnlyList<CatalogProductDto>> GetProductsAsync(
             bool includeInactive,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<CatalogProductDto>>([]);
+            return Task.FromResult<
+                IReadOnlyList<CatalogProductDto>>(
+                []);
+        }
+    }
+
+    private sealed class StubAuthenticationService
+        : IAuthenticationService
+    {
+        public Task<AuthenticationOperationResult> SignInAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                AuthenticationOperationResult.Success());
+        }
+
+        public void SignOut()
+        {
         }
     }
 }

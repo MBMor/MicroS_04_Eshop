@@ -39,21 +39,62 @@
            Style="{StaticResource ApplicationTitleTextStyle}"
            Text="{Binding ApplicationTitle}" />
 
-        <StackPanel Grid.Row="1"
-                    Margin="0,8,0,24"
-                    Orientation="Horizontal">
+        <Grid Grid.Row="1"
+      Margin="0,8,0,24">
 
-            <TextBlock FontWeight="SemiBold"
-                       Text="Environment: " />
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <TextBlock Text="{Binding EnvironmentName}" />
+            <StackPanel Grid.Column="0"
+                Orientation="Horizontal">
 
-            <TextBlock Margin="24,0,0,0"
-                       FontWeight="SemiBold"
-                       Text="Section: " />
+                <TextBlock Style="{StaticResource FieldLabelTextStyle}"
+                   Text="Environment: " />
 
-            <TextBlock Text="{Binding CurrentSectionTitle}" />
-        </StackPanel>
+                <TextBlock Text="{Binding EnvironmentName}" />
+
+                <TextBlock Margin="24,0,0,0"
+                   Style="{StaticResource FieldLabelTextStyle}"
+                   Text="Section: " />
+
+                <TextBlock Text="{Binding CurrentSectionTitle}" />
+
+            </StackPanel>
+
+            <StackPanel Grid.Column="1"
+                Orientation="Horizontal">
+
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                Command="{Binding SignInCommand}"
+                Content="Sign in"
+                Visibility="{Binding Authentication.IsAnonymous,
+                                     Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <StackPanel Orientation="Horizontal"
+                    Visibility="{Binding Authentication.IsAuthenticated,
+                                         Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock HorizontalAlignment="Right"
+                           FontWeight="SemiBold"
+                           Text="{Binding Authentication.CurrentUser.DisplayName}" />
+
+                        <TextBlock HorizontalAlignment="Right"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="{Binding Authentication.CurrentUser.RolesDisplay}" />
+                    </StackPanel>
+
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding SignOutCommand}"
+                    Content="Sign out" />
+
+                </StackPanel>
+
+            </StackPanel>
+
+        </Grid>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>

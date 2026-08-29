@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.ViewModels;
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
+using Eshop.Operations.Desktop.Api.Authentication;
+using Eshop.Operations.Desktop.Authentication;
 
 namespace Eshop.Operations.Desktop;
 
@@ -114,6 +116,17 @@ public partial class App : Application
                 "ApiGateway:TimeoutSeconds must be between 1 and 120.")
             .ValidateOnStart();
 
+        builder.Services.AddSingleton<
+            IValidateOptions<AuthenticationOptions>,
+            AuthenticationOptionsValidator>();
+
+                builder.Services
+                    .AddOptions<AuthenticationOptions>()
+                    .Bind(
+                        builder.Configuration.GetSection(
+                            AuthenticationOptions.SectionName))
+                    .ValidateOnStart();
+
         builder.Services.AddHttpClient(
             "ApiGateway",
             static (serviceProvider, httpClient) =>
@@ -133,6 +146,14 @@ public partial class App : Application
             });
 
         builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
+
+        builder.Services.AddSingleton<AuthenticationState>();
+
+        builder.Services.AddSingleton<CurrentUserApiClient>();
+
+        builder.Services.AddSingleton<
+            IAuthenticationService,
+            AuthenticationService>();
 
         builder.Services.AddSingleton<CatalogViewModel>();
         builder.Services.AddSingleton<DiagnosticsViewModel>();

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Eshop.Operations.Desktop.Configuration;
 using Microsoft.Extensions.Options;
+using Eshop.Operations.Desktop.Authentication;
 
 namespace Eshop.Operations.Desktop.ViewModels;
 
@@ -13,11 +14,15 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(
         IOptions<DesktopOptions> options,
         CatalogViewModel catalog,
-        DiagnosticsViewModel diagnostics)
+        DiagnosticsViewModel diagnostics,
+        IAuthenticationService authenticationService,
+        AuthenticationState authentication)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(authenticationService);
+        ArgumentNullException.ThrowIfNull(authentication);
 
         EnvironmentName =
             options.Value.EnvironmentName;
@@ -26,7 +31,16 @@ public sealed partial class ShellViewModel : ObservableObject
         Diagnostics = diagnostics;
 
         CurrentViewModel = Catalog;
+
+        _authenticationService = authenticationService;
+
+        Authentication = authentication;
+
     }
+
+    private readonly IAuthenticationService _authenticationService;
+
+    public AuthenticationState Authentication { get; }
 
     public CatalogViewModel Catalog { get; }
 
@@ -78,5 +92,32 @@ public sealed partial class ShellViewModel : ObservableObject
     private void ShowDiagnostics()
     {
         CurrentViewModel = Diagnostics;
+    }
+
+    [RelayCommand]
+    private async Task SignInAsync(
+    CancellationToken cancellationToken)
+    {
+        StatusText =
+            "Signing in...";
+
+        AuthenticationOperationResult result =
+            await _authenticationService.SignInAsync(
+                cancellationToken);
+
+        StatusText =
+            result.Succeeded
+                ? $"Signed in as {Authentication.CurrentUser?.DisplayName}."
+                : result.ErrorMessage
+                    ?? "Authentication failed.";
+    }
+
+    [RelayCommand]
+    private void SignOut()
+    {
+        _authenticationService.SignOut();
+
+        StatusText =
+            "Signed out.";
     }
 }
