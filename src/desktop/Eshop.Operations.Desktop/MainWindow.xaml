@@ -22,6 +22,10 @@
             <views:CatalogView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type viewModels:InventoryViewModel}">
+            <views:InventoryView />
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}">
             <views:DiagnosticsView />
         </DataTemplate>
@@ -113,7 +117,15 @@
                   Command="{Binding ShowCatalogCommand}"
                   Content="Catalog" />
 
-                    <ToggleButton Margin="0,8,0,0"
+                <ToggleButton Margin="0,8,0,0"
+                  Style="{StaticResource NavigationToggleButtonStyle}"
+                  IsChecked="{Binding IsInventoryActive, Mode=OneWay}"
+                  Command="{Binding ShowInventoryCommand}"
+                  Content="Inventory"
+                  Visibility="{Binding Authentication.CanAccessOperations,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+                
+                <ToggleButton Margin="0,8,0,0"
                   Style="{StaticResource NavigationToggleButtonStyle}"
                   IsChecked="{Binding IsDiagnosticsActive, Mode=OneWay}"
                   Command="{Binding ShowDiagnosticsCommand}"

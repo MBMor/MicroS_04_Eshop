@@ -9,6 +9,7 @@ using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
 using Eshop.Operations.Desktop.Api.Authentication;
 using Eshop.Operations.Desktop.Authentication;
+using Eshop.Operations.Desktop.Api.Inventory;
 
 namespace Eshop.Operations.Desktop;
 
@@ -192,6 +193,8 @@ public partial class App : Application
 
         builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
 
+        builder.Services.AddSingleton<IInventoryApiClient, InventoryApiClient>();
+
         builder.Services.AddSingleton<AuthenticationState>();
 
         builder.Services.AddSingleton<TimeProvider>(
@@ -228,6 +231,7 @@ public partial class App : Application
                             AuthenticationService>());
 
         builder.Services.AddSingleton<CatalogViewModel>();
+        builder.Services.AddSingleton<InventoryViewModel>();
         builder.Services.AddSingleton<DiagnosticsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();

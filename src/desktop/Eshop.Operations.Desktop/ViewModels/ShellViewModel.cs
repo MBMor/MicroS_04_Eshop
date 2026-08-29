@@ -14,12 +14,14 @@ public sealed partial class ShellViewModel : ObservableObject
     public ShellViewModel(
         IOptions<DesktopOptions> options,
         CatalogViewModel catalog,
+        InventoryViewModel inventory,
         DiagnosticsViewModel diagnostics,
         IAuthenticationService authenticationService,
         AuthenticationState authentication)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(authenticationService);
         ArgumentNullException.ThrowIfNull(authentication);
@@ -28,6 +30,7 @@ public sealed partial class ShellViewModel : ObservableObject
             options.Value.EnvironmentName;
 
         Catalog = catalog;
+        Inventory = inventory;
         Diagnostics = diagnostics;
 
         CurrentViewModel = Catalog;
@@ -36,6 +39,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
         Authentication = authentication;
 
+        Authentication.PropertyChanged += OnAuthenticationPropertyChanged;
+
     }
 
     private readonly IAuthenticationService _authenticationService;
@@ -43,11 +48,17 @@ public sealed partial class ShellViewModel : ObservableObject
     public AuthenticationState Authentication { get; }
 
     public CatalogViewModel Catalog { get; }
+    public InventoryViewModel Inventory { get; }
 
     public bool IsCatalogActive =>
         ReferenceEquals(
             CurrentViewModel,
             Catalog);
+
+    public bool IsInventoryActive =>
+    ReferenceEquals(
+        CurrentViewModel,
+        Inventory);
 
     public bool IsDiagnosticsActive =>
         ReferenceEquals(
@@ -68,6 +79,7 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentViewModel switch
         {
             CatalogViewModel => "Catalog",
+            InventoryViewModel => "Inventory",
             DiagnosticsViewModel => "Diagnostics",
             _ => "Operations"
         };
@@ -75,6 +87,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentSectionTitle))]
     [NotifyPropertyChangedFor(nameof(IsCatalogActive))]
+    [NotifyPropertyChangedFor(nameof(IsInventoryActive))]
     [NotifyPropertyChangedFor(nameof(IsDiagnosticsActive))]
     public partial object CurrentViewModel { get; private set; }
 
@@ -86,6 +99,21 @@ public sealed partial class ShellViewModel : ObservableObject
     private void ShowCatalog()
     {
         CurrentViewModel = Catalog;
+    }
+
+    [RelayCommand]
+    private void ShowInventory()
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Inventory.";
+
+            return;
+        }
+
+        CurrentViewModel =
+            Inventory;
     }
 
     [RelayCommand]
@@ -129,5 +157,26 @@ public sealed partial class ShellViewModel : ObservableObject
                 ? "Signed out."
                 : result.ErrorMessage
                     ?? "Signed out locally.";
+    }
+
+    private void OnAuthenticationPropertyChanged(
+    object? sender,
+    System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName
+            != nameof(AuthenticationState.CanAccessOperations))
+        {
+            return;
+        }
+
+        if (!Authentication.CanAccessOperations
+            && IsInventoryActive)
+        {
+            CurrentViewModel =
+                Catalog;
+
+            StatusText =
+                "Inventory access is no longer available.";
+        }
     }
 }

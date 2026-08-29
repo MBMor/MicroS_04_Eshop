@@ -1,5 +1,6 @@
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
+using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.ViewModels;
@@ -175,6 +176,49 @@ public sealed class ShellViewModelTests
             viewModel.IsDiagnosticsActive);
     }
 
+    [Fact]
+    public void ShowInventoryCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowInventoryCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+    }
+
+    [Fact]
+    public void SupportRoleCanAccessOperations()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "user-123",
+                    "sam.support",
+                    "sam.support@eshop.local",
+                    ["support"]));
+
+        Assert.True(
+            authentication.CanAccessOperations);
+    }
+
+    [Fact]
+    public void CustomerRoleCannotAccessOperations()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "user-123",
+                    "sam.customer",
+                    "sam.customer@eshop.local",
+                    ["customer"]));
+
+        Assert.False(
+            authentication.CanAccessOperations);
+    }
+
     private static ShellViewModel CreateViewModel()
     {
         IOptions<DesktopOptions> options =
@@ -189,6 +233,11 @@ public sealed class ShellViewModelTests
                 new StubCatalogApiClient(),
                 NullLogger<CatalogViewModel>.Instance);
 
+        var inventoryViewModel =
+            new InventoryViewModel(
+                new StubInventoryApiClient(),
+                NullLogger<InventoryViewModel>.Instance);
+
         DiagnosticsViewModel diagnosticsViewModel =
             CreateDiagnosticsViewModel();
 
@@ -201,6 +250,7 @@ public sealed class ShellViewModelTests
         return new ShellViewModel(
             options,
             catalogViewModel,
+            inventoryViewModel,
             diagnosticsViewModel,
             authenticationService,
             authentication);
@@ -237,6 +287,20 @@ public sealed class ShellViewModelTests
         {
             return Task.FromResult<
                 IReadOnlyList<CatalogProductDto>>(
+                []);
+        }
+    }
+
+    private sealed class StubInventoryApiClient
+        : IInventoryApiClient
+    {
+        public Task<IReadOnlyList<InventoryItemDto>>
+            GetInventoryItemsAsync(
+                bool includeInactive,
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult<
+                IReadOnlyList<InventoryItemDto>>(
                 []);
         }
     }
