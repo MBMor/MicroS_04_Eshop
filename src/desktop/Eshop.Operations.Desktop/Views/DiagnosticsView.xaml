@@ -1,0 +1,120 @@
+<UserControl x:Class="Eshop.Operations.Desktop.Views.DiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="760"
+                    HorizontalAlignment="Left">
+
+            <TextBlock FontSize="22"
+                       FontWeight="SemiBold"
+                       Text="Diagnostics" />
+
+            <TextBlock Margin="0,6,0,24"
+                       Foreground="DimGray"
+                       Text="Runtime and connection configuration for this Operations Console instance."
+                       TextWrapping="Wrap" />
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           FontWeight="SemiBold"
+                           Text="Environment" />
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="1"
+                           Text="{Binding EnvironmentName}" />
+
+                <TextBlock Grid.Row="1"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text="API Gateway" />
+
+                <TextBlock Grid.Row="1"
+                           Grid.Column="1"
+                           Margin="0,10,0,0"
+                           Text="{Binding ApiGatewayBaseAddress}"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="2"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text="HTTP timeout" />
+
+                <StackPanel Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="0,10,0,0"
+                            Orientation="Horizontal">
+                    <TextBlock Text="{Binding ApiGatewayTimeoutSeconds}" />
+                    <TextBlock Margin="4,0,0,0"
+                               Text="seconds" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="3"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text="Application version" />
+
+                <TextBlock Grid.Row="3"
+                           Grid.Column="1"
+                           Margin="0,10,0,0"
+                           Text="{Binding ApplicationVersion}" />
+
+                <TextBlock Grid.Row="4"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text=".NET runtime" />
+
+                <TextBlock Grid.Row="4"
+                           Grid.Column="1"
+                           Margin="0,10,0,0"
+                           Text="{Binding RuntimeDescription}" />
+
+                <TextBlock Grid.Row="5"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text="Operating system" />
+
+                <TextBlock Grid.Row="5"
+                           Grid.Column="1"
+                           Margin="0,10,0,0"
+                           Text="{Binding OperatingSystemDescription}"
+                           TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="6"
+                           Margin="0,10,0,0"
+                           FontWeight="SemiBold"
+                           Text="Process architecture" />
+
+                <TextBlock Grid.Row="6"
+                           Grid.Column="1"
+                           Margin="0,10,0,0"
+                           Text="{Binding ProcessArchitecture}" />
+            </Grid>
+
+            <Border Margin="0,28,0,0"
+                    Padding="12"
+                    BorderBrush="LightGray"
+                    BorderThickness="1">
+
+                <TextBlock Foreground="DimGray"
+                           Text="This screen displays configuration only. It does not perform network health checks."
+                           TextWrapping="Wrap" />
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

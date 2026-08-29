@@ -1,9 +1,10 @@
+using Eshop.Operations.Desktop.Api;
+using Eshop.Operations.Desktop.Api.Catalog;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Eshop.Operations.Desktop.Api.Catalog;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eshop.Operations.Desktop.Tests.ViewModels;
 
@@ -71,21 +72,121 @@ public sealed class ShellViewModelTests
         Assert.Equal(0, notificationCount);
     }
 
+    [Fact]
+    public void ConstructorSelectsCatalogAsInitialDestination()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Catalog",
+            viewModel.CurrentSectionTitle);
+    }
+
+
+
+    [Fact]
+    public void ShowDiagnosticsCommandNavigatesToDiagnostics()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Diagnostics",
+            viewModel.CurrentSectionTitle);
+    }
+
+    [Fact]
+    public void ShowCatalogCommandNavigatesBackToCatalog()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+    }
+
+    [Fact]
+    public void NavigationKeepsExistingCatalogViewModelInstance()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        CatalogViewModel catalog =
+            viewModel.Catalog;
+
+        catalog.SearchText =
+            "keyboard";
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.Same(
+            catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "keyboard",
+            catalog.SearchText);
+    }
+
     private static ShellViewModel CreateViewModel()
     {
-        var options = Options.Create(
-            new DesktopOptions
-            {
-                EnvironmentName = "Local"
-            });
+        IOptions<DesktopOptions> options =
+            Options.Create(
+                new DesktopOptions
+                {
+                    EnvironmentName = "Local"
+                });
 
         var catalogViewModel = new CatalogViewModel(
             new StubCatalogApiClient(),
             NullLogger<CatalogViewModel>.Instance);
 
+        DiagnosticsViewModel diagnosticsViewModel =
+            CreateDiagnosticsViewModel();
+
         return new ShellViewModel(
             options,
-            catalogViewModel);
+            catalogViewModel,
+            diagnosticsViewModel);
+    }
+
+    private static DiagnosticsViewModel CreateDiagnosticsViewModel()
+    {
+        IOptions<DesktopOptions> desktopOptions =
+            Options.Create(
+                new DesktopOptions
+                {
+                    EnvironmentName = "Local"
+                });
+
+        IOptions<ApiGatewayOptions> apiGatewayOptions =
+            Options.Create(
+                new ApiGatewayOptions
+                {
+                    BaseAddress = "http://localhost:5080/",
+                    TimeoutSeconds = 15
+                });
+
+        return new DiagnosticsViewModel(
+            desktopOptions,
+            apiGatewayOptions);
     }
 
     private sealed class StubCatalogApiClient : ICatalogApiClient

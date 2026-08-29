@@ -9,11 +9,21 @@
         d:DataContext="{d:DesignInstance Type=viewModels:ShellViewModel,
                                         IsDesignTimeCreatable=False}"
         Title="{Binding WindowTitle}"
-        Width="960"
-        Height="600"
-        MinWidth="720"
-        MinHeight="420"
+        Width="1100"
+        Height="700"
+        MinWidth="800"
+        MinHeight="480"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type viewModels:CatalogViewModel}">
+            <views:CatalogView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}">
+            <views:DiagnosticsView />
+        </DataTemplate>
+    </Window.Resources>
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -31,19 +41,54 @@
         <StackPanel Grid.Row="1"
                     Margin="0,8,0,24"
                     Orientation="Horizontal">
+
             <TextBlock FontWeight="SemiBold"
                        Text="Environment: " />
+
             <TextBlock Text="{Binding EnvironmentName}" />
+
+            <TextBlock Margin="24,0,0,0"
+                       FontWeight="SemiBold"
+                       Text="Section: " />
+
+            <TextBlock Text="{Binding CurrentSectionTitle}" />
         </StackPanel>
 
-        <views:CatalogView Grid.Row="2"
-                   DataContext="{Binding Catalog}" />
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Margin="0,0,0,8"
+                           FontWeight="SemiBold"
+                           Text="Navigation" />
+
+                <Button Padding="10,6"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding ShowCatalogCommand}"
+                        Content="Catalog" />
+
+                <Button Margin="0,8,0,0"
+                        Padding="10,6"
+                        HorizontalContentAlignment="Left"
+                        Command="{Binding ShowDiagnosticsCommand}"
+                        Content="Diagnostics" />
+            </StackPanel>
+
+            <ContentControl Grid.Column="2"
+                            Content="{Binding CurrentViewModel}" />
+        </Grid>
 
         <StackPanel Grid.Row="3"
                     Margin="0,20,0,0"
                     Orientation="Horizontal">
+
             <TextBlock FontWeight="SemiBold"
                        Text="Status: " />
+
             <TextBlock Text="{Binding StatusText}" />
         </StackPanel>
     </Grid>

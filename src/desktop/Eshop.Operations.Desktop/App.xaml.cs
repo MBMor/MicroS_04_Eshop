@@ -135,7 +135,7 @@ public partial class App : Application
         builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
 
         builder.Services.AddSingleton<CatalogViewModel>();
-
+        builder.Services.AddSingleton<DiagnosticsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 
