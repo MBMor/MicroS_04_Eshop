@@ -145,15 +145,87 @@ public partial class App : Application
                         options.TimeoutSeconds);
             });
 
+        builder.Services
+            .AddHttpClient(
+                "ApiGatewayAuthenticated",
+                static (serviceProvider, httpClient) =>
+                {
+                    ApiGatewayOptions options = serviceProvider
+                        .GetRequiredService<IOptions<ApiGatewayOptions>>()
+                        .Value;
+
+                    httpClient.BaseAddress =
+                        new Uri(
+                            options.BaseAddress,
+                            UriKind.Absolute);
+
+                    httpClient.Timeout =
+                        TimeSpan.FromSeconds(
+                            options.TimeoutSeconds);
+                })
+            .AddHttpMessageHandler<
+                AuthenticationDelegatingHandler>()
+            .RedactLoggedHeaders(
+                ["Authorization"]);
+
+        builder.Services.AddHttpClient(
+            "OidcBackchannel",
+            static (serviceProvider, httpClient) =>
+            {
+                AuthenticationOptions options =
+                    serviceProvider
+                        .GetRequiredService<
+                            IOptions<AuthenticationOptions>>()
+                        .Value;
+
+                string baseAddress =
+                    $"{options.Authority.TrimEnd('/')}/";
+
+                httpClient.BaseAddress =
+                    new Uri(
+                        baseAddress,
+                        UriKind.Absolute);
+
+                httpClient.Timeout =
+                    TimeSpan.FromSeconds(15);
+            });
+
         builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
 
         builder.Services.AddSingleton<AuthenticationState>();
 
-        builder.Services.AddSingleton<CurrentUserApiClient>();
+        builder.Services.AddSingleton<TimeProvider>(
+            TimeProvider.System);
 
         builder.Services.AddSingleton<
-            IAuthenticationService,
+            ITokenRefreshService,
+            OidcTokenRefreshService>();
+
+        builder.Services.AddSingleton<
+            AccessTokenProvider>();
+
+        builder.Services.AddSingleton<
+            IAccessTokenProvider>(
+                serviceProvider =>
+                    serviceProvider
+                        .GetRequiredService<
+                            AccessTokenProvider>());
+
+        builder.Services.AddTransient<
+            AuthenticationDelegatingHandler>();
+
+        builder.Services.AddSingleton<
+            CurrentUserApiClient>();
+
+        builder.Services.AddSingleton<
             AuthenticationService>();
+
+        builder.Services.AddSingleton<
+            IAuthenticationService>(
+                serviceProvider =>
+                    serviceProvider
+                        .GetRequiredService<
+                            AuthenticationService>());
 
         builder.Services.AddSingleton<CatalogViewModel>();
         builder.Services.AddSingleton<DiagnosticsViewModel>();

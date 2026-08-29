@@ -5,5 +5,6 @@ public interface IAuthenticationService
     Task<AuthenticationOperationResult> SignInAsync(
         CancellationToken cancellationToken);
 
-    void SignOut();
+    Task<AuthenticationOperationResult> SignOutAsync(
+        CancellationToken cancellationToken);
 }

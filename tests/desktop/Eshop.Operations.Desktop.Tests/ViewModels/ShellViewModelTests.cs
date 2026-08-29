@@ -251,8 +251,11 @@ public sealed class ShellViewModelTests
                 AuthenticationOperationResult.Success());
         }
 
-        public void SignOut()
+        public Task<AuthenticationOperationResult> SignOutAsync(
+            CancellationToken cancellationToken)
         {
+            return Task.FromResult(
+                AuthenticationOperationResult.Success());
         }
     }
 }

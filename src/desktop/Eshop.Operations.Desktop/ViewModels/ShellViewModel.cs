@@ -113,11 +113,21 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void SignOut()
+    private async Task SignOutAsync(
+        CancellationToken cancellationToken)
     {
-        _authenticationService.SignOut();
+        StatusText =
+            "Signing out...";
+
+        AuthenticationOperationResult result =
+            await _authenticationService
+                .SignOutAsync(
+                    cancellationToken);
 
         StatusText =
-            "Signed out.";
+            result.Succeeded
+                ? "Signed out."
+                : result.ErrorMessage
+                    ?? "Signed out locally.";
     }
 }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using Duende.IdentityModel.OidcClient;
@@ -33,14 +34,18 @@ public sealed partial class AuthenticationService
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AuthenticationService> _logger;
 
-    private string? _accessToken;
-    private string? _refreshToken;
-    private DateTimeOffset? _accessTokenExpiration;
+    private const string OidcBackchannelHttpClientName =
+        "OidcBackchannel";
+
+    private readonly AccessTokenProvider _accessTokenProvider;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public AuthenticationService(
         IOptions<AuthenticationOptions> options,
         AuthenticationState state,
+        AccessTokenProvider accessTokenProvider,
         CurrentUserApiClient currentUserApiClient,
+        IHttpClientFactory httpClientFactory,
         ILoggerFactory loggerFactory,
         ILogger<AuthenticationService> logger)
     {
@@ -49,12 +54,16 @@ public sealed partial class AuthenticationService
         ArgumentNullException.ThrowIfNull(currentUserApiClient);
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(accessTokenProvider);
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
 
         _options = options.Value;
         _state = state;
         _currentUserApiClient = currentUserApiClient;
         _loggerFactory = loggerFactory;
         _logger = logger;
+        _accessTokenProvider = accessTokenProvider;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<AuthenticationOperationResult> SignInAsync(
@@ -161,20 +170,15 @@ public sealed partial class AuthenticationService
                     "Authentication was not completed.");
             }
 
+            _accessTokenProvider.StartSession(
+                loginResult.AccessToken,
+                loginResult.RefreshToken,
+                loginResult.AccessTokenExpiration);
+
             AuthenticatedUser user =
                 await _currentUserApiClient
                     .GetCurrentUserAsync(
-                        loginResult.AccessToken,
                         cancellationToken);
-
-            _accessToken =
-                loginResult.AccessToken;
-
-            _refreshToken =
-                loginResult.RefreshToken;
-
-            _accessTokenExpiration =
-                loginResult.AccessTokenExpiration;
 
             _state.SetAuthenticatedUser(
                 user);
@@ -209,12 +213,83 @@ public sealed partial class AuthenticationService
         }
     }
 
-    public void SignOut()
+    public async Task<AuthenticationOperationResult> SignOutAsync(
+        CancellationToken cancellationToken)
     {
-        ClearSession();
+        string? refreshToken =
+            _accessTokenProvider.CurrentRefreshToken;
 
-        LogSignedOut(
-            _logger);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(
+                    refreshToken))
+            {
+                return AuthenticationOperationResult.Success();
+            }
+
+            using HttpClient httpClient =
+                _httpClientFactory.CreateClient(
+                    OidcBackchannelHttpClientName);
+
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "protocol/openid-connect/revoke");
+
+            request.Content =
+                new FormUrlEncodedContent(
+                    new Dictionary<string, string>
+                    {
+                        ["client_id"] =
+                            _options.ClientId,
+
+                        ["token"] =
+                            refreshToken,
+
+                        ["token_type_hint"] =
+                            "refresh_token"
+                    });
+
+            using HttpResponseMessage response =
+                await httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                LogTokenRevocationFailed(
+                    _logger,
+                    (int)response.StatusCode);
+
+                return AuthenticationOperationResult.Failure(
+                    $"Signed out locally, but server token revocation failed with HTTP {(int)response.StatusCode}.");
+            }
+
+            return AuthenticationOperationResult.Success();
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            return AuthenticationOperationResult.Failure(
+                "Signed out locally, but server token revocation was canceled.");
+        }
+        catch (Exception exception)
+        {
+            LogTokenRevocationException(
+                _logger,
+                exception);
+
+            return AuthenticationOperationResult.Failure(
+                "Signed out locally, but server token revocation failed.");
+        }
+        finally
+        {
+            ClearSession();
+
+            LogSignedOut(
+                _logger);
+        }
     }
 
     private OidcClient CreateOidcClient(
@@ -250,11 +325,8 @@ public sealed partial class AuthenticationService
 
     private void ClearSession()
     {
-        _accessToken = null;
-        _refreshToken = null;
-        _accessTokenExpiration = null;
-
-        _state.Clear();
+        _accessTokenProvider
+            .InvalidateSession();
     }
 
     private static int GetAvailableLoopbackPort()
@@ -328,4 +400,22 @@ public sealed partial class AuthenticationService
         Message = "Desktop authentication session was cleared.")]
     private static partial void LogSignedOut(
         ILogger logger);
+
+    [LoggerMessage(
+    EventId = 4004,
+    Level = LogLevel.Warning,
+    Message =
+        "Refresh-token revocation failed with HTTP {StatusCode}.")]
+    private static partial void LogTokenRevocationFailed(
+    ILogger logger,
+    int statusCode);
+
+    [LoggerMessage(
+        EventId = 4005,
+        Level = LogLevel.Warning,
+        Message =
+            "Refresh-token revocation failed.")]
+    private static partial void LogTokenRevocationException(
+        ILogger logger,
+        Exception exception);
 }

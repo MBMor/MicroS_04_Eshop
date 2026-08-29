@@ -1,5 +1,4 @@
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Eshop.Operations.Desktop.Authentication;
@@ -8,11 +7,9 @@ namespace Eshop.Operations.Desktop.Api.Authentication;
 
 public sealed class CurrentUserApiClient
 {
-    private const string HttpClientName =
-        "ApiGateway";
+    private const string HttpClientName = "ApiGatewayAuthenticated";
 
-    private const string CurrentUserPath =
-        "api/v1/auth/me";
+    private const string CurrentUserPath = "api/v1/auth/me";
 
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
@@ -30,11 +27,8 @@ public sealed class CurrentUserApiClient
     }
 
     public async Task<AuthenticatedUser> GetCurrentUserAsync(
-        string accessToken,
-        CancellationToken cancellationToken)
+    CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            accessToken);
 
         using HttpClient httpClient =
             _httpClientFactory.CreateClient(
@@ -44,11 +38,6 @@ public sealed class CurrentUserApiClient
             new HttpRequestMessage(
                 HttpMethod.Get,
                 CurrentUserPath);
-
-        request.Headers.Authorization =
-            new AuthenticationHeaderValue(
-                "Bearer",
-                accessToken);
 
         using HttpResponseMessage response =
             await httpClient.SendAsync(

@@ -50,8 +50,21 @@ public sealed class CurrentUserApiClientTests
                 };
             });
 
+        var accessTokenProvider =
+            new StubAccessTokenProvider(
+                "access-token");
+
+        var authenticationHandler =
+            new AuthenticationDelegatingHandler(
+                accessTokenProvider)
+            {
+                InnerHandler =
+                    handler
+            };
+
         var httpClient =
-            new HttpClient(handler)
+            new HttpClient(
+                authenticationHandler)
             {
                 BaseAddress =
                     new Uri(
@@ -66,7 +79,6 @@ public sealed class CurrentUserApiClientTests
 
         AuthenticatedUser user =
             await client.GetCurrentUserAsync(
-                "access-token",
                 CancellationToken.None);
 
         Assert.Equal(
@@ -112,6 +124,22 @@ public sealed class CurrentUserApiClientTests
                 send(
                     request,
                     cancellationToken));
+        }
+    }
+
+    private sealed class StubAccessTokenProvider(
+    string accessToken)
+    : IAccessTokenProvider
+    {
+        public Task<string> GetAccessTokenAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                accessToken);
+        }
+
+        public void InvalidateSession()
+        {
         }
     }
 }
