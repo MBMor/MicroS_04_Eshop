@@ -114,6 +114,70 @@ public sealed class InventoryViewModelTests
             viewModel.ErrorMessage);
     }
 
+    [Fact]
+    public async Task SearchTextFiltersInventoryBySku()
+    {
+        InventoryItemDto keyboard = CreateItem() with { Sku = "KEYBOARD" };
+        InventoryItemDto mouse = CreateItem() with { Sku = "MOUSE" };
+        InventoryViewModel viewModel = CreateViewModel(
+            new StubInventoryApiClient(
+                (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>(
+                    [keyboard, mouse])));
+
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SearchText = "mouse";
+
+        InventoryItemDto visible = Assert.Single(
+            viewModel.ItemsView.Cast<InventoryItemDto>());
+        Assert.Same(mouse, visible);
+    }
+
+    [Fact]
+    public async Task FilteringOutSelectedItemClearsSelection()
+    {
+        InventoryItemDto item = CreateItem();
+        InventoryViewModel viewModel = CreateViewModel(
+            new StubInventoryApiClient(
+                (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>(
+                    [item])));
+
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedItem = item;
+        viewModel.SearchText = "does-not-match";
+
+        Assert.Null(viewModel.SelectedItem);
+        Assert.True(viewModel.IsFilteredEmpty);
+    }
+
+    [Fact]
+    public async Task SelectedSortOptionSortsInventoryView()
+    {
+        InventoryItemDto low = CreateItem() with
+        {
+            Sku = "LOW",
+            AvailableQuantity = 2
+        };
+        InventoryItemDto high = CreateItem() with
+        {
+            Sku = "HIGH",
+            AvailableQuantity = 20
+        };
+        InventoryViewModel viewModel = CreateViewModel(
+            new StubInventoryApiClient(
+                (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>(
+                    [high, low])));
+
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedSortOption = viewModel.SortOptions
+            .Single(option => option.DisplayName == "Available low to high");
+
+        Assert.Equal(
+            ["LOW", "HIGH"],
+            viewModel.ItemsView.Cast<InventoryItemDto>()
+                .Select(item => item.Sku)
+                .ToArray());
+    }
+
     private static InventoryViewModel CreateViewModel(
     IInventoryApiClient apiClient)
     {

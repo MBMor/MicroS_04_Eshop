@@ -46,7 +46,7 @@ public sealed partial class CatalogViewModel : ObservableObject
     public ObservableCollection<string> Categories { get; } =
         [AllCategoriesLabel];
 
-    public IReadOnlyList<CatalogSortOption> SortOptions { get; } =
+    public IReadOnlyList<ListSortOption> SortOptions { get; } =
     [
         new(
             "Name A–Z",
@@ -113,7 +113,7 @@ public sealed partial class CatalogViewModel : ObservableObject
         AllCategoriesLabel;
 
     [ObservableProperty]
-    public partial CatalogSortOption? SelectedSortOption { get; set; }
+    public partial ListSortOption? SelectedSortOption { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInitialState))]
@@ -151,7 +151,7 @@ public sealed partial class CatalogViewModel : ObservableObject
     }
 
     partial void OnSelectedSortOptionChanged(
-        CatalogSortOption? value)
+        ListSortOption? value)
     {
         if (value is not null)
         {
@@ -309,7 +309,7 @@ public sealed partial class CatalogViewModel : ObservableObject
     }
 
     private void ApplySort(
-        CatalogSortOption sortOption)
+        ListSortOption sortOption)
     {
         ProductsView.SortDescriptions.Clear();
 

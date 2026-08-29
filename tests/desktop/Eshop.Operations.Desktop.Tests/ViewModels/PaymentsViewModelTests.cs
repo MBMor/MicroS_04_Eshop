@@ -81,6 +81,83 @@ public sealed class PaymentsViewModelTests
         Assert.Same(refreshed, viewModel.SelectedPayment);
     }
 
+    [Fact]
+    public async Task SearchTextFiltersPayments()
+    {
+        PaymentDto alpha = CreatePayment() with { CustomerId = "customer-alpha" };
+        PaymentDto beta = CreatePayment() with { CustomerId = "customer-beta" };
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([alpha, beta])));
+
+        await viewModel.LoadPaymentsCommand.ExecuteAsync(null);
+        viewModel.SearchText = "beta";
+
+        PaymentDto visible = Assert.Single(
+            viewModel.PaymentsView.Cast<PaymentDto>());
+        Assert.Same(beta, visible);
+    }
+
+    [Fact]
+    public async Task SelectedStatusFiltersPayments()
+    {
+        PaymentDto pending = CreatePayment() with { Status = "Pending" };
+        PaymentDto failed = CreatePayment() with { Status = "Failed" };
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([pending, failed])));
+
+        await viewModel.LoadPaymentsCommand.ExecuteAsync(null);
+        viewModel.SelectedStatus = "Pending";
+
+        PaymentDto visible = Assert.Single(
+            viewModel.PaymentsView.Cast<PaymentDto>());
+        Assert.Same(pending, visible);
+    }
+
+    [Fact]
+    public async Task FilteringOutSelectedPaymentClearsSelection()
+    {
+        PaymentDto payment = CreatePayment();
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([payment])));
+
+        await viewModel.LoadPaymentsCommand.ExecuteAsync(null);
+        viewModel.SelectedPayment = payment;
+        viewModel.SearchText = "does-not-match";
+
+        Assert.Null(viewModel.SelectedPayment);
+        Assert.True(viewModel.IsFilteredEmpty);
+    }
+
+    [Fact]
+    public async Task ResetViewCommandClearsFilters()
+    {
+        PaymentDto succeeded = CreatePayment() with
+        {
+            CustomerId = "customer-succeeded",
+            Status = "Succeeded"
+        };
+        PaymentDto failed = CreatePayment() with
+        {
+            CustomerId = "customer-failed",
+            Status = "Failed"
+        };
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([succeeded, failed])));
+
+        await viewModel.LoadPaymentsCommand.ExecuteAsync(null);
+        viewModel.SearchText = "does-not-match";
+        viewModel.SelectedStatus = "Failed";
+        viewModel.ResetViewCommand.Execute(null);
+
+        Assert.Equal(string.Empty, viewModel.SearchText);
+        Assert.Equal("All statuses", viewModel.SelectedStatus);
+        Assert.Equal(2, viewModel.PaymentsView.Cast<PaymentDto>().Count());
+    }
+
     private static PaymentsViewModel CreateViewModel(
         IPaymentsApiClient apiClient) =>
         new(apiClient, NullLogger<PaymentsViewModel>.Instance);

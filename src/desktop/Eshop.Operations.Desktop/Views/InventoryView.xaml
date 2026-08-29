@@ -9,26 +9,61 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0"
-                    Orientation="Horizontal">
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <Button Width="120"
-                    Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding LoadInventoryCommand}"
-                    Content="Refresh inventory" />
+            <StackPanel Grid.Row="0"
+                        Orientation="Horizontal">
+                <Button Width="120"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadInventoryCommand}"
+                        Content="Refresh inventory" />
+                <Button Width="80"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadInventoryCancelCommand}"
+                        Content="Cancel" />
+                <TextBlock Margin="16,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="{Binding StatusText}" />
+            </StackPanel>
 
-            <Button Width="80"
-                    Margin="8,0,0,0"
-                    Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding LoadInventoryCancelCommand}"
-                    Content="Cancel" />
-
-            <TextBlock Margin="16,0,0,0"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource MutedTextStyle}"
-                       Text="{Binding StatusText}" />
-
-        </StackPanel>
+            <Grid Grid.Row="1"
+                  Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Search" />
+                    <TextBox MinWidth="180"
+                             Style="{StaticResource FilterTextBoxStyle}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Sort by" />
+                    <ComboBox Style="{StaticResource FilterComboBoxStyle}"
+                              ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSortOption, Mode=TwoWay}"
+                              DisplayMemberPath="DisplayName" />
+                </StackPanel>
+                <Button Grid.Column="2"
+                        MinWidth="80"
+                        VerticalAlignment="Bottom"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding ResetViewCommand}"
+                        Content="Reset" />
+            </Grid>
+        </Grid>
 
         <Border Grid.Row="1"
                 Margin="0,12,0,12"
@@ -51,11 +86,27 @@
             <TextBlock HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Style="{StaticResource MutedTextStyle}"
+                       Text="Refresh Inventory to load operational data."
+                       Visibility="{Binding IsInitialState,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
                        Text="No inventory items were returned."
                        Visibility="{Binding IsEmpty,
                            Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <DataGrid ItemsSource="{Binding Items}"
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
+                       Text="No inventory items match the current search."
+                       Visibility="{Binding IsFilteredEmpty,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <DataGrid ItemsSource="{Binding ItemsView}"
+                      Visibility="{Binding HasVisibleItems,
+                          Converter={StaticResource BooleanToVisibilityConverter}}"
                       SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                       Style="{StaticResource OperationalDataGridStyle}"
                       AutoGenerateColumns="False"

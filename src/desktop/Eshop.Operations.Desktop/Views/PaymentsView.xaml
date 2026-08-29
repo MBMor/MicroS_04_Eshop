@@ -9,21 +9,69 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <Button Width="120"
-                    Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding LoadPaymentsCommand}"
-                    Content="Refresh payments" />
-            <Button Width="80"
-                    Margin="8,0,0,0"
-                    Style="{StaticResource ToolbarButtonStyle}"
-                    Command="{Binding LoadPaymentsCancelCommand}"
-                    Content="Cancel" />
-            <TextBlock Margin="16,0,0,0"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource MutedTextStyle}"
-                       Text="{Binding StatusText}" />
-        </StackPanel>
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                <Button Width="120"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadPaymentsCommand}"
+                        Content="Refresh payments" />
+                <Button Width="80"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadPaymentsCancelCommand}"
+                        Content="Cancel" />
+                <TextBlock Margin="16,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="{Binding StatusText}" />
+            </StackPanel>
+
+            <Grid Grid.Row="1"
+                  Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Search" />
+                    <TextBox MinWidth="180"
+                             Style="{StaticResource FilterTextBoxStyle}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Status" />
+                    <ComboBox Style="{StaticResource FilterComboBoxStyle}"
+                              ItemsSource="{Binding Statuses}"
+                              SelectedItem="{Binding SelectedStatus, Mode=TwoWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Sort by" />
+                    <ComboBox Style="{StaticResource FilterComboBoxStyle}"
+                              ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSortOption, Mode=TwoWay}"
+                              DisplayMemberPath="DisplayName" />
+                </StackPanel>
+                <Button Grid.Column="3"
+                        MinWidth="80"
+                        VerticalAlignment="Bottom"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding ResetViewCommand}"
+                        Content="Reset" />
+            </Grid>
+        </Grid>
 
         <Border Grid.Row="1"
                 Margin="0,12,0,12"
@@ -50,11 +98,27 @@
                 <TextBlock HorizontalAlignment="Center"
                            VerticalAlignment="Center"
                            Style="{StaticResource MutedTextStyle}"
+                           Text="Refresh Payments to load operational data."
+                           Visibility="{Binding IsInitialState,
+                               Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
                            Text="No payments were returned."
                            Visibility="{Binding IsEmpty,
                                Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                <DataGrid ItemsSource="{Binding Payments}"
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="No payments match the current filters."
+                           Visibility="{Binding IsFilteredEmpty,
+                               Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <DataGrid ItemsSource="{Binding PaymentsView}"
+                          Visibility="{Binding HasVisiblePayments,
+                              Converter={StaticResource BooleanToVisibilityConverter}}"
                           SelectedItem="{Binding SelectedPayment, Mode=TwoWay}"
                           Style="{StaticResource OperationalDataGridStyle}"
                           AutoGenerateColumns="False"
