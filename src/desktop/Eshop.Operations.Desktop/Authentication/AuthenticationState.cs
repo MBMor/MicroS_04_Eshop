@@ -37,7 +37,7 @@ public sealed partial class AuthenticationState : ObservableObject
     public partial AuthenticatedUser? CurrentUser
     {
         get;
-        private set;
+        set;
     }
 
     internal void SetAuthenticatedUser(

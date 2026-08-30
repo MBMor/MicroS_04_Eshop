@@ -2,6 +2,7 @@ using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
 using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Api.Payments;
+using Eshop.Operations.Desktop.Api.Orders;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.Models;
@@ -239,6 +240,65 @@ public sealed class ShellViewModelTests
             viewModel.StatusText);
     }
 
+    [Fact]
+    public void ShowOrdersCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel = CreateViewModel();
+
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to access Orders.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void ShowOrdersCommandNavigatesForSupportUser()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+        Assert.True(viewModel.IsOrdersActive);
+        Assert.Equal("Orders", viewModel.CurrentSectionTitle);
+    }
+
+    [Fact]
+    public void LosingOperationalAccessWhileOrdersActiveReturnsToCatalog()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+
+        authentication.CurrentUser = new AuthenticatedUser(
+            "customer-123",
+            "sam.customer",
+            "sam.customer@example.com",
+            ["customer"]);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Operational access is no longer available.",
+            viewModel.StatusText);
+    }
+
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null)
     {
@@ -269,6 +329,11 @@ public sealed class ShellViewModelTests
                 new StubPaymentsApiClient(),
                 NullLogger<PaymentsViewModel>.Instance);
 
+        var ordersViewModel =
+            new OrdersViewModel(
+                new StubOrdersApiClient(),
+                NullLogger<OrdersViewModel>.Instance);
+
         DiagnosticsViewModel diagnosticsViewModel =
             CreateDiagnosticsViewModel();
 
@@ -279,6 +344,7 @@ public sealed class ShellViewModelTests
             options,
             catalogViewModel,
             inventoryViewModel,
+            ordersViewModel,
             paymentsViewModel,
             diagnosticsViewModel,
             authenticationService,
@@ -381,6 +447,30 @@ public sealed class ShellViewModelTests
         {
             return Task.FromResult(
                 AuthenticationOperationResult.Success());
+        }
+    }
+
+    private sealed class StubOrdersApiClient : IOrdersApiClient
+    {
+        public Task<OperationalOrderPageDto> GetOrdersAsync(
+            int offset,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new OperationalOrderPageDto(
+                    [],
+                    offset,
+                    limit,
+                    false));
+        }
+
+        public Task<OperationalOrderDetailDto> GetOrderAsync(
+            Guid orderId,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Order detail was not expected in this test.");
         }
     }
 
