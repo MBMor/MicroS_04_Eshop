@@ -225,7 +225,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
@@ -234,15 +233,18 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="Adjustment history" />
-                            <TextBlock Margin="0,4,0,0" Style="{StaticResource MutedTextStyle}">
-                                <Run Text="Selected SKU: " />
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock FontSize="16" FontWeight="SemiBold" Text="Adjustment history" />
+                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}">
+                                <Run Text="SKU: " />
                                 <Run Text="{Binding SelectedItem.Sku, TargetNullValue=—}" />
                             </TextBlock>
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Margin="20,0,20,0" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="{Binding HistoryStatusText}" TextWrapping="Wrap" />
-                        <Button Grid.Column="2" MinWidth="100" VerticalAlignment="Center" Style="{StaticResource ToolbarButtonStyle}" Command="{Binding LoadStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadHistory}" Content="Load history" />
+                        <TextBlock Grid.Column="1" Margin="20,0" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource MutedTextStyle}" Text="{Binding HistoryStatusText}" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding LoadStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadHistory}" Content="Load history" />
+                            <Button Margin="6,0,0,0" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding LoadMoreStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadMoreHistory}" Content="Load more" />
+                        </StackPanel>
                     </Grid>
 
                     <Border Grid.Row="1" Margin="0,12,0,0" Style="{StaticResource ErrorPanelBorderStyle}" Visibility="{Binding HasHistoryError, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -252,7 +254,7 @@
                         </StackPanel>
                     </Border>
 
-                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="3*" />
                             <ColumnDefinition Width="12" />
@@ -324,9 +326,6 @@
                         </Border>
                     </Grid>
 
-                    <StackPanel Grid.Row="3" Margin="0,12,0,0" HorizontalAlignment="Right">
-                        <Button MinWidth="100" Style="{StaticResource ToolbarButtonStyle}" Command="{Binding LoadMoreStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadMoreHistory}" Content="Load more" />
-                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>
