@@ -11,6 +11,7 @@ using Eshop.Operations.Desktop.Api.Authentication;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Api.Payments;
+using Eshop.Operations.Desktop.Api.Orders;
 using Eshop.Operations.Desktop.Services;
 
 namespace Eshop.Operations.Desktop;
@@ -198,6 +199,10 @@ public partial class App : Application
         builder.Services.AddSingleton<IInventoryApiClient, InventoryApiClient>();
 
         builder.Services.AddSingleton<IPaymentsApiClient, PaymentsApiClient>();
+
+        builder.Services.AddSingleton<
+            IOrdersApiClient,
+            OrdersApiClient>();
 
         builder.Services.AddSingleton<
             IInventoryStockAdjustmentDialogService,
