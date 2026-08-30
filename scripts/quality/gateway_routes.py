@@ -21,6 +21,7 @@ POLICY_ROLES = {
     "AuthenticatedUser": set(),
     "CustomerOnly": {"customer"},
     "SupportOrAdmin": {"support", "admin"},
+    "AdminOnly": {"admin"},
 }
 LOCAL_ROUTES = {
     "gateway-root": {
@@ -264,8 +265,18 @@ def configured_methods(match: dict[str, Any], route_id: str) -> list[str] | None
 
 def path_matches(template: str, sample: str) -> bool:
     pattern = re.escape(template)
-    pattern = pattern.replace(r"\{version\}", r"[^/]+")
-    pattern = pattern.replace(r"\{\*\*catch\-all\}", r".+")
+
+    pattern = pattern.replace(
+        r"\{\*\*catch\-all\}",
+        r".+",
+    )
+
+    pattern = re.sub(
+        r"\\\{[^{}]+\\\}",
+        r"[^/]+",
+        pattern,
+    )
+
     return re.fullmatch(pattern, sample) is not None
 
 
