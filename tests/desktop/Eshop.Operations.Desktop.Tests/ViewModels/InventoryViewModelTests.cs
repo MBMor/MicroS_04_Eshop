@@ -277,6 +277,116 @@ public sealed class InventoryViewModelTests
         Assert.Equal("Only an administrator can adjust inventory stock.", viewModel.AdjustmentErrorMessage);
     }
 
+    [Fact]
+    public async Task LoadStockAdjustmentHistoryCommandLoadsSelectedItemHistory()
+    {
+        InventoryItemDto item = CreateItem();
+        InventoryStockAdjustmentHistoryItemDto historyItem = CreateHistoryItem(item.Id, 1);
+        Guid? capturedItemId = null;
+        int? capturedOffset = null;
+        int? capturedLimit = null;
+        var apiClient = new StubInventoryApiClient(
+            (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>([item]),
+            getHistory: (inventoryItemId, offset, limit, _) =>
+            {
+                capturedItemId = inventoryItemId;
+                capturedOffset = offset;
+                capturedLimit = limit;
+                return Task.FromResult(new InventoryStockAdjustmentHistoryPageDto([historyItem], offset, limit, true));
+            });
+        InventoryViewModel viewModel = CreateViewModel(apiClient);
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedItem = item;
+        await viewModel.LoadStockAdjustmentHistoryCommand.ExecuteAsync(null);
+        Assert.Equal(item.Id, capturedItemId);
+        Assert.Equal(0, capturedOffset);
+        Assert.Equal(25, capturedLimit);
+        Assert.Same(historyItem, Assert.Single(viewModel.StockAdjustmentHistory));
+        Assert.Same(historyItem, viewModel.SelectedHistoryItem);
+        Assert.True(viewModel.HasHistoryLoaded);
+        Assert.True(viewModel.HistoryHasMore);
+        Assert.True(viewModel.CanLoadMoreHistory);
+    }
+
+    [Fact]
+    public async Task LoadMoreStockAdjustmentHistoryCommandAppendsNextPage()
+    {
+        InventoryItemDto item = CreateItem();
+        InventoryStockAdjustmentHistoryItemDto[] firstPage = Enumerable.Range(1, 25).Select(sequence => CreateHistoryItem(item.Id, sequence)).ToArray();
+        InventoryStockAdjustmentHistoryItemDto nextItem = CreateHistoryItem(item.Id, 26);
+        var requestedOffsets = new List<int>();
+        var apiClient = new StubInventoryApiClient(
+            (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>([item]),
+            getHistory: (_, offset, limit, _) =>
+            {
+                requestedOffsets.Add(offset);
+                return Task.FromResult(offset == 0
+                    ? new InventoryStockAdjustmentHistoryPageDto(firstPage, 0, limit, true)
+                    : new InventoryStockAdjustmentHistoryPageDto([nextItem], offset, limit, false));
+            });
+        InventoryViewModel viewModel = CreateViewModel(apiClient);
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedItem = item;
+        await viewModel.LoadStockAdjustmentHistoryCommand.ExecuteAsync(null);
+        await viewModel.LoadMoreStockAdjustmentHistoryCommand.ExecuteAsync(null);
+        Assert.Equal([0, 25], requestedOffsets);
+        Assert.Equal(26, viewModel.StockAdjustmentHistory.Count);
+        Assert.False(viewModel.HistoryHasMore);
+        Assert.False(viewModel.CanLoadMoreHistory);
+    }
+
+    [Fact]
+    public async Task ChangingSelectedInventoryItemClearsLoadedHistory()
+    {
+        InventoryItemDto first = CreateItem();
+        InventoryItemDto second = CreateItem() with { Id = Guid.NewGuid(), ProductId = Guid.NewGuid(), Sku = "MOUSE-001" };
+        InventoryStockAdjustmentHistoryItemDto historyItem = CreateHistoryItem(first.Id, 1);
+        var apiClient = new StubInventoryApiClient(
+            (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>([first, second]),
+            getHistory: (_, offset, limit, _) => Task.FromResult(new InventoryStockAdjustmentHistoryPageDto([historyItem], offset, limit, false)));
+        InventoryViewModel viewModel = CreateViewModel(apiClient);
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedItem = first;
+        await viewModel.LoadStockAdjustmentHistoryCommand.ExecuteAsync(null);
+        Assert.Single(viewModel.StockAdjustmentHistory);
+        viewModel.SelectedItem = second;
+        Assert.Empty(viewModel.StockAdjustmentHistory);
+        Assert.Null(viewModel.SelectedHistoryItem);
+        Assert.False(viewModel.HasHistoryLoaded);
+        Assert.Equal("Adjustment history not loaded for MOUSE-001.", viewModel.HistoryStatusText);
+    }
+
+    [Fact]
+    public async Task SuccessfulStockAdjustmentInvalidatesPreviouslyLoadedHistory()
+    {
+        InventoryItemDto original = CreateItem();
+        InventoryItemDto adjusted = original with { OnHandQuantity = 21, AvailableQuantity = 16, Version = 43 };
+        InventoryStockAdjustmentHistoryItemDto historyItem = CreateHistoryItem(original.Id, 1);
+        var apiClient = new StubInventoryApiClient(
+            (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>([original]),
+            (request, _) => Task.FromResult(new InventoryStockAdjustmentResult(adjusted, false, request.IdempotencyKey)),
+            getHistory: (_, offset, limit, _) => Task.FromResult(new InventoryStockAdjustmentHistoryPageDto([historyItem], offset, limit, false)));
+        var dialogService = new StubInventoryStockAdjustmentDialogService(new InventoryStockAdjustmentDraft(1, "Physical count correction"));
+        InventoryViewModel viewModel = CreateViewModel(apiClient, CreateAdminAuthentication(), dialogService);
+        await viewModel.LoadInventoryCommand.ExecuteAsync(null);
+        viewModel.SelectedItem = original;
+        await viewModel.LoadStockAdjustmentHistoryCommand.ExecuteAsync(null);
+        Assert.Single(viewModel.StockAdjustmentHistory);
+        await viewModel.AdjustSelectedStockCommand.ExecuteAsync(null);
+        Assert.Empty(viewModel.StockAdjustmentHistory);
+        Assert.False(viewModel.HasHistoryLoaded);
+        Assert.Equal("Adjustment history not loaded for KEY-001.", viewModel.HistoryStatusText);
+    }
+
+    private static InventoryStockAdjustmentHistoryItemDto CreateHistoryItem(Guid inventoryItemId, int sequence)
+    {
+        return new InventoryStockAdjustmentHistoryItemDto(
+            Guid.NewGuid(), inventoryItemId, Guid.NewGuid(), "KEY-001", sequence, 42,
+            $"Adjustment {sequence}", "admin-123", "anna.admin", $"trace-{sequence}",
+            "Success", null, 20, 5, 15, 20 + sequence, 5, 15 + sequence, 43,
+            DateTimeOffset.Parse("2026-08-30T10:00:00+00:00", CultureInfo.InvariantCulture).AddMinutes(sequence));
+    }
+
     private static InventoryViewModel CreateViewModel(
         IInventoryApiClient apiClient,
         AuthenticationState? authentication = null,
@@ -327,7 +437,13 @@ public sealed class InventoryViewModelTests
         Func<
             InventoryStockAdjustmentRequest,
             CancellationToken,
-            Task<InventoryStockAdjustmentResult>>? adjustStock = null)
+            Task<InventoryStockAdjustmentResult>>? adjustStock = null,
+        Func<
+            Guid,
+            int,
+            int,
+            CancellationToken,
+            Task<InventoryStockAdjustmentHistoryPageDto>>? getHistory = null)
         : IInventoryApiClient
     {
         public Task<IReadOnlyList<InventoryItemDto>>
@@ -337,6 +453,26 @@ public sealed class InventoryViewModelTests
         {
             return getItems(
                 includeInactive,
+                cancellationToken);
+        }
+
+        public Task<InventoryStockAdjustmentHistoryPageDto>
+            GetStockAdjustmentHistoryAsync(
+                Guid inventoryItemId,
+                int offset,
+                int limit,
+                CancellationToken cancellationToken)
+        {
+            if (getHistory is null)
+            {
+                throw new InvalidOperationException(
+                    "Stock adjustment history was not expected in this test.");
+            }
+
+            return getHistory(
+                inventoryItemId,
+                offset,
+                limit,
                 cancellationToken);
         }
 
@@ -353,6 +489,7 @@ public sealed class InventoryViewModelTests
 
             return adjustStock(request, cancellationToken);
         }
+
     }
 
     private sealed class StubInventoryStockAdjustmentDialogService(

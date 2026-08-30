@@ -19,12 +19,16 @@ namespace Eshop.Operations.Desktop.ViewModels;
 
 public sealed partial class InventoryViewModel : ObservableObject
 {
+    private const int StockAdjustmentHistoryPageSize = 25;
+
     private readonly IInventoryApiClient _inventoryApiClient;
     private readonly IInventoryStockAdjustmentDialogService
         _stockAdjustmentDialogService;
     private readonly ILogger<InventoryViewModel> _logger;
 
     private InventoryStockAdjustmentRequest? _unknownOutcomeRequest;
+    private Guid? _historyInventoryItemId;
+    private int _historyNextOffset;
 
     public InventoryViewModel(
         IInventoryApiClient inventoryApiClient,
@@ -49,6 +53,9 @@ public sealed partial class InventoryViewModel : ObservableObject
     }
 
     public ObservableCollection<InventoryItemDto> Items { get; } = [];
+
+    public ObservableCollection<InventoryStockAdjustmentHistoryItemDto>
+        StockAdjustmentHistory { get; } = [];
     public AuthenticationState Authentication { get; }
     public ICollectionView ItemsView { get; }
 
@@ -61,6 +68,11 @@ public sealed partial class InventoryViewModel : ObservableObject
     ];
 
     public bool HasItems => Items.Count > 0;
+    public bool HasHistory => StockAdjustmentHistory.Count > 0;
+    public bool HasHistoryError => !string.IsNullOrWhiteSpace(HistoryErrorMessage);
+    public bool IsHistoryEmpty => HasHistoryLoaded && !IsHistoryLoading && HistoryErrorMessage is null && StockAdjustmentHistory.Count == 0;
+    public bool CanLoadHistory => SelectedItem is not null && !IsHistoryLoading;
+    public bool CanLoadMoreHistory => SelectedItem is not null && _historyInventoryItemId == SelectedItem.Id && HasHistoryLoaded && HistoryHasMore && !IsHistoryLoading;
     public bool HasVisibleItems => !ItemsView.IsEmpty;
     public bool IsInitialState => !HasLoaded && !IsLoading && ErrorMessage is null;
     public bool IsEmpty => HasLoaded && !IsLoading && ErrorMessage is null && Items.Count == 0;
@@ -74,7 +86,12 @@ public sealed partial class InventoryViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartStockAdjustment))]
+    [NotifyPropertyChangedFor(nameof(CanLoadHistory))]
+    [NotifyPropertyChangedFor(nameof(CanLoadMoreHistory))]
     public partial InventoryItemDto? SelectedItem { get; set; }
+
+    [ObservableProperty]
+    public partial InventoryStockAdjustmentHistoryItemDto? SelectedHistoryItem { get; set; }
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
@@ -115,6 +132,35 @@ public sealed partial class InventoryViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string? UnknownOutcomeMessage { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLoadHistory))]
+    [NotifyPropertyChangedFor(nameof(CanLoadMoreHistory))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryEmpty))]
+    public partial bool IsHistoryLoading { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHistoryEmpty))]
+    [NotifyPropertyChangedFor(nameof(CanLoadMoreHistory))]
+    public partial bool HasHistoryLoaded { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanLoadMoreHistory))]
+    public partial bool HistoryHasMore { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHistoryError))]
+    [NotifyPropertyChangedFor(nameof(IsHistoryEmpty))]
+    public partial string? HistoryErrorMessage { get; private set; }
+
+    [ObservableProperty]
+    public partial string HistoryStatusText { get; private set; } =
+        "Select an inventory item to inspect adjustment history.";
+
+    partial void OnSelectedItemChanged(InventoryItemDto? value)
+    {
+        ResetStockAdjustmentHistory(value);
+    }
 
     partial void OnSearchTextChanged(string value) => RefreshItemsView();
 
@@ -172,6 +218,177 @@ public sealed partial class InventoryViewModel : ObservableObject
             StatusText = "Inventory load failed.";
         }
         finally { IsLoading = false; }
+    }
+
+    [RelayCommand]
+    private async Task LoadStockAdjustmentHistoryAsync(
+        CancellationToken cancellationToken)
+    {
+        InventoryItemDto? selectedItem = SelectedItem;
+        if (selectedItem is null)
+        {
+            HistoryStatusText =
+                "Select an inventory item before loading adjustment history.";
+            return;
+        }
+
+        await LoadStockAdjustmentHistoryPageAsync(
+            selectedItem,
+            offset: 0,
+            replaceExisting: true,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task LoadMoreStockAdjustmentHistoryAsync(
+        CancellationToken cancellationToken)
+    {
+        InventoryItemDto? selectedItem = SelectedItem;
+        if (selectedItem is null
+            || _historyInventoryItemId != selectedItem.Id
+            || !HasHistoryLoaded
+            || !HistoryHasMore)
+        {
+            return;
+        }
+
+        await LoadStockAdjustmentHistoryPageAsync(
+            selectedItem,
+            _historyNextOffset,
+            replaceExisting: false,
+            cancellationToken);
+    }
+
+    private async Task LoadStockAdjustmentHistoryPageAsync(
+        InventoryItemDto selectedItem,
+        int offset,
+        bool replaceExisting,
+        CancellationToken cancellationToken)
+    {
+        IsHistoryLoading = true;
+        HistoryErrorMessage = null;
+        HistoryStatusText = replaceExisting
+            ? $"Loading adjustment history for {selectedItem.Sku}..."
+            : $"Loading more adjustment history for {selectedItem.Sku}...";
+
+        try
+        {
+            InventoryStockAdjustmentHistoryPageDto page =
+                await _inventoryApiClient.GetStockAdjustmentHistoryAsync(
+                    selectedItem.Id,
+                    offset,
+                    StockAdjustmentHistoryPageSize,
+                    cancellationToken);
+
+            if (SelectedItem?.Id != selectedItem.Id)
+            {
+                return;
+            }
+
+            if (replaceExisting)
+            {
+                StockAdjustmentHistory.Clear();
+                _historyInventoryItemId = selectedItem.Id;
+            }
+            else if (_historyInventoryItemId != selectedItem.Id)
+            {
+                return;
+            }
+
+            HashSet<Guid> existingOperationIds =
+                StockAdjustmentHistory.Select(item => item.OperationId).ToHashSet();
+
+            foreach (InventoryStockAdjustmentHistoryItemDto item in page.Items)
+            {
+                if (existingOperationIds.Add(item.OperationId))
+                {
+                    StockAdjustmentHistory.Add(item);
+                }
+            }
+
+            _historyNextOffset = page.Offset + page.Items.Count;
+            HistoryHasMore = page.HasMore;
+            HasHistoryLoaded = true;
+
+            if (replaceExisting)
+            {
+                SelectedHistoryItem = StockAdjustmentHistory.FirstOrDefault();
+            }
+
+            HistoryStatusText = StockAdjustmentHistory.Count == 0
+                ? $"No stock adjustments recorded for {selectedItem.Sku}."
+                : HistoryHasMore
+                    ? $"{StockAdjustmentHistory.Count} adjustment record(s) loaded. More history is available."
+                    : $"{StockAdjustmentHistory.Count} adjustment record(s) loaded.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            HistoryStatusText = "Adjustment history load canceled.";
+        }
+        catch (UnauthorizedAccessException)
+        {
+            HistoryErrorMessage = "Authentication is required to load adjustment history.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            HistoryErrorMessage = "Your authentication session expired. Sign in again.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (ApiRequestException exception) when (exception.StatusCode == HttpStatusCode.Forbidden)
+        {
+            HistoryErrorMessage = "Your account does not have permission to view adjustment history.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (ApiRequestException exception)
+        {
+            HistoryErrorMessage = GetApiFailureMessage(exception, "The adjustment history request failed.");
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (OperationCanceledException)
+        {
+            HistoryErrorMessage = "The adjustment history request timed out.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (HttpRequestException)
+        {
+            HistoryErrorMessage = "The API Gateway could not be reached.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        catch (Exception exception)
+        {
+            LogUnexpectedHistoryFailure(_logger, exception);
+            HistoryErrorMessage = "An unexpected error occurred while loading adjustment history.";
+            HistoryStatusText = "Adjustment history load failed.";
+        }
+        finally
+        {
+            IsHistoryLoading = false;
+            NotifyHistoryCollectionStateChanged();
+        }
+    }
+
+    private void ResetStockAdjustmentHistory(InventoryItemDto? selectedItem)
+    {
+        _historyInventoryItemId = null;
+        _historyNextOffset = 0;
+        StockAdjustmentHistory.Clear();
+        SelectedHistoryItem = null;
+        HasHistoryLoaded = false;
+        HistoryHasMore = false;
+        HistoryErrorMessage = null;
+        HistoryStatusText = selectedItem is null
+            ? "Select an inventory item to inspect adjustment history."
+            : $"Adjustment history not loaded for {selectedItem.Sku}.";
+        NotifyHistoryCollectionStateChanged();
+    }
+
+    private void NotifyHistoryCollectionStateChanged()
+    {
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(IsHistoryEmpty));
+        OnPropertyChanged(nameof(CanLoadHistory));
+        OnPropertyChanged(nameof(CanLoadMoreHistory));
     }
 
     [RelayCommand]
@@ -382,4 +599,10 @@ public sealed partial class InventoryViewModel : ObservableObject
 
     [LoggerMessage(EventId = 5102, Level = LogLevel.Error, Message = "An unexpected client error occurred while processing an inventory stock adjustment.")]
     private static partial void LogUnexpectedStockAdjustmentFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 5103,
+        Level = LogLevel.Error,
+        Message = "An unexpected error occurred while loading inventory stock adjustment history.")]
+    private static partial void LogUnexpectedHistoryFailure(ILogger logger, Exception exception);
 }

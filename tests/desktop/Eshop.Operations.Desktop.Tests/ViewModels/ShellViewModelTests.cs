@@ -333,6 +333,17 @@ public sealed class ShellViewModelTests
                 []);
         }
 
+        public Task<InventoryStockAdjustmentHistoryPageDto>
+            GetStockAdjustmentHistoryAsync(
+                Guid inventoryItemId,
+                int offset,
+                int limit,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Stock adjustment history was not expected in this test.");
+        }
+
         public Task<InventoryStockAdjustmentResult>
             AdjustStockAsync(
                 InventoryStockAdjustmentRequest request,

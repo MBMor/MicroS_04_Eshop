@@ -122,6 +122,92 @@ public sealed partial class InventoryApiClient
         }
     }
 
+    public async Task<InventoryStockAdjustmentHistoryPageDto>
+        GetStockAdjustmentHistoryAsync(
+            Guid inventoryItemId,
+            int offset,
+            int limit,
+            CancellationToken cancellationToken)
+    {
+        if (inventoryItemId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Inventory item id must not be empty.",
+                nameof(inventoryItemId));
+        }
+
+        if (offset < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(offset),
+                offset,
+                "Offset must not be negative.");
+        }
+
+        if (limit is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(limit),
+                limit,
+                "Limit must be between 1 and 100.");
+        }
+
+        string requestPath =
+            FormattableString.Invariant(
+                $"{InventoryItemsPath}/{inventoryItemId:D}/stock-adjustments?offset={offset}&limit={limit}");
+
+        using HttpClient httpClient =
+            _httpClientFactory.CreateClient(HttpClientName);
+
+        using var request =
+            new HttpRequestMessage(HttpMethod.Get, requestPath);
+
+        try
+        {
+            using HttpResponseMessage response =
+                await httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ApiProblemDetails? problemDetails =
+                    await TryReadProblemDetailsAsync(response, cancellationToken);
+
+                LogHttpFailure(
+                    _logger,
+                    requestPath,
+                    (int)response.StatusCode,
+                    problemDetails?.ErrorCode,
+                    problemDetails?.TraceId,
+                    problemDetails?.RequestId);
+
+                throw new ApiRequestException(response.StatusCode, problemDetails);
+            }
+
+            InventoryStockAdjustmentHistoryPageDto? page =
+                await response.Content.ReadFromJsonAsync<InventoryStockAdjustmentHistoryPageDto>(
+                    JsonOptions,
+                    cancellationToken);
+
+            return page
+                ?? throw new JsonException(
+                    "Inventory stock adjustment history response body was empty.");
+        }
+        catch (HttpRequestException exception)
+        {
+            LogTransportFailure(_logger, exception, requestPath);
+            throw;
+        }
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            LogTimeout(_logger, exception, requestPath);
+            throw;
+        }
+    }
+
     public async Task<InventoryStockAdjustmentResult>
         AdjustStockAsync(
             InventoryStockAdjustmentRequest request,

@@ -100,6 +100,81 @@ public sealed class InventoryApiClientTests
 
     [Fact]
     public async Task
+        GetStockAdjustmentHistoryAsyncMapsBoundedPage()
+    {
+        Guid inventoryItemId = Guid.Parse("56bc4387-e277-4ad5-bd64-1724575a8d98");
+        const string json =
+            """
+            {
+              "items": [
+                {
+                  "operationId": "69f9379e-2f2c-42ae-b2ac-14a06868e126",
+                  "inventoryItemId": "56bc4387-e277-4ad5-bd64-1724575a8d98",
+                  "productId": "714db4a2-af39-4bfd-ae09-a79584af31ef",
+                  "sku": "KEY-001",
+                  "quantityDelta": -5,
+                  "expectedVersion": 42,
+                  "reason": "Physical count correction",
+                  "actorSubject": "admin-123",
+                  "actorUsername": "anna.admin",
+                  "traceId": "trace-123",
+                  "outcome": "Success",
+                  "error": null,
+                  "onHandBefore": 20,
+                  "reservedBefore": 5,
+                  "availableBefore": 15,
+                  "onHandAfter": 15,
+                  "reservedAfter": 5,
+                  "availableAfter": 10,
+                  "resultVersion": 43,
+                  "occurredAtUtc": "2026-08-30T10:00:00+00:00"
+                }
+              ],
+              "offset": 0,
+              "limit": 25,
+              "hasMore": true
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            Assert.Equal(
+                $"http://localhost:5080/api/v1/inventory-items/{inventoryItemId}/stock-adjustments?offset=0&limit=25",
+                request.RequestUri?.ToString());
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+        });
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("http://localhost:5080/", UriKind.Absolute)
+        };
+        var client = new InventoryApiClient(
+            new StubHttpClientFactory(httpClient),
+            NullLogger<InventoryApiClient>.Instance);
+
+        InventoryStockAdjustmentHistoryPageDto page =
+            await client.GetStockAdjustmentHistoryAsync(
+                inventoryItemId, 0, 25, CancellationToken.None);
+
+        Assert.Equal(0, page.Offset);
+        Assert.Equal(25, page.Limit);
+        Assert.True(page.HasMore);
+        InventoryStockAdjustmentHistoryItemDto item = Assert.Single(page.Items);
+        Assert.Equal(-5, item.QuantityDelta);
+        Assert.Equal("anna.admin", item.ActorUsername);
+        Assert.Equal("Physical count correction", item.Reason);
+        Assert.Equal("Success", item.Outcome);
+        Assert.Equal(20, item.OnHandBefore);
+        Assert.Equal(15, item.OnHandAfter);
+        Assert.Equal(43, item.ResultVersion);
+    }
+
+    [Fact]
+    public async Task
         AdjustStockAsyncSendsSafetyContractAndMapsSuccessfulResponse()
     {
         Guid itemId = Guid.Parse("56bc4387-e277-4ad5-bd64-1724575a8d98");

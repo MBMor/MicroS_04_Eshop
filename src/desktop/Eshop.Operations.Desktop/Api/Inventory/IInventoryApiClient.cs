@@ -7,6 +7,13 @@ public interface IInventoryApiClient
             bool includeInactive,
             CancellationToken cancellationToken);
 
+    Task<InventoryStockAdjustmentHistoryPageDto>
+        GetStockAdjustmentHistoryAsync(
+            Guid inventoryItemId,
+            int offset,
+            int limit,
+            CancellationToken cancellationToken);
+
     Task<InventoryStockAdjustmentResult>
         AdjustStockAsync(
             InventoryStockAdjustmentRequest request,
