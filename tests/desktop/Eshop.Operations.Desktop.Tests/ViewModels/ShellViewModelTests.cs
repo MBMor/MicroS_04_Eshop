@@ -4,6 +4,8 @@ using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Api.Payments;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
+using Eshop.Operations.Desktop.Models;
+using Eshop.Operations.Desktop.Services;
 using Eshop.Operations.Desktop.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -252,9 +254,14 @@ public sealed class ShellViewModelTests
                 new StubCatalogApiClient(),
                 NullLogger<CatalogViewModel>.Instance);
 
+        authentication ??=
+            new AuthenticationState();
+
         var inventoryViewModel =
             new InventoryViewModel(
                 new StubInventoryApiClient(),
+                authentication,
+                new StubInventoryStockAdjustmentDialogService(),
                 NullLogger<InventoryViewModel>.Instance);
 
         var paymentsViewModel =
@@ -264,9 +271,6 @@ public sealed class ShellViewModelTests
 
         DiagnosticsViewModel diagnosticsViewModel =
             CreateDiagnosticsViewModel();
-
-        authentication ??=
-            new AuthenticationState();
 
         var authenticationService =
             new StubAuthenticationService();
@@ -366,6 +370,16 @@ public sealed class ShellViewModelTests
         {
             return Task.FromResult(
                 AuthenticationOperationResult.Success());
+        }
+    }
+
+    private sealed class StubInventoryStockAdjustmentDialogService
+        : IInventoryStockAdjustmentDialogService
+    {
+        public InventoryStockAdjustmentDraft? ShowConfirmation(
+            InventoryItemDto item)
+        {
+            return null;
         }
     }
 }

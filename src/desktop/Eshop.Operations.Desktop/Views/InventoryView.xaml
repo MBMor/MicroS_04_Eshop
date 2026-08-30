@@ -6,6 +6,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -26,6 +27,14 @@
                         Style="{StaticResource ToolbarButtonStyle}"
                         Command="{Binding LoadInventoryCancelCommand}"
                         Content="Cancel" />
+                <Button Width="110"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding AdjustSelectedStockCommand}"
+                        IsEnabled="{Binding CanStartStockAdjustment}"
+                        Content="Adjust stock"
+                        Visibility="{Binding Authentication.CanAdjustInventory,
+                                     Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock Margin="16,0,0,0"
                            VerticalAlignment="Center"
                            Style="{StaticResource MutedTextStyle}"
@@ -81,7 +90,53 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="2">
+        <StackPanel Grid.Row="2">
+            <Border Margin="0,0,0,12"
+                    Style="{StaticResource ErrorPanelBorderStyle}"
+                    Visibility="{Binding HasAdjustmentError,
+                                 Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource ErrorTitleTextStyle}"
+                               Text="Stock adjustment failed" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding AdjustmentErrorMessage}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,0,12"
+                    Style="{StaticResource ErrorPanelBorderStyle}"
+                    Visibility="{Binding HasUnknownAdjustmentOutcome,
+                                 Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource ErrorTitleTextStyle}"
+                               Text="Stock adjustment outcome unknown" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding UnknownOutcomeMessage}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="0,8,0,0"
+                               Style="{StaticResource FieldLabelTextStyle}"
+                               Text="Operation ID" />
+                    <TextBox Margin="0,4,0,0"
+                             IsReadOnly="True"
+                             Text="{Binding UnknownOutcomeOperationId,
+                                            Mode=OneWay}" />
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal">
+                        <Button Style="{StaticResource ToolbarButtonStyle}"
+                                Command="{Binding RetryUnknownStockAdjustmentCommand}"
+                                IsEnabled="{Binding CanRetryUnknownStockAdjustment}"
+                                Content="Retry same operation" />
+                        <TextBlock Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Text="Do not create a new adjustment while this operation is unresolved." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <Grid Grid.Row="3">
 
             <TextBlock HorizontalAlignment="Center"
                        VerticalAlignment="Center"
