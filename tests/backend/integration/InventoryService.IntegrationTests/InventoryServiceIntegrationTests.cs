@@ -1519,6 +1519,117 @@ public sealed class InventoryServiceIntegrationTests(
         Assert.Equal(11, persisted.OnHandQuantity);
     }
 
+    [Fact]
+    public async Task
+        GetStockAdjustmentHistorySupportUserReturnsNewestFirstAndPaged()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(initialOnHandQuantity: 10);
+
+        DateTimeOffset olderOccurredAt =
+            new(2026, 8, 30, 10, 0, 0, TimeSpan.Zero);
+        DateTimeOffset newerOccurredAt = olderOccurredAt.AddMinutes(5);
+
+        await using (AsyncServiceScope scope =
+            fixture.Factory.Services.CreateAsyncScope())
+        {
+            InventoryDbContext dbContext =
+                scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+
+            InventoryStockAdjustmentOperation older =
+                InventoryStockAdjustmentOperation.Begin(
+                    Guid.NewGuid(), created.Id, 1, created.Version,
+                    "Older adjustment", "admin-old", "anna.old", "trace-old",
+                    olderOccurredAt);
+            older.CompleteFailure(
+                InventoryStockAdjustmentOutcome.Conflict,
+                "Older test conflict.");
+
+            InventoryStockAdjustmentOperation newer =
+                InventoryStockAdjustmentOperation.Begin(
+                    Guid.NewGuid(), created.Id, 2, created.Version,
+                    "Newer adjustment", "admin-new", "anna.new", "trace-new",
+                    newerOccurredAt);
+            newer.CompleteFailure(
+                InventoryStockAdjustmentOutcome.Conflict,
+                "Newer test conflict.");
+
+            dbContext.InventoryStockAdjustmentOperations.AddRange(older, newer);
+            await dbContext.SaveChangesAsync(
+                Xunit.TestContext.Current.CancellationToken);
+        }
+
+        using HttpResponseMessage firstPageResponse =
+            await SendAuthenticatedAsync(
+                HttpMethod.Get,
+                $"{InventoryPath}/{created.Id}/stock-adjustments?offset=0&limit=1",
+                EshopRoles.Support);
+        Assert.Equal(HttpStatusCode.OK, firstPageResponse.StatusCode);
+
+        InventoryStockAdjustmentHistoryPageResponse? firstPage =
+            await firstPageResponse.Content.ReadFromJsonAsync<InventoryStockAdjustmentHistoryPageResponse>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(firstPage);
+        Assert.Equal(0, firstPage.Offset);
+        Assert.Equal(1, firstPage.Limit);
+        Assert.True(firstPage.HasMore);
+        InventoryStockAdjustmentHistoryItemResponse first = Assert.Single(firstPage.Items);
+        Assert.Equal("Newer adjustment", first.Reason);
+        Assert.Equal("anna.new", first.ActorUsername);
+        Assert.Equal("Conflict", first.Outcome);
+
+        using HttpResponseMessage secondPageResponse =
+            await SendAuthenticatedAsync(
+                HttpMethod.Get,
+                $"{InventoryPath}/{created.Id}/stock-adjustments?offset=1&limit=1",
+                EshopRoles.Support);
+        Assert.Equal(HttpStatusCode.OK, secondPageResponse.StatusCode);
+        InventoryStockAdjustmentHistoryPageResponse? secondPage =
+            await secondPageResponse.Content.ReadFromJsonAsync<InventoryStockAdjustmentHistoryPageResponse>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(secondPage);
+        Assert.False(secondPage.HasMore);
+        InventoryStockAdjustmentHistoryItemResponse second = Assert.Single(secondPage.Items);
+        Assert.Equal("Older adjustment", second.Reason);
+    }
+
+    [Fact]
+    public async Task
+        GetStockAdjustmentHistoryInvalidLimitReturnsValidationProblem()
+    {
+        InventoryItemResponse created = await CreateInventoryItemAsync();
+        using HttpResponseMessage response = await SendAuthenticatedAsync(
+            HttpMethod.Get,
+            $"{InventoryPath}/{created.Id}/stock-adjustments?limit=101",
+            EshopRoles.Support);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        ValidationProblemDetails? problem =
+            await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(problem);
+        Assert.Contains("limit", problem.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task
+        GetStockAdjustmentHistoryWithoutOperationsReturnsEmptyPage()
+    {
+        InventoryItemResponse created = await CreateInventoryItemAsync();
+        using HttpResponseMessage response = await SendAuthenticatedAsync(
+            HttpMethod.Get,
+            $"{InventoryPath}/{created.Id}/stock-adjustments",
+            EshopRoles.Support);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        InventoryStockAdjustmentHistoryPageResponse? page =
+            await response.Content.ReadFromJsonAsync<InventoryStockAdjustmentHistoryPageResponse>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(page);
+        Assert.Empty(page.Items);
+        Assert.False(page.HasMore);
+        Assert.Equal(0, page.Offset);
+        Assert.Equal(50, page.Limit);
+    }
+
     private async Task<ReserveOrderStockResult[]>
         ExecuteConcurrentReservationsAsync(
             SaveChangesInterceptor interceptor,

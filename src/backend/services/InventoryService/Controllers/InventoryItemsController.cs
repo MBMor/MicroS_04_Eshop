@@ -174,6 +174,63 @@ public sealed class InventoryItemsController(
         return MapFailure(result);
     }
 
+    [HttpGet("{id:guid}/stock-adjustments")]
+    [ProducesResponseType<InventoryStockAdjustmentHistoryPageResponse>(
+        StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(
+        StatusCodes.Status500InternalServerError)]
+    public async Task<
+        ActionResult<InventoryStockAdjustmentHistoryPageResponse>>
+        GetInventoryStockAdjustmentHistory(
+            Guid id,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 50,
+            CancellationToken cancellationToken = default)
+    {
+        if (offset < 0)
+        {
+            ModelState.AddModelError(
+                nameof(offset),
+                "Offset must not be negative.");
+        }
+
+        if (limit < 1 || limit > 100)
+        {
+            ModelState.AddModelError(
+                nameof(limit),
+                "Limit must be between 1 and 100.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        InventoryStockAdjustmentHistoryPage page =
+            await inventoryService
+                .ListStockAdjustmentHistoryAsync(
+                    id,
+                    offset,
+                    limit,
+                    cancellationToken);
+
+        InventoryStockAdjustmentHistoryItemResponse[] items =
+            page.Items
+                .Select(
+                    InventoryStockAdjustmentHistoryItemResponse
+                        .FromOperation)
+                .ToArray();
+
+        return Ok(
+            new InventoryStockAdjustmentHistoryPageResponse(
+                items,
+                page.Offset,
+                page.Limit,
+                page.HasMore));
+    }
+
     [Authorize(Policy = EshopPolicies.AdminOnly)]
     [HttpPost("{id:guid}/stock-adjustments")]
     [Consumes("application/json")]

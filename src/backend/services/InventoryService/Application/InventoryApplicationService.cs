@@ -349,6 +349,45 @@ public sealed class InventoryApplicationService(
             isReplay: false);
     }
 
+    public async Task<InventoryStockAdjustmentHistoryPage>
+        ListStockAdjustmentHistoryAsync(
+            Guid inventoryItemId,
+            int offset,
+            int limit,
+            CancellationToken cancellationToken)
+    {
+        List<InventoryStockAdjustmentOperation> operations =
+            await dbContext.InventoryStockAdjustmentOperations
+                .AsNoTracking()
+                .Where(
+                    operation =>
+                        operation.InventoryItemId
+                        == inventoryItemId)
+                .OrderByDescending(
+                    operation =>
+                        operation.OccurredAtUtc)
+                .ThenByDescending(
+                    operation =>
+                        operation.Id)
+                .Skip(offset)
+                .Take(limit + 1)
+                .ToListAsync(cancellationToken);
+
+        bool hasMore =
+            operations.Count > limit;
+
+        if (hasMore)
+        {
+            operations.RemoveAt(limit);
+        }
+
+        return new InventoryStockAdjustmentHistoryPage(
+            operations,
+            offset,
+            limit,
+            hasMore);
+    }
+
     private static InventoryStockAdjustmentExecutionResult
         ResolveExistingStockAdjustment(
             InventoryStockAdjustmentOperation operation,
