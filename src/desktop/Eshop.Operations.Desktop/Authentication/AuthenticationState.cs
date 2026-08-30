@@ -17,17 +17,23 @@ public sealed partial class AuthenticationState : ObservableObject
         CurrentUser is null;
 
     public bool CanAccessOperations =>
-    CurrentUser?.Roles.Contains(
-        "support",
-        StringComparer.Ordinal) == true
-    || CurrentUser?.Roles.Contains(
-        "admin",
-        StringComparer.Ordinal) == true;
+        CurrentUser?.Roles.Contains(
+            "support",
+            StringComparer.Ordinal) == true
+        || CurrentUser?.Roles.Contains(
+            "admin",
+            StringComparer.Ordinal) == true;
+
+    public bool CanAdjustInventory =>
+        CurrentUser?.Roles.Contains(
+            "admin",
+            StringComparer.Ordinal) == true;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsAuthenticated))]
     [NotifyPropertyChangedFor(nameof(IsAnonymous))]
     [NotifyPropertyChangedFor(nameof(CanAccessOperations))]
+    [NotifyPropertyChangedFor(nameof(CanAdjustInventory))]
     public partial AuthenticatedUser? CurrentUser
     {
         get;

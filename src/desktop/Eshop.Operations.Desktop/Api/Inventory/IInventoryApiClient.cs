@@ -6,4 +6,9 @@ public interface IInventoryApiClient
         GetInventoryItemsAsync(
             bool includeInactive,
             CancellationToken cancellationToken);
+
+    Task<InventoryStockAdjustmentResult>
+        AdjustStockAsync(
+            InventoryStockAdjustmentRequest request,
+            CancellationToken cancellationToken);
 }

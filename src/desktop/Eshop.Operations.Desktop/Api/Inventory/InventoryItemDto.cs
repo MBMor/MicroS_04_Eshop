@@ -9,4 +9,5 @@ public sealed record InventoryItemDto(
     int AvailableQuantity,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? UpdatedAtUtc);
+    DateTimeOffset? UpdatedAtUtc,
+    uint Version);

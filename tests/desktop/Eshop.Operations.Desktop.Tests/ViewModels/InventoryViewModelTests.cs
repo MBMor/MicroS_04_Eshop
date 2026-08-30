@@ -199,7 +199,8 @@ public sealed class InventoryViewModelTests
             DateTimeOffset.Parse(
                 "2026-08-01T10:00:00+00:00",
                 CultureInfo.InvariantCulture),
-            null);
+            null,
+            42);
     }
 
     private sealed class StubInventoryApiClient(
@@ -217,6 +218,15 @@ public sealed class InventoryViewModelTests
             return getItems(
                 includeInactive,
                 cancellationToken);
+        }
+
+        public Task<InventoryStockAdjustmentResult>
+            AdjustStockAsync(
+                InventoryStockAdjustmentRequest request,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Stock adjustment was not expected in this test.");
         }
     }
 

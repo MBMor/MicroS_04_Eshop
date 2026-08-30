@@ -328,6 +328,15 @@ public sealed class ShellViewModelTests
                 IReadOnlyList<InventoryItemDto>>(
                 []);
         }
+
+        public Task<InventoryStockAdjustmentResult>
+            AdjustStockAsync(
+                InventoryStockAdjustmentRequest request,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Stock adjustment was not expected in this test.");
+        }
     }
 
     private sealed class StubPaymentsApiClient
