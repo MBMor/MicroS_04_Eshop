@@ -380,6 +380,150 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
+        StockAdjustmentOperationPersistsAuditSnapshot()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        Guid idempotencyKey = Guid.NewGuid();
+
+        await using AsyncServiceScope scope =
+            fixture.Factory.Services
+                .CreateAsyncScope();
+
+        InventoryDbContext dbContext =
+            scope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryItem item =
+            await dbContext.InventoryItems
+                .SingleAsync(
+                    candidate => candidate.Id == created.Id,
+                    Xunit.TestContext.Current.CancellationToken);
+
+        int onHandBefore = item.OnHandQuantity;
+        int reservedBefore = item.ReservedQuantity;
+        int availableBefore = item.AvailableQuantity;
+
+        InventoryStockAdjustmentOperation operation =
+            InventoryStockAdjustmentOperation.Begin(
+                idempotencyKey,
+                item.Id,
+                quantityDelta: 2,
+                expectedVersion: item.Version,
+                reason: "Physical stock count correction",
+                actorSubject: "admin-123",
+                actorUsername: "anna.admin",
+                traceId: "trace-123",
+                occurredAtUtc: DateTimeOffset.UtcNow);
+
+        item.AdjustOnHandQuantity(
+            quantityDelta: 2,
+            DateTimeOffset.UtcNow);
+
+        await dbContext.SaveChangesAsync(
+            Xunit.TestContext.Current.CancellationToken);
+
+        operation.CompleteSuccess(
+            item,
+            onHandBefore,
+            reservedBefore,
+            availableBefore);
+
+        dbContext.InventoryStockAdjustmentOperations.Add(operation);
+
+        await dbContext.SaveChangesAsync(
+            Xunit.TestContext.Current.CancellationToken);
+
+        dbContext.ChangeTracker.Clear();
+
+        InventoryStockAdjustmentOperation persisted =
+            await dbContext.InventoryStockAdjustmentOperations
+                .AsNoTracking()
+                .SingleAsync(
+                    candidate => candidate.IdempotencyKey == idempotencyKey,
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            InventoryStockAdjustmentOutcome.Success,
+            persisted.Outcome);
+        Assert.Equal(created.Id, persisted.InventoryItemId);
+        Assert.Equal(2, persisted.QuantityDelta);
+        Assert.Equal(
+            "Physical stock count correction",
+            persisted.Reason);
+        Assert.Equal("admin-123", persisted.ActorSubject);
+        Assert.Equal("anna.admin", persisted.ActorUsername);
+        Assert.Equal(10, persisted.OnHandBefore);
+        Assert.Equal(12, persisted.OnHandAfter);
+        Assert.Equal(item.Version, persisted.ResultVersion);
+    }
+
+    [Fact]
+    public async Task
+        StockAdjustmentOperationRejectsDuplicateIdempotencyKey()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        Guid idempotencyKey = Guid.NewGuid();
+
+        await using AsyncServiceScope scope =
+            fixture.Factory.Services
+                .CreateAsyncScope();
+
+        InventoryDbContext dbContext =
+            scope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryStockAdjustmentOperation first =
+            InventoryStockAdjustmentOperation.Begin(
+                idempotencyKey,
+                created.Id,
+                quantityDelta: 1,
+                expectedVersion: created.Version,
+                reason: "First adjustment",
+                actorSubject: "admin-123",
+                actorUsername: "anna.admin",
+                traceId: null,
+                occurredAtUtc: DateTimeOffset.UtcNow);
+
+        first.CompleteFailure(
+            InventoryStockAdjustmentOutcome.Conflict,
+            "Test operation.");
+
+        dbContext.InventoryStockAdjustmentOperations.Add(first);
+
+        await dbContext.SaveChangesAsync(
+            Xunit.TestContext.Current.CancellationToken);
+
+        InventoryStockAdjustmentOperation duplicate =
+            InventoryStockAdjustmentOperation.Begin(
+                idempotencyKey,
+                created.Id,
+                quantityDelta: 1,
+                expectedVersion: created.Version,
+                reason: "First adjustment",
+                actorSubject: "admin-123",
+                actorUsername: "anna.admin",
+                traceId: null,
+                occurredAtUtc: DateTimeOffset.UtcNow);
+
+        duplicate.CompleteFailure(
+            InventoryStockAdjustmentOutcome.Conflict,
+            "Test operation.");
+
+        dbContext.InventoryStockAdjustmentOperations.Add(duplicate);
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => dbContext.SaveChangesAsync(
+                Xunit.TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task
         AdjustInventoryStockValidDeltaPersistsNewQuantity()
     {
         InventoryItemResponse created =

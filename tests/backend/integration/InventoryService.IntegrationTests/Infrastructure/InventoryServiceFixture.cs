@@ -61,6 +61,7 @@ public sealed class InventoryServiceFixture
         await dbContext.Database.ExecuteSqlRawAsync(
             """
             TRUNCATE TABLE
+                inventory_stock_adjustment_operations,
                 outbox_messages,
                 processed_messages,
                 inventory_items
