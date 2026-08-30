@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using Asp.Versioning;
+using Eshop.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OrdersService.Application;
 using OrdersService.Contracts;
@@ -11,6 +13,7 @@ namespace OrdersService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Authorize(Policy = EshopPolicies.CustomerOnly)]
 [Produces("application/json")]
 [Route("api/v{version:apiVersion}/orders")]
 public sealed class OrdersController(

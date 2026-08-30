@@ -158,8 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers()
-    .RequireAuthorization(
-        EshopPolicies.CustomerOnly);
+    .RequireAuthorization();
 
 app.MapEshopHealthChecks();
 
