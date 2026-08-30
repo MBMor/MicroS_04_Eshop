@@ -7,6 +7,12 @@ using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.ViewModels;
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Api.Catalog;
+using Eshop.Operations.Desktop.Api.Authentication;
+using Eshop.Operations.Desktop.Authentication;
+using Eshop.Operations.Desktop.Api.Inventory;
+using Eshop.Operations.Desktop.Api.Payments;
+using Eshop.Operations.Desktop.Api.Orders;
+using Eshop.Operations.Desktop.Services;
 
 namespace Eshop.Operations.Desktop;
 
@@ -114,6 +120,17 @@ public partial class App : Application
                 "ApiGateway:TimeoutSeconds must be between 1 and 120.")
             .ValidateOnStart();
 
+        builder.Services.AddSingleton<
+            IValidateOptions<AuthenticationOptions>,
+            AuthenticationOptionsValidator>();
+
+                builder.Services
+                    .AddOptions<AuthenticationOptions>()
+                    .Bind(
+                        builder.Configuration.GetSection(
+                            AuthenticationOptions.SectionName))
+                    .ValidateOnStart();
+
         builder.Services.AddHttpClient(
             "ApiGateway",
             static (serviceProvider, httpClient) =>
@@ -132,10 +149,105 @@ public partial class App : Application
                         options.TimeoutSeconds);
             });
 
+        builder.Services
+            .AddHttpClient(
+                "ApiGatewayAuthenticated",
+                static (serviceProvider, httpClient) =>
+                {
+                    ApiGatewayOptions options = serviceProvider
+                        .GetRequiredService<IOptions<ApiGatewayOptions>>()
+                        .Value;
+
+                    httpClient.BaseAddress =
+                        new Uri(
+                            options.BaseAddress,
+                            UriKind.Absolute);
+
+                    httpClient.Timeout =
+                        TimeSpan.FromSeconds(
+                            options.TimeoutSeconds);
+                })
+            .AddHttpMessageHandler<
+                AuthenticationDelegatingHandler>()
+            .RedactLoggedHeaders(
+                ["Authorization"]);
+
+        builder.Services.AddHttpClient(
+            "OidcBackchannel",
+            static (serviceProvider, httpClient) =>
+            {
+                AuthenticationOptions options =
+                    serviceProvider
+                        .GetRequiredService<
+                            IOptions<AuthenticationOptions>>()
+                        .Value;
+
+                string baseAddress =
+                    $"{options.Authority.TrimEnd('/')}/";
+
+                httpClient.BaseAddress =
+                    new Uri(
+                        baseAddress,
+                        UriKind.Absolute);
+
+                httpClient.Timeout =
+                    TimeSpan.FromSeconds(15);
+            });
+
         builder.Services.AddSingleton<ICatalogApiClient, CatalogApiClient>();
 
-        builder.Services.AddSingleton<CatalogViewModel>();
+        builder.Services.AddSingleton<IInventoryApiClient, InventoryApiClient>();
 
+        builder.Services.AddSingleton<IPaymentsApiClient, PaymentsApiClient>();
+
+        builder.Services.AddSingleton<
+            IOrdersApiClient,
+            OrdersApiClient>();
+
+        builder.Services.AddSingleton<
+            IInventoryStockAdjustmentDialogService,
+            InventoryStockAdjustmentDialogService>();
+
+        builder.Services.AddSingleton<AuthenticationState>();
+
+        builder.Services.AddSingleton<TimeProvider>(
+            TimeProvider.System);
+
+        builder.Services.AddSingleton<
+            ITokenRefreshService,
+            OidcTokenRefreshService>();
+
+        builder.Services.AddSingleton<
+            AccessTokenProvider>();
+
+        builder.Services.AddSingleton<
+            IAccessTokenProvider>(
+                serviceProvider =>
+                    serviceProvider
+                        .GetRequiredService<
+                            AccessTokenProvider>());
+
+        builder.Services.AddTransient<
+            AuthenticationDelegatingHandler>();
+
+        builder.Services.AddSingleton<
+            CurrentUserApiClient>();
+
+        builder.Services.AddSingleton<
+            AuthenticationService>();
+
+        builder.Services.AddSingleton<
+            IAuthenticationService>(
+                serviceProvider =>
+                    serviceProvider
+                        .GetRequiredService<
+                            AuthenticationService>());
+
+        builder.Services.AddSingleton<CatalogViewModel>();
+        builder.Services.AddSingleton<InventoryViewModel>();
+        builder.Services.AddSingleton<OrdersViewModel>();
+        builder.Services.AddSingleton<PaymentsViewModel>();
+        builder.Services.AddSingleton<DiagnosticsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();
 

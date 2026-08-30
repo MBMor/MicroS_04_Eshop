@@ -22,6 +22,130 @@ namespace InventoryService.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("InventoryService.Data.InventoryStockAdjustmentOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActorSubject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor_subject");
+
+                    b.Property<string>("ActorUsername")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor_username");
+
+                    b.Property<int?>("AvailableAfter")
+                        .HasColumnType("integer")
+                        .HasColumnName("available_after");
+
+                    b.Property<int?>("AvailableBefore")
+                        .HasColumnType("integer")
+                        .HasColumnName("available_before");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("error");
+
+                    b.Property<long>("ExpectedVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("expected_version");
+
+                    b.Property<Guid>("IdempotencyKey")
+                        .HasColumnType("uuid")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("inventory_item_id");
+
+                    b.Property<bool?>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTimeOffset?>("ItemCreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("item_created_at_utc");
+
+                    b.Property<DateTimeOffset?>("ItemUpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("item_updated_at_utc");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at_utc");
+
+                    b.Property<int?>("OnHandAfter")
+                        .HasColumnType("integer")
+                        .HasColumnName("on_hand_after");
+
+                    b.Property<int?>("OnHandBefore")
+                        .HasColumnType("integer")
+                        .HasColumnName("on_hand_before");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("outcome");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<int>("QuantityDelta")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_delta");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<int?>("ReservedAfter")
+                        .HasColumnType("integer")
+                        .HasColumnName("reserved_after");
+
+                    b.Property<int?>("ReservedBefore")
+                        .HasColumnType("integer")
+                        .HasColumnName("reserved_before");
+
+                    b.Property<long?>("ResultVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("result_version");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sku");
+
+                    b.Property<string>("TraceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("trace_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("InventoryItemId", "OccurredAtUtc");
+
+                    b.ToTable("inventory_stock_adjustment_operations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_inventory_stock_adjustments_expected_version_positive", "\"expected_version\" > 0");
+
+                            t.HasCheckConstraint("ck_inventory_stock_adjustments_quantity_delta_non_zero", "\"quantity_delta\" <> 0");
+                        });
+                });
+
             modelBuilder.Entity("InventoryService.Domain.InventoryItem", b =>
                 {
                     b.Property<Guid>("Id")

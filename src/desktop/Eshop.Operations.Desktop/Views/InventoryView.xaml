@@ -1,0 +1,334 @@
+<UserControl x:Class="Eshop.Operations.Desktop.Views.InventoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0"
+                        Orientation="Horizontal">
+                <Button Width="120"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadInventoryCommand}"
+                        Content="Refresh inventory" />
+                <Button Width="80"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding LoadInventoryCancelCommand}"
+                        Content="Cancel" />
+                <Button Width="110"
+                        Margin="8,0,0,0"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding AdjustSelectedStockCommand}"
+                        IsEnabled="{Binding CanStartStockAdjustment}"
+                        Content="Adjust stock"
+                        Visibility="{Binding Authentication.CanAdjustInventory,
+                                     Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Margin="16,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="{Binding StatusText}" />
+            </StackPanel>
+
+            <Grid Grid.Row="1"
+                  Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Search" />
+                    <TextBox MinWidth="180"
+                             Style="{StaticResource FilterTextBoxStyle}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1"
+                            Margin="0,0,12,0">
+                    <TextBlock Margin="0,0,0,4"
+                               Text="Sort by" />
+                    <ComboBox Style="{StaticResource FilterComboBoxStyle}"
+                              ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSortOption, Mode=TwoWay}"
+                              DisplayMemberPath="DisplayName" />
+                </StackPanel>
+                <Button Grid.Column="2"
+                        MinWidth="80"
+                        VerticalAlignment="Bottom"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Command="{Binding ResetViewCommand}"
+                        Content="Reset" />
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,12"
+                Style="{StaticResource ErrorPanelBorderStyle}"
+                Visibility="{Binding HasError,
+                             Converter={StaticResource BooleanToVisibilityConverter}}">
+
+            <StackPanel>
+                <TextBlock Style="{StaticResource ErrorTitleTextStyle}"
+                           Text="Inventory request failed" />
+
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding ErrorMessage}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="2">
+            <Border Margin="0,0,0,12"
+                    Style="{StaticResource ErrorPanelBorderStyle}"
+                    Visibility="{Binding HasAdjustmentError,
+                                 Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource ErrorTitleTextStyle}"
+                               Text="Stock adjustment failed" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding AdjustmentErrorMessage}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="0,0,0,12"
+                    Style="{StaticResource ErrorPanelBorderStyle}"
+                    Visibility="{Binding HasUnknownAdjustmentOutcome,
+                                 Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource ErrorTitleTextStyle}"
+                               Text="Stock adjustment outcome unknown" />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding UnknownOutcomeMessage}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Margin="0,8,0,0"
+                               Style="{StaticResource FieldLabelTextStyle}"
+                               Text="Operation ID" />
+                    <TextBox Margin="0,4,0,0"
+                             IsReadOnly="True"
+                             Text="{Binding UnknownOutcomeOperationId,
+                                            Mode=OneWay}" />
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal">
+                        <Button Style="{StaticResource ToolbarButtonStyle}"
+                                Command="{Binding RetryUnknownStockAdjustmentCommand}"
+                                IsEnabled="{Binding CanRetryUnknownStockAdjustment}"
+                                Content="Retry same operation" />
+                        <TextBlock Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Text="Do not create a new adjustment while this operation is unresolved." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <Grid Grid.Row="3">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="280" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
+                       Text="Refresh Inventory to load operational data."
+                       Visibility="{Binding IsInitialState,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
+                       Text="No inventory items were returned."
+                       Visibility="{Binding IsEmpty,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
+                       Text="No inventory items match the current search."
+                       Visibility="{Binding IsFilteredEmpty,
+                           Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+            <DataGrid ItemsSource="{Binding ItemsView}"
+                      Visibility="{Binding HasVisibleItems,
+                          Converter={StaticResource BooleanToVisibilityConverter}}"
+                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                      Style="{StaticResource OperationalDataGridStyle}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Single"
+                      SelectionUnit="FullRow"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="True"
+                      HeadersVisibility="Column">
+
+                <DataGrid.Columns>
+
+                    <DataGridTextColumn Header="SKU"
+                                        Binding="{Binding Sku}"
+                                        Width="2*" />
+
+                    <DataGridTextColumn Header="On hand"
+                                        Binding="{Binding OnHandQuantity}"
+                                        Width="*" />
+
+                    <DataGridTextColumn Header="Reserved"
+                                        Binding="{Binding ReservedQuantity}"
+                                        Width="*" />
+
+                    <DataGridTextColumn Header="Available"
+                                        Binding="{Binding AvailableQuantity}"
+                                        Width="*" />
+
+                    <DataGridCheckBoxColumn Header="Active"
+                                            Binding="{Binding IsActive}"
+                                            Width="80" />
+
+                    <DataGridTextColumn Header="Product ID"
+                                        Binding="{Binding ProductId}"
+                                        Width="2*" />
+
+                </DataGrid.Columns>
+            </DataGrid>
+
+            </Grid>
+
+            <GridSplitter Grid.Row="1"
+                          Height="4"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Center" />
+
+            <Border Grid.Row="2"
+                    Style="{StaticResource PanelBorderStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock FontSize="16" FontWeight="SemiBold" Text="Adjustment history" />
+                            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}">
+                                <Run Text="SKU: " />
+                                <Run Text="{Binding SelectedItem.Sku, TargetNullValue=—}" />
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Margin="20,0" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource MutedTextStyle}" Text="{Binding HistoryStatusText}" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding LoadStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadHistory}" Content="Load history" />
+                            <Button Margin="6,0,0,0" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding LoadMoreStockAdjustmentHistoryCommand}" IsEnabled="{Binding CanLoadMoreHistory}" Content="Load more" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1" Margin="0,12,0,0" Style="{StaticResource ErrorPanelBorderStyle}" Visibility="{Binding HasHistoryError, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource ErrorTitleTextStyle}" Text="Adjustment history request failed" />
+                            <TextBlock Margin="0,4,0,0" Text="{Binding HistoryErrorMessage}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="2*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="No stock adjustments have been recorded for this item." Visibility="{Binding IsHistoryEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <DataGrid ItemsSource="{Binding StockAdjustmentHistory}" SelectedItem="{Binding SelectedHistoryItem, Mode=TwoWay}" Visibility="{Binding HasHistory, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Occurred UTC" Binding="{Binding OccurredAtUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="*" />
+                                    <DataGridTextColumn Header="Outcome" Binding="{Binding Outcome}" Width="*" />
+                                    <DataGridTextColumn Header="Delta" Binding="{Binding QuantityDelta}" Width="80" />
+                                    <DataGridTextColumn Header="Actor" Binding="{Binding ActorUsername}" Width="*" />
+                                    <DataGridTextColumn Header="Reason" Binding="{Binding Reason}" Width="2*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+                        <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}">
+                            <Grid>
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="Select an adjustment to view audit details.">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedHistoryItem}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ContentControl Content="{Binding SelectedHistoryItem}">
+                                    <ContentControl.ContentTemplate>
+                                        <DataTemplate>
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="Audit detail" />
+                                                    <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Operation ID" />
+                                                    <TextBlock Text="{Binding OperationId}" TextWrapping="Wrap" />
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Occurred UTC" />
+                                                    <TextBlock Text="{Binding OccurredAtUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Outcome" />
+                                                    <TextBlock Text="{Binding Outcome}" />
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Actor" />
+                                                    <TextBlock Text="{Binding ActorUsername}" />
+                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource MutedTextStyle}" Text="{Binding ActorSubject}" TextWrapping="Wrap" />
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Reason" />
+                                                    <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Error" />
+                                                    <TextBlock Text="{Binding Error, TargetNullValue=—}" TextWrapping="Wrap" />
+                                                    <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Quantities" />
+                                                    <Grid Margin="0,6,0,0">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                        <TextBlock Grid.Row="0" Style="{StaticResource MutedTextStyle}" Text="Metric" /><TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource MutedTextStyle}" Text="Before" /><TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource MutedTextStyle}" Text="After" />
+                                                        <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="On hand" /><TextBlock Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" Text="{Binding OnHandBefore, TargetNullValue=—}" /><TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" Text="{Binding OnHandAfter, TargetNullValue=—}" />
+                                                        <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="Available" /><TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,0,0" Text="{Binding AvailableBefore, TargetNullValue=—}" /><TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" Text="{Binding AvailableAfter, TargetNullValue=—}" />
+                                                    </Grid>
+                                                    <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Versions" />
+                                                    <TextBlock Margin="0,4,0,0"><Run Text="Expected: " /><Run Text="{Binding ExpectedVersion}" /></TextBlock>
+                                                    <TextBlock Margin="0,4,0,0"><Run Text="Result: " /><Run Text="{Binding ResultVersion, TargetNullValue=—}" /></TextBlock>
+                                                    <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Trace ID" />
+                                                    <TextBlock Text="{Binding TraceId, TargetNullValue=—}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </DataTemplate>
+                                    </ContentControl.ContentTemplate>
+                                </ContentControl>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                </Grid>
+            </Border>
+        </Grid>
+
+    </Grid>
+</UserControl>

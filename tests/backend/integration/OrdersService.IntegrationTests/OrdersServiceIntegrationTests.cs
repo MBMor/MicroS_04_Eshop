@@ -23,6 +23,9 @@ public sealed class OrdersServiceIntegrationTests(
     private const string OrdersPath =
         "/api/v1/orders";
 
+    private const string OperationalOrdersPath =
+        "/api/v1/operations/orders";
+
     public ValueTask InitializeAsync()
     {
         return fixture.ResetAsync();
@@ -78,6 +81,187 @@ public sealed class OrdersServiceIntegrationTests(
 
         Assert.Equal(
             HttpStatusCode.Forbidden,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        OperationalOrdersSupportUserCanInspectOrdersAcrossCustomers()
+    {
+        string alice =
+            CreateSubject("operations-alice");
+
+        string bob =
+            CreateSubject("operations-bob");
+
+        OrderResponse aliceOrder =
+            await CreateOrderAsync(
+                alice,
+                "alice@example.com");
+
+        OrderResponse bobOrder =
+            await CreateOrderAsync(
+                bob,
+                "bob@example.com");
+
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                OperationalOrdersPath,
+                CreateSubject("support"),
+                EshopRoles.Support);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        OperationalOrderPageResponse? page =
+            await response.Content
+                .ReadFromJsonAsync<OperationalOrderPageResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(page);
+
+        Assert.Contains(
+            page.Items,
+            order =>
+                order.Id == aliceOrder.Id
+                && order.CustomerEmail
+                    == "alice@example.com");
+
+        Assert.Contains(
+            page.Items,
+            order =>
+                order.Id == bobOrder.Id
+                && order.CustomerEmail
+                    == "bob@example.com");
+    }
+
+    [Fact]
+    public async Task
+        OperationalOrdersCustomerUserReturnsForbidden()
+    {
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                OperationalOrdersPath,
+                CreateSubject("customer"),
+                EshopRoles.Customer);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.Forbidden,
+            response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        OperationalOrdersReturnsBoundedPages()
+    {
+        await CreateOrderAsync(
+            CreateSubject("page-one"),
+            "one@example.com");
+
+        await CreateOrderAsync(
+            CreateSubject("page-two"),
+            "two@example.com");
+
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"{OperationalOrdersPath}?offset=0&limit=1",
+                CreateSubject("support"),
+                EshopRoles.Support);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        OperationalOrderPageResponse? page =
+            await response.Content
+                .ReadFromJsonAsync<OperationalOrderPageResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(page);
+        Assert.Single(page.Items);
+        Assert.Equal(0, page.Offset);
+        Assert.Equal(1, page.Limit);
+        Assert.True(page.HasMore);
+    }
+
+    [Fact]
+    public async Task
+        OperationalOrderDetailReturnsCustomerAndWorkflowDetails()
+    {
+        string customerId =
+            CreateSubject("detail-customer");
+
+        OrderResponse created =
+            await CreateOrderAsync(
+                customerId,
+                "detail@example.com");
+
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"{OperationalOrdersPath}/{created.Id}",
+                CreateSubject("admin"),
+                EshopRoles.Admin);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            response.StatusCode);
+
+        OperationalOrderResponse? order =
+            await response.Content
+                .ReadFromJsonAsync<OperationalOrderResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(order);
+        Assert.Equal(created.Id, order.Id);
+        Assert.Equal(customerId, order.CustomerId);
+        Assert.Equal("detail@example.com", order.CustomerEmail);
+        Assert.NotEmpty(order.Items);
+        Assert.NotEmpty(order.StatusHistory);
+    }
+
+    [Fact]
+    public async Task
+        OperationalOrdersInvalidLimitReturnsBadRequest()
+    {
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"{OperationalOrdersPath}?limit=101",
+                CreateSubject("support"),
+                EshopRoles.Support);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            HttpStatusCode.BadRequest,
             response.StatusCode);
     }
 

@@ -100,7 +100,57 @@
           }
         }
       ]
-    }
+    },
+    {
+	  "clientId": "eshop-operations-desktop",
+	  "name": "Eshop Operations Desktop",
+	  "description": "Public native WPF Operations Console using Authorization Code Flow with PKCE",
+	  "enabled": true,
+	  "protocol": "openid-connect",
+	  "publicClient": true,
+	  "bearerOnly": false,
+	  "standardFlowEnabled": true,
+	  "implicitFlowEnabled": false,
+	  "directAccessGrantsEnabled": false,
+	  "serviceAccountsEnabled": false,
+	  "frontchannelLogout": false,
+	  "redirectUris": [
+		"http://127.0.0.1/"
+	  ],
+	  "attributes": {
+		"pkce.code.challenge.method": "S256"
+	  },
+	  "fullScopeAllowed": true,
+	  "protocolMappers": [
+		{
+		  "name": "eshop-api audience",
+		  "protocol": "openid-connect",
+		  "protocolMapper": "oidc-audience-mapper",
+		  "consentRequired": false,
+		  "config": {
+			"included.client.audience": "eshop-api",
+			"id.token.claim": "false",
+			"access.token.claim": "true",
+			"introspection.token.claim": "true"
+		  }
+		},
+		{
+		  "name": "realm roles",
+		  "protocol": "openid-connect",
+		  "protocolMapper": "oidc-usermodel-realm-role-mapper",
+		  "consentRequired": false,
+		  "config": {
+			"multivalued": "true",
+			"userinfo.token.claim": "true",
+			"id.token.claim": "true",
+			"access.token.claim": "true",
+			"introspection.token.claim": "true",
+			"claim.name": "roles",
+			"jsonType.label": "String"
+		  }
+		}
+	  ]
+	}
   ],
   "users": [
     {

@@ -147,6 +147,30 @@
       "rate_limiter_policy": "CustomerApi"
     },
     {
+      "id": "orders-operations-list-route",
+      "kind": "proxy",
+      "cluster_id": "orders-cluster",
+      "path_template": "/api/v{version}/operations/orders",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/api/v1/operations/orders",
+      "authorization_policy": "SupportOrAdmin",
+      "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
+    },
+    {
+      "id": "orders-operations-detail-route",
+      "kind": "proxy",
+      "cluster_id": "orders-cluster",
+      "path_template": "/api/v{version}/operations/orders/{**catch-all}",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/api/v1/operations/orders/00000000-0000-0000-0000-000000000001",
+      "authorization_policy": "SupportOrAdmin",
+      "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
+    },
+    {
       "id": "inventory-root-route",
       "kind": "proxy",
       "cluster_id": "inventory-cluster",
@@ -156,6 +180,18 @@
       "sample_path": "/api/v1/inventory-items",
       "authorization_policy": "SupportOrAdmin",
       "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
+    },
+    {
+      "id": "inventory-stock-adjustments-route",
+      "kind": "proxy",
+      "cluster_id": "inventory-cluster",
+      "path_template": "/api/v{version}/inventory-items/{id}/stock-adjustments",
+      "methods": ["POST"],
+      "sample_method": "POST",
+      "sample_path": "/api/v1/inventory-items/00000000-0000-0000-0000-000000000001/stock-adjustments",
+      "authorization_policy": "AdminOnly",
+      "allowed_roles": ["admin"],
       "rate_limiter_policy": "Operational"
     },
     {

@@ -11,6 +11,9 @@ public sealed class InventoryDbContext(
     : DbContext(options)
 {
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<InventoryStockAdjustmentOperation>
+        InventoryStockAdjustmentOperations
+        => Set<InventoryStockAdjustmentOperation>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
@@ -20,6 +23,8 @@ public sealed class InventoryDbContext(
         base.OnModelCreating(modelBuilder);
 
         ConfigureInventoryItem(modelBuilder.Entity<InventoryItem>());
+        ConfigureInventoryStockAdjustmentOperation(
+            modelBuilder.Entity<InventoryStockAdjustmentOperation>());
         ConfigureOutboxMessage(modelBuilder.Entity<OutboxMessage>());
         ConfigureProcessedMessage(modelBuilder.Entity<ProcessedMessage>());
     }
@@ -88,6 +93,124 @@ public sealed class InventoryDbContext(
             .IsRowVersion();
 
         inventoryItem.Ignore(entity => entity.AvailableQuantity);
+    }
+
+    private static void ConfigureInventoryStockAdjustmentOperation(
+        EntityTypeBuilder<InventoryStockAdjustmentOperation> operation)
+    {
+        operation.ToTable(
+            "inventory_stock_adjustment_operations",
+            tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint(
+                    "ck_inventory_stock_adjustments_quantity_delta_non_zero",
+                    "\"quantity_delta\" <> 0");
+
+                tableBuilder.HasCheckConstraint(
+                    "ck_inventory_stock_adjustments_expected_version_positive",
+                    "\"expected_version\" > 0");
+            });
+
+        operation.HasKey(entity => entity.Id);
+
+        operation.Property(entity => entity.Id)
+            .HasColumnName("id")
+            .ValueGeneratedNever();
+
+        operation.Property(entity => entity.IdempotencyKey)
+            .HasColumnName("idempotency_key")
+            .IsRequired();
+
+        operation.HasIndex(entity => entity.IdempotencyKey)
+            .IsUnique();
+
+        operation.Property(entity => entity.InventoryItemId)
+            .HasColumnName("inventory_item_id")
+            .IsRequired();
+
+        operation.Property(entity => entity.QuantityDelta)
+            .HasColumnName("quantity_delta")
+            .IsRequired();
+
+        operation.Property(entity => entity.ExpectedVersion)
+            .HasColumnName("expected_version")
+            .IsRequired();
+
+        operation.Property(entity => entity.Reason)
+            .HasColumnName("reason")
+            .HasMaxLength(500)
+            .IsRequired();
+
+        operation.Property(entity => entity.ActorSubject)
+            .HasColumnName("actor_subject")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        operation.Property(entity => entity.ActorUsername)
+            .HasColumnName("actor_username")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        operation.Property(entity => entity.TraceId)
+            .HasColumnName("trace_id")
+            .HasMaxLength(128);
+
+        operation.Property(entity => entity.Outcome)
+            .HasColumnName("outcome")
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        operation.Property(entity => entity.Error)
+            .HasColumnName("error")
+            .HasMaxLength(1_000);
+
+        operation.Property(entity => entity.ProductId)
+            .HasColumnName("product_id");
+
+        operation.Property(entity => entity.Sku)
+            .HasColumnName("sku")
+            .HasMaxLength(64);
+
+        operation.Property(entity => entity.OnHandBefore)
+            .HasColumnName("on_hand_before");
+
+        operation.Property(entity => entity.ReservedBefore)
+            .HasColumnName("reserved_before");
+
+        operation.Property(entity => entity.AvailableBefore)
+            .HasColumnName("available_before");
+
+        operation.Property(entity => entity.OnHandAfter)
+            .HasColumnName("on_hand_after");
+
+        operation.Property(entity => entity.ReservedAfter)
+            .HasColumnName("reserved_after");
+
+        operation.Property(entity => entity.AvailableAfter)
+            .HasColumnName("available_after");
+
+        operation.Property(entity => entity.IsActive)
+            .HasColumnName("is_active");
+
+        operation.Property(entity => entity.ItemCreatedAtUtc)
+            .HasColumnName("item_created_at_utc");
+
+        operation.Property(entity => entity.ItemUpdatedAtUtc)
+            .HasColumnName("item_updated_at_utc");
+
+        operation.Property(entity => entity.ResultVersion)
+            .HasColumnName("result_version");
+
+        operation.Property(entity => entity.OccurredAtUtc)
+            .HasColumnName("occurred_at_utc")
+            .IsRequired();
+
+        operation.HasIndex(entity => new
+        {
+            entity.InventoryItemId,
+            entity.OccurredAtUtc
+        });
     }
 
     private static void ConfigureOutboxMessage(EntityTypeBuilder<OutboxMessage> message)

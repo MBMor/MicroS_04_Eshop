@@ -288,6 +288,52 @@ public sealed class OrderApplicationService(
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<OperationalOrderPage>
+        ListOperationalAsync(
+            int offset,
+            int limit,
+            CancellationToken cancellationToken)
+    {
+        List<Order> orders =
+            await dbContext.Orders
+                .AsNoTracking()
+                .Include(order => order.Items)
+                .OrderByDescending(
+                    order => order.CreatedAtUtc)
+                .ThenByDescending(
+                    order => order.Id)
+                .Skip(offset)
+                .Take(limit + 1)
+                .ToListAsync(cancellationToken);
+
+        bool hasMore =
+            orders.Count > limit;
+
+        if (hasMore)
+        {
+            orders.RemoveAt(limit);
+        }
+
+        return new OperationalOrderPage(
+            orders,
+            offset,
+            limit,
+            hasMore);
+    }
+
+    public Task<Order?> GetOperationalAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Orders
+            .AsNoTracking()
+            .Include(order => order.Items)
+            .Include(order => order.StatusHistory)
+            .FirstOrDefaultAsync(
+                order => order.Id == orderId,
+                cancellationToken);
+    }
+
     private async Task TryClearBasketAsync(
         string customerId,
         Guid orderId,

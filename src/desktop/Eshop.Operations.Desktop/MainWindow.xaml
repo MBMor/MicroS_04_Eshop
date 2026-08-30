@@ -6,45 +6,68 @@
         xmlns:viewModels="clr-namespace:Eshop.Operations.Desktop.ViewModels"
         xmlns:views="clr-namespace:Eshop.Operations.Desktop.Views"
         mc:Ignorable="d"
-        d:DataContext="{d:DesignInstance Type=viewModels:ShellViewModel,
-                                        IsDesignTimeCreatable=False}"
+        d:DataContext="{d:DesignInstance Type=viewModels:ShellViewModel, IsDesignTimeCreatable=False}"
         Title="{Binding WindowTitle}"
-        Width="960"
-        Height="600"
-        MinWidth="720"
-        MinHeight="420"
-        WindowStartupLocation="CenterScreen">
-
-    <Grid Margin="24">
+        Width="1100"
+        Height="700"
+        MinWidth="800"
+        MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type viewModels:CatalogViewModel}"><views:CatalogView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:InventoryViewModel}"><views:InventoryView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:OrdersViewModel}"><views:OrdersView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:PaymentsViewModel}"><views:PaymentsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}"><views:DiagnosticsView /></DataTemplate>
+    </Window.Resources>
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0"
-                   FontSize="24"
-                   FontWeight="SemiBold"
-                   Text="{Binding ApplicationTitle}" />
-
-        <StackPanel Grid.Row="1"
-                    Margin="0,8,0,24"
-                    Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold"
-                       Text="Environment: " />
-            <TextBlock Text="{Binding EnvironmentName}" />
-        </StackPanel>
-
-        <views:CatalogView Grid.Row="2"
-                   DataContext="{Binding Catalog}" />
-
-        <StackPanel Grid.Row="3"
-                    Margin="0,20,0,0"
-                    Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold"
-                       Text="Status: " />
-            <TextBlock Text="{Binding StatusText}" />
-        </StackPanel>
+        <Border Grid.Row="0" Margin="0,0,0,10" Padding="10,6" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="{Binding ApplicationTitle}" />
+                <StackPanel Grid.Column="1" Margin="20,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource MutedTextStyle}" Text="Environment: " />
+                    <TextBlock FontWeight="SemiBold" Text="{Binding EnvironmentName}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="20,0,0,0" VerticalAlignment="Center" Orientation="Horizontal" Visibility="{Binding Authentication.IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Authentication.CurrentUser.DisplayName}" />
+                    <TextBlock Margin="6,0,0,0" Style="{StaticResource MutedTextStyle}"><Run Text="· " /><Run Text="{Binding Authentication.CurrentUser.RolesDisplay, Mode=OneWay}" /></TextBlock>
+                </StackPanel>
+                <TextBlock Grid.Column="3" Margin="20,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource MutedTextStyle}" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+                <Grid Grid.Column="4">
+                    <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignInCommand}" Content="Sign in" Visibility="{Binding Authentication.IsAnonymous, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignOutCommand}" Content="Sign out" Visibility="{Binding Authentication.IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </Grid>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <ToggleButton Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsCatalogActive, Mode=OneWay}" Command="{Binding ShowCatalogCommand}" Content="Catalog" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsOrdersActive, Mode=OneWay}" Command="{Binding ShowOrdersCommand}" Content="Orders" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsInventoryActive, Mode=OneWay}" Command="{Binding ShowInventoryCommand}" Content="Inventory" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsPaymentsActive, Mode=OneWay}" Command="{Binding ShowPaymentsCommand}" Content="Payments" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsDiagnosticsActive, Mode=OneWay}" Command="{Binding ShowDiagnosticsCommand}" Content="Diagnostics" />
+            </StackPanel>
+            <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}">
+                <ContentControl Content="{Binding CurrentViewModel}" />
+            </Border>
+        </Grid>
     </Grid>
 </Window>

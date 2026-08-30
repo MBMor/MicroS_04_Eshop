@@ -1,9 +1,16 @@
+using Eshop.Operations.Desktop.Api;
+using Eshop.Operations.Desktop.Api.Catalog;
+using Eshop.Operations.Desktop.Api.Inventory;
+using Eshop.Operations.Desktop.Api.Payments;
+using Eshop.Operations.Desktop.Api.Orders;
+using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
+using Eshop.Operations.Desktop.Models;
+using Eshop.Operations.Desktop.Services;
 using Eshop.Operations.Desktop.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Eshop.Operations.Desktop.Api.Catalog;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eshop.Operations.Desktop.Tests.ViewModels;
 
@@ -68,33 +75,412 @@ public sealed class ShellViewModelTests
 
         viewModel.StatusText = "Ready";
 
-        Assert.Equal(0, notificationCount);
+        Assert.Equal(
+            0,
+            notificationCount);
     }
 
-    private static ShellViewModel CreateViewModel()
+    [Fact]
+    public void ConstructorSelectsCatalogAsInitialDestination()
     {
-        var options = Options.Create(
-            new DesktopOptions
-            {
-                EnvironmentName = "Local"
-            });
+        ShellViewModel viewModel =
+            CreateViewModel();
 
-        var catalogViewModel = new CatalogViewModel(
-            new StubCatalogApiClient(),
-            NullLogger<CatalogViewModel>.Instance);
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Catalog",
+            viewModel.CurrentSectionTitle);
+    }
+
+    [Fact]
+    public void ShowDiagnosticsCommandNavigatesToDiagnostics()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Diagnostics",
+            viewModel.CurrentSectionTitle);
+    }
+
+    [Fact]
+    public void ShowCatalogCommandNavigatesBackToCatalog()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+    }
+
+    [Fact]
+    public void NavigationKeepsExistingCatalogViewModelInstance()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        CatalogViewModel catalog =
+            viewModel.Catalog;
+
+        catalog.SearchText =
+            "keyboard";
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.Same(
+            catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "keyboard",
+            catalog.SearchText);
+    }
+
+    [Fact]
+    public void NavigationUpdatesActiveDestinationState()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        Assert.True(
+            viewModel.IsCatalogActive);
+
+        Assert.False(
+            viewModel.IsDiagnosticsActive);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        Assert.False(
+            viewModel.IsCatalogActive);
+
+        Assert.True(
+            viewModel.IsDiagnosticsActive);
+
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.True(
+            viewModel.IsCatalogActive);
+
+        Assert.False(
+            viewModel.IsDiagnosticsActive);
+    }
+
+    [Fact]
+    public void ShowInventoryCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowInventoryCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+    }
+
+    [Fact]
+    public void SupportRoleCanAccessOperations()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "user-123",
+                    "sam.support",
+                    "sam.support@eshop.local",
+                    ["support"]));
+
+        Assert.True(
+            authentication.CanAccessOperations);
+    }
+
+    [Fact]
+    public void CustomerRoleCannotAccessOperations()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "user-123",
+                    "sam.customer",
+                    "sam.customer@eshop.local",
+                    ["customer"]));
+
+        Assert.False(
+            authentication.CanAccessOperations);
+    }
+
+    [Fact]
+    public void ShowPaymentsCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        viewModel.ShowPaymentsCommand.Execute(null);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to access Payments.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void ShowOrdersCommandDoesNotNavigateWithoutOperationalRole()
+    {
+        ShellViewModel viewModel = CreateViewModel();
+
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to access Orders.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void ShowOrdersCommandNavigatesForSupportUser()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+        Assert.True(viewModel.IsOrdersActive);
+        Assert.Equal("Orders", viewModel.CurrentSectionTitle);
+    }
+
+    [Fact]
+    public void LosingOperationalAccessWhileOrdersActiveReturnsToCatalog()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        viewModel.ShowOrdersCommand.Execute(null);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+
+        authentication.CurrentUser = new AuthenticatedUser(
+            "customer-123",
+            "sam.customer",
+            "sam.customer@example.com",
+            ["customer"]);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Operational access is no longer available.",
+            viewModel.StatusText);
+    }
+
+    private static ShellViewModel CreateViewModel(
+        AuthenticationState? authentication = null)
+    {
+        IOptions<DesktopOptions> options =
+            Options.Create(
+                new DesktopOptions
+                {
+                    EnvironmentName = "Local"
+                });
+
+        var catalogViewModel =
+            new CatalogViewModel(
+                new StubCatalogApiClient(),
+                NullLogger<CatalogViewModel>.Instance);
+
+        authentication ??=
+            new AuthenticationState();
+
+        var inventoryViewModel =
+            new InventoryViewModel(
+                new StubInventoryApiClient(),
+                authentication,
+                new StubInventoryStockAdjustmentDialogService(),
+                NullLogger<InventoryViewModel>.Instance);
+
+        var paymentsViewModel =
+            new PaymentsViewModel(
+                new StubPaymentsApiClient(),
+                NullLogger<PaymentsViewModel>.Instance);
+
+        var ordersViewModel =
+            new OrdersViewModel(
+                new StubOrdersApiClient(),
+                NullLogger<OrdersViewModel>.Instance);
+
+        DiagnosticsViewModel diagnosticsViewModel =
+            CreateDiagnosticsViewModel();
+
+        var authenticationService =
+            new StubAuthenticationService();
 
         return new ShellViewModel(
             options,
-            catalogViewModel);
+            catalogViewModel,
+            inventoryViewModel,
+            ordersViewModel,
+            paymentsViewModel,
+            diagnosticsViewModel,
+            authenticationService,
+            authentication);
     }
 
-    private sealed class StubCatalogApiClient : ICatalogApiClient
+    private static DiagnosticsViewModel CreateDiagnosticsViewModel()
+    {
+        IOptions<DesktopOptions> desktopOptions =
+            Options.Create(
+                new DesktopOptions
+                {
+                    EnvironmentName = "Local"
+                });
+
+        IOptions<ApiGatewayOptions> apiGatewayOptions =
+            Options.Create(
+                new ApiGatewayOptions
+                {
+                    BaseAddress = "http://localhost:5080/",
+                    TimeoutSeconds = 15
+                });
+
+        return new DiagnosticsViewModel(
+            desktopOptions,
+            apiGatewayOptions);
+    }
+
+    private sealed class StubCatalogApiClient
+        : ICatalogApiClient
     {
         public Task<IReadOnlyList<CatalogProductDto>> GetProductsAsync(
             bool includeInactive,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<CatalogProductDto>>([]);
+            return Task.FromResult<
+                IReadOnlyList<CatalogProductDto>>(
+                []);
+        }
+    }
+
+    private sealed class StubInventoryApiClient
+        : IInventoryApiClient
+    {
+        public Task<IReadOnlyList<InventoryItemDto>>
+            GetInventoryItemsAsync(
+                bool includeInactive,
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult<
+                IReadOnlyList<InventoryItemDto>>(
+                []);
+        }
+
+        public Task<InventoryStockAdjustmentHistoryPageDto>
+            GetStockAdjustmentHistoryAsync(
+                Guid inventoryItemId,
+                int offset,
+                int limit,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Stock adjustment history was not expected in this test.");
+        }
+
+        public Task<InventoryStockAdjustmentResult>
+            AdjustStockAsync(
+                InventoryStockAdjustmentRequest request,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Stock adjustment was not expected in this test.");
+        }
+    }
+
+    private sealed class StubPaymentsApiClient
+        : IPaymentsApiClient
+    {
+        public Task<IReadOnlyList<PaymentDto>> GetPaymentsAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<
+                IReadOnlyList<PaymentDto>>(
+                []);
+        }
+    }
+
+    private sealed class StubAuthenticationService
+        : IAuthenticationService
+    {
+        public Task<AuthenticationOperationResult> SignInAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                AuthenticationOperationResult.Success());
+        }
+
+        public Task<AuthenticationOperationResult> SignOutAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                AuthenticationOperationResult.Success());
+        }
+    }
+
+    private sealed class StubOrdersApiClient : IOrdersApiClient
+    {
+        public Task<OperationalOrderPageDto> GetOrdersAsync(
+            int offset,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new OperationalOrderPageDto(
+                    [],
+                    offset,
+                    limit,
+                    false));
+        }
+
+        public Task<OperationalOrderDetailDto> GetOrderAsync(
+            Guid orderId,
+            CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Order detail was not expected in this test.");
+        }
+    }
+
+    private sealed class StubInventoryStockAdjustmentDialogService
+        : IInventoryStockAdjustmentDialogService
+    {
+        public InventoryStockAdjustmentDraft? ShowConfirmation(
+            InventoryItemDto item)
+        {
+            return null;
         }
     }
 }

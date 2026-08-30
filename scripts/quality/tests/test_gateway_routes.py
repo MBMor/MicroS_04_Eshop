@@ -23,7 +23,7 @@ class GatewayRoutePolicyTests(unittest.TestCase):
 
     def test_repository_policy_covers_every_route(self) -> None:
         self.assertEqual(
-            {"routes": 18, "proxy": 13, "local": 5},
+            {"routes": 21, "proxy": 16, "local": 5},
             MODULE.validate(self.registry, self.appsettings),
         )
 
@@ -71,6 +71,26 @@ class GatewayRoutePolicyTests(unittest.TestCase):
         route["sample_path"] = "/api/v1/orders/42"
         with self.assertRaisesRegex(MODULE.GatewayRoutePolicyError, "does not match"):
             MODULE.validate(changed, self.appsettings)
+
+    def test_path_matches_standard_route_parameter(self) -> None:
+        self.assertTrue(
+            MODULE.path_matches(
+                "/api/v{version}/inventory-items/{id}/stock-adjustments",
+                "/api/v1/inventory-items/"
+                "00000000-0000-0000-0000-000000000001/"
+                "stock-adjustments",
+            )
+        )
+
+    def test_standard_route_parameter_does_not_match_extra_segment(self) -> None:
+        self.assertFalse(
+            MODULE.path_matches(
+                "/api/v{version}/inventory-items/{id}/stock-adjustments",
+                "/api/v1/inventory-items/"
+                "00000000-0000-0000-0000-000000000001/"
+                "unexpected/stock-adjustments",
+            )
+        )
 
     def test_local_endpoint_policy_drift_fails_closed(self) -> None:
         changed = copy.deepcopy(self.registry)
