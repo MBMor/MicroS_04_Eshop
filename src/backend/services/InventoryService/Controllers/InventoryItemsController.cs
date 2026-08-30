@@ -2,6 +2,8 @@ using Asp.Versioning;
 using InventoryService.Application;
 using InventoryService.Contracts;
 using InventoryService.Domain;
+using Eshop.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryService.Controllers;
@@ -166,11 +168,13 @@ public sealed class InventoryItemsController(
         return MapFailure(result);
     }
 
+    [Authorize(Policy = EshopPolicies.AdminOnly)]
     [HttpPost("{id:guid}/stock-adjustments")]
     [Consumes("application/json")]
     [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemResponse>>
         AdjustInventoryStock(
@@ -184,6 +188,17 @@ public sealed class InventoryItemsController(
                 nameof(request.QuantityDelta),
                 "QuantityDelta must not be zero.");
 
+        }
+
+        if (request.ExpectedVersion == 0)
+        {
+            ModelState.AddModelError(
+                nameof(request.ExpectedVersion),
+                "ExpectedVersion must be greater than zero.");
+        }
+
+        if (!ModelState.IsValid)
+        {
             return ValidationProblem(ModelState);
         }
 
@@ -191,6 +206,7 @@ public sealed class InventoryItemsController(
             await inventoryService.AdjustStockAsync(
                 id,
                 request.QuantityDelta,
+                request.ExpectedVersion,
                 cancellationToken);
 
         if (result.Status == InventoryMutationStatus.Success

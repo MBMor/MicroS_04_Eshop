@@ -11,7 +11,8 @@ public sealed record InventoryItemResponse(
     int AvailableQuantity,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? UpdatedAtUtc)
+    DateTimeOffset? UpdatedAtUtc,
+    uint Version)
 {
     public static InventoryItemResponse FromInventoryItem(
         InventoryItem item)
@@ -25,6 +26,7 @@ public sealed record InventoryItemResponse(
             item.AvailableQuantity,
             item.IsActive,
             item.CreatedAtUtc,
-            item.UpdatedAtUtc);
+            item.UpdatedAtUtc,
+            item.Version);
     }
 }

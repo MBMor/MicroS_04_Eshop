@@ -186,6 +186,7 @@ public sealed class InventoryApplicationService(
     public async Task<InventoryMutationResult> AdjustStockAsync(
         Guid id,
         int quantityDelta,
+        uint expectedVersion,
         CancellationToken cancellationToken)
     {
         InventoryItem? inventoryItem =
@@ -197,6 +198,13 @@ public sealed class InventoryApplicationService(
         {
             return InventoryMutationResult.NotFound(
                 "Inventory item was not found.");
+        }
+
+        if (inventoryItem.Version != expectedVersion)
+        {
+            return InventoryMutationResult.Conflict(
+                "Inventory item has changed since it was loaded. " +
+                "Refresh the item and try again.");
         }
 
         try
@@ -216,8 +224,17 @@ public sealed class InventoryApplicationService(
                 exception.Message);
         }
 
-        await dbContext.SaveChangesAsync(
-            cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(
+                cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return InventoryMutationResult.Conflict(
+                "Inventory item changed while the stock adjustment " +
+                "was being applied. Refresh the item and try again.");
+        }
 
         return InventoryMutationResult.Succeeded(
             inventoryItem);

@@ -388,7 +388,8 @@ public sealed class InventoryServiceIntegrationTests(
 
         AdjustInventoryStockRequest requestBody = new()
         {
-            QuantityDelta = 5
+            QuantityDelta = 5,
+            ExpectedVersion = created.Version
         };
 
         using HttpResponseMessage response =
@@ -396,7 +397,7 @@ public sealed class InventoryServiceIntegrationTests(
                 HttpMethod.Post,
                 $"{InventoryPath}/{created.Id}/stock-adjustments",
                 requestBody,
-                EshopRoles.Support);
+                EshopRoles.Admin);
 
         Assert.Equal(
             HttpStatusCode.OK,
@@ -411,6 +412,7 @@ public sealed class InventoryServiceIntegrationTests(
         Assert.Equal(0, adjusted.ReservedQuantity);
         Assert.Equal(15, adjusted.AvailableQuantity);
         Assert.NotNull(adjusted.UpdatedAtUtc);
+        Assert.NotEqual(created.Version, adjusted.Version);
     }
 
     [Fact]
@@ -422,7 +424,8 @@ public sealed class InventoryServiceIntegrationTests(
 
         AdjustInventoryStockRequest requestBody = new()
         {
-            QuantityDelta = 0
+            QuantityDelta = 0,
+            ExpectedVersion = created.Version
         };
 
         using HttpResponseMessage response =
@@ -430,7 +433,7 @@ public sealed class InventoryServiceIntegrationTests(
                 HttpMethod.Post,
                 $"{InventoryPath}/{created.Id}/stock-adjustments",
                 requestBody,
-                EshopRoles.Support);
+                EshopRoles.Admin);
 
         Assert.Equal(
             HttpStatusCode.BadRequest,
@@ -449,11 +452,46 @@ public sealed class InventoryServiceIntegrationTests(
 
     [Fact]
     public async Task
+        AdjustInventoryStockZeroExpectedVersionReturnsValidationProblem()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync();
+
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 1,
+            ExpectedVersion = 0
+        };
+
+        using HttpResponseMessage response =
+            await SendAuthenticatedJsonAsync(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                requestBody,
+                EshopRoles.Admin);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        ValidationProblemDetails? problem =
+            await response.Content
+                .ReadFromJsonAsync<ValidationProblemDetails>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+        Assert.Contains(
+            nameof(AdjustInventoryStockRequest.ExpectedVersion),
+            problem.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task
         AdjustInventoryStockBelowReservedQuantityReturnsBadRequestWithoutMutation()
     {
         InventoryItemResponse created =
             await CreateInventoryItemAsync(
                 initialOnHandQuantity: 10);
+
+        uint currentVersion;
 
         await using (
             AsyncServiceScope setupScope =
@@ -477,11 +515,13 @@ public sealed class InventoryServiceIntegrationTests(
                     DateTimeOffset.UtcNow));
 
             await dbContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken);
+            currentVersion = item.Version;
         }
 
         AdjustInventoryStockRequest requestBody = new()
         {
-            QuantityDelta = -5
+            QuantityDelta = -5,
+            ExpectedVersion = currentVersion
         };
 
         using HttpResponseMessage response =
@@ -489,7 +529,7 @@ public sealed class InventoryServiceIntegrationTests(
                 HttpMethod.Post,
                 $"{InventoryPath}/{created.Id}/stock-adjustments",
                 requestBody,
-                EshopRoles.Support);
+                EshopRoles.Admin);
 
         Assert.Equal(
             HttpStatusCode.BadRequest,
@@ -563,7 +603,8 @@ public sealed class InventoryServiceIntegrationTests(
 
         AdjustInventoryStockRequest adjustmentRequest = new()
         {
-            QuantityDelta = 1
+            QuantityDelta = 1,
+            ExpectedVersion = 1
         };
 
         using HttpResponseMessage adjustmentResponse =
@@ -576,6 +617,103 @@ public sealed class InventoryServiceIntegrationTests(
         Assert.Equal(
             HttpStatusCode.NotFound,
             adjustmentResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockSupportRoleReturnsForbidden()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 1,
+            ExpectedVersion = created.Version
+        };
+
+        using HttpResponseMessage response =
+            await SendAuthenticatedJsonAsync(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                requestBody,
+                EshopRoles.Support);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockStaleVersionReturnsConflictWithoutSecondMutation()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        AdjustInventoryStockRequest firstRequest = new()
+        {
+            QuantityDelta = 2,
+            ExpectedVersion = created.Version
+        };
+
+        using HttpResponseMessage firstResponse =
+            await SendAuthenticatedJsonAsync(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                firstRequest,
+                EshopRoles.Admin);
+
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+        InventoryItemResponse? firstAdjustment =
+            await firstResponse.Content
+                .ReadFromJsonAsync<InventoryItemResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(firstAdjustment);
+        Assert.Equal(12, firstAdjustment.OnHandQuantity);
+        Assert.NotEqual(created.Version, firstAdjustment.Version);
+
+        AdjustInventoryStockRequest staleRequest = new()
+        {
+            QuantityDelta = 3,
+            ExpectedVersion = created.Version
+        };
+
+        using HttpResponseMessage staleResponse =
+            await SendAuthenticatedJsonAsync(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                staleRequest,
+                EshopRoles.Admin);
+
+        Assert.Equal(HttpStatusCode.Conflict, staleResponse.StatusCode);
+
+        ProblemDetails? problem =
+            await staleResponse.Content
+                .ReadFromJsonAsync<ProblemDetails>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(problem);
+        Assert.Equal("Inventory conflict.", problem.Title);
+
+        using HttpResponseMessage getResponse =
+            await SendAuthenticatedAsync(
+                HttpMethod.Get,
+                $"{InventoryPath}/{created.Id}",
+                EshopRoles.Admin);
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        InventoryItemResponse? persisted =
+            await getResponse.Content
+                .ReadFromJsonAsync<InventoryItemResponse>(
+                    Xunit.TestContext.Current.CancellationToken);
+
+        Assert.NotNull(persisted);
+        Assert.Equal(12, persisted.OnHandQuantity);
+        Assert.Equal(firstAdjustment.Version, persisted.Version);
     }
 
     [Fact]
