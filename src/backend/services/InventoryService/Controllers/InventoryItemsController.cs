@@ -16,6 +16,12 @@ public sealed class InventoryItemsController(
     InventoryApplicationService inventoryService)
     : ControllerBase
 {
+    private const string IdempotencyKeyHeaderName =
+        "Idempotency-Key";
+
+    private const string IdempotentReplayHeaderName =
+        "Idempotent-Replay";
+
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<InventoryItemResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
@@ -173,6 +179,7 @@ public sealed class InventoryItemsController(
     [Consumes("application/json")]
     [ProducesResponseType<InventoryItemResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
@@ -187,7 +194,6 @@ public sealed class InventoryItemsController(
             ModelState.AddModelError(
                 nameof(request.QuantityDelta),
                 "QuantityDelta must not be zero.");
-
         }
 
         if (request.ExpectedVersion == 0)
@@ -197,54 +203,134 @@ public sealed class InventoryItemsController(
                 "ExpectedVersion must be greater than zero.");
         }
 
+        string reason = request.Reason.Trim();
+
+        if (reason.Length < 3)
+        {
+            ModelState.AddModelError(
+                nameof(request.Reason),
+                "Reason must contain at least 3 characters.");
+        }
+        else if (reason.Length > 500)
+        {
+            ModelState.AddModelError(
+                nameof(request.Reason),
+                "Reason must not exceed 500 characters.");
+        }
+
+        Guid idempotencyKey = Guid.Empty;
+
+        if (!Request.Headers.TryGetValue(
+                IdempotencyKeyHeaderName,
+                out var idempotencyValues)
+            || idempotencyValues.Count != 1
+            || !Guid.TryParse(
+                idempotencyValues[0],
+                out idempotencyKey)
+            || idempotencyKey == Guid.Empty)
+        {
+            ModelState.AddModelError(
+                IdempotencyKeyHeaderName,
+                "Idempotency-Key must contain exactly one non-empty GUID value.");
+        }
+
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
-        InventoryMutationResult result =
-            await inventoryService.AdjustStockAsync(
-                id,
-                request.QuantityDelta,
-                request.ExpectedVersion,
-                cancellationToken);
+        string? actorSubject = User.FindFirst(EshopClaimNames.Subject)
+            ?.Value
+            ?.Trim();
 
-        if (result.Status == InventoryMutationStatus.Success
-            && result.Item is not null)
+        if (string.IsNullOrWhiteSpace(actorSubject))
         {
-            return Ok(
-                InventoryItemResponse.FromInventoryItem(
-                    result.Item));
+            return Unauthorized(
+                CreateProblem(
+                    StatusCodes.Status401Unauthorized,
+                    "Authenticated user identity is incomplete.",
+                    "The authenticated principal does not contain a subject claim."));
         }
 
-        return MapFailure(result);
+        string? actorUsername =
+            User.FindFirst(EshopClaimNames.PreferredUsername)
+                ?.Value
+                ?.Trim();
+
+        if (string.IsNullOrWhiteSpace(actorUsername))
+        {
+            actorUsername = actorSubject;
+        }
+
+        var command = new InventoryStockAdjustmentCommand(
+            id,
+            request.QuantityDelta,
+            request.ExpectedVersion,
+            reason,
+            idempotencyKey,
+            actorSubject,
+            actorUsername,
+            HttpContext.TraceIdentifier);
+
+        InventoryStockAdjustmentExecutionResult result =
+            await inventoryService.AdjustStockAsync(
+                command,
+                cancellationToken);
+
+        if (result.IsReplay)
+        {
+            Response.Headers[IdempotentReplayHeaderName] = "true";
+        }
+
+        if (result.Status == InventoryMutationStatus.Success
+            && result.Operation is not null)
+        {
+            return Ok(
+                InventoryItemResponse.FromStockAdjustmentOperation(
+                    result.Operation));
+        }
+
+        return MapFailure(result.Status, result.Error);
     }
 
     private ActionResult<InventoryItemResponse> MapFailure(
         InventoryMutationResult result)
     {
-        return result.Status switch
+        return MapFailure(
+            result.Status,
+            result.Error);
+    }
+
+    private ActionResult<InventoryItemResponse> MapFailure(
+        InventoryMutationStatus status,
+        string? error)
+    {
+        return status switch
         {
             InventoryMutationStatus.NotFound
                 => NotFound(CreateProblem(
                     StatusCodes.Status404NotFound,
                     "Inventory item was not found.",
-                    result.Error)),
+                    error)),
 
             InventoryMutationStatus.Conflict
                 => Conflict(CreateProblem(
                     StatusCodes.Status409Conflict,
                     "Inventory conflict.",
-                    result.Error)),
+                    error)),
 
             InventoryMutationStatus.ValidationFailed
                 => BadRequest(CreateProblem(
                     StatusCodes.Status400BadRequest,
                     "Inventory validation failed.",
-                    result.Error)),
+                    error)),
 
-            _ => throw new InvalidOperationException(
-                $"Unexpected inventory mutation status '{result.Status}'.")
+            _ => StatusCode(
+                StatusCodes.Status500InternalServerError,
+                CreateProblem(
+                    StatusCodes.Status500InternalServerError,
+                    "Inventory operation failed.",
+                    error))
         };
     }
 

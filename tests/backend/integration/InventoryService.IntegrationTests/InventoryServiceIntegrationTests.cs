@@ -533,13 +533,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest requestBody = new()
         {
             QuantityDelta = 5,
-            ExpectedVersion = created.Version
+            ExpectedVersion = created.Version,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage response =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 requestBody,
                 EshopRoles.Admin);
 
@@ -569,13 +569,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest requestBody = new()
         {
             QuantityDelta = 0,
-            ExpectedVersion = created.Version
+            ExpectedVersion = created.Version,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage response =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 requestBody,
                 EshopRoles.Admin);
 
@@ -604,13 +604,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest requestBody = new()
         {
             QuantityDelta = 1,
-            ExpectedVersion = 0
+            ExpectedVersion = 0,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage response =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 requestBody,
                 EshopRoles.Admin);
 
@@ -665,13 +665,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest requestBody = new()
         {
             QuantityDelta = -5,
-            ExpectedVersion = currentVersion
+            ExpectedVersion = currentVersion,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage response =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 requestBody,
                 EshopRoles.Admin);
 
@@ -748,13 +748,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest adjustmentRequest = new()
         {
             QuantityDelta = 1,
-            ExpectedVersion = 1
+            ExpectedVersion = 1,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage adjustmentResponse =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{missingId}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                missingId,
                 adjustmentRequest,
                 EshopRoles.Admin);
 
@@ -774,13 +774,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest requestBody = new()
         {
             QuantityDelta = 1,
-            ExpectedVersion = created.Version
+            ExpectedVersion = created.Version,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage response =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 requestBody,
                 EshopRoles.Support);
 
@@ -798,13 +798,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest firstRequest = new()
         {
             QuantityDelta = 2,
-            ExpectedVersion = created.Version
+            ExpectedVersion = created.Version,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage firstResponse =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 firstRequest,
                 EshopRoles.Admin);
 
@@ -822,13 +822,13 @@ public sealed class InventoryServiceIntegrationTests(
         AdjustInventoryStockRequest staleRequest = new()
         {
             QuantityDelta = 3,
-            ExpectedVersion = created.Version
+            ExpectedVersion = created.Version,
+            Reason = "Integration test stock adjustment"
         };
 
         using HttpResponseMessage staleResponse =
-            await SendAuthenticatedJsonAsync(
-                HttpMethod.Post,
-                $"{InventoryPath}/{created.Id}/stock-adjustments",
+            await SendStockAdjustmentAsync(
+                created.Id,
                 staleRequest,
                 EshopRoles.Admin);
 
@@ -858,6 +858,359 @@ public sealed class InventoryServiceIntegrationTests(
         Assert.NotNull(persisted);
         Assert.Equal(12, persisted.OnHandQuantity);
         Assert.Equal(firstAdjustment.Version, persisted.Version);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockSameIdempotencyKeyReplaysWithoutSecondMutation()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        Guid idempotencyKey = Guid.NewGuid();
+        const string subject = "admin-replay";
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 5,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpResponseMessage firstResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        InventoryItemResponse? firstResult =
+            await firstResponse.Content.ReadFromJsonAsync<InventoryItemResponse>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(firstResult);
+        Assert.Equal(15, firstResult.OnHandQuantity);
+        Assert.False(firstResponse.Headers.Contains("Idempotent-Replay"));
+
+        using HttpResponseMessage replayResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+
+        Assert.Equal(HttpStatusCode.OK, replayResponse.StatusCode);
+        Assert.True(
+            replayResponse.Headers.TryGetValues(
+                "Idempotent-Replay",
+                out IEnumerable<string>? replayValues));
+        Assert.Contains("true", replayValues);
+
+        InventoryItemResponse? replayResult =
+            await replayResponse.Content.ReadFromJsonAsync<InventoryItemResponse>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(replayResult);
+        Assert.Equal(firstResult, replayResult);
+
+        await using AsyncServiceScope verificationScope =
+            fixture.Factory.Services.CreateAsyncScope();
+        InventoryDbContext dbContext =
+            verificationScope.ServiceProvider
+                .GetRequiredService<InventoryDbContext>();
+
+        InventoryItem persisted =
+            await dbContext.InventoryItems.AsNoTracking().SingleAsync(
+                item => item.Id == created.Id,
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(15, persisted.OnHandQuantity);
+        Assert.Equal(
+            1,
+            await dbContext.InventoryStockAdjustmentOperations.CountAsync(
+                operation => operation.IdempotencyKey == idempotencyKey,
+                Xunit.TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockSameIdempotencyKeyDifferentPayloadReturnsConflict()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+        Guid idempotencyKey = Guid.NewGuid();
+        const string subject = "admin-payload";
+        AdjustInventoryStockRequest firstRequest = new()
+        {
+            QuantityDelta = 2,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpResponseMessage firstResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                firstRequest,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+        AdjustInventoryStockRequest conflictingRequest = new()
+        {
+            QuantityDelta = 3,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpResponseMessage conflictResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                conflictingRequest,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+        Assert.Equal(HttpStatusCode.Conflict, conflictResponse.StatusCode);
+
+        ProblemDetails? problem =
+            await conflictResponse.Content.ReadFromJsonAsync<ProblemDetails>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(problem);
+        Assert.Equal("Inventory conflict.", problem.Title);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockSameIdempotencyKeyDifferentActorReturnsConflict()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+        Guid idempotencyKey = Guid.NewGuid();
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 2,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpResponseMessage firstResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject: "admin-one");
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+
+        using HttpResponseMessage secondResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject: "admin-two");
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockMissingIdempotencyKeyReturnsValidationProblem()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 1,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                CreateSubject("admin"),
+                EshopRoles.Admin);
+        request.Content = JsonContent.Create(requestBody);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        ValidationProblemDetails? problem =
+            await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(problem);
+        Assert.Contains("Idempotency-Key", problem.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockInvalidIdempotencyKeyReturnsValidationProblem()
+    {
+        InventoryItemResponse created = await CreateInventoryItemAsync();
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 1,
+            ExpectedVersion = created.Version,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"{InventoryPath}/{created.Id}/stock-adjustments",
+                CreateSubject("admin"),
+                EshopRoles.Admin);
+        request.Headers.Add("Idempotency-Key", "not-a-guid");
+        request.Content = JsonContent.Create(requestBody);
+
+        using HttpResponseMessage response =
+            await fixture.Client.SendAsync(
+                request,
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockMissingReasonReturnsValidationProblem()
+    {
+        InventoryItemResponse created = await CreateInventoryItemAsync();
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 1,
+            ExpectedVersion = created.Version,
+            Reason = " "
+        };
+
+        using HttpResponseMessage response =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        ValidationProblemDetails? problem =
+            await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(
+                Xunit.TestContext.Current.CancellationToken);
+        Assert.NotNull(problem);
+        Assert.Contains(nameof(AdjustInventoryStockRequest.Reason), problem.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockPersistsTrustedAuditSnapshot()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+        Guid idempotencyKey = Guid.NewGuid();
+        const string subject = "admin-audit-user";
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = 4,
+            ExpectedVersion = created.Version,
+            Reason = " Warehouse count correction "
+        };
+
+        using HttpResponseMessage response =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using AsyncServiceScope scope =
+            fixture.Factory.Services.CreateAsyncScope();
+        InventoryDbContext dbContext =
+            scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        InventoryStockAdjustmentOperation operation =
+            await dbContext.InventoryStockAdjustmentOperations.AsNoTracking().SingleAsync(
+                candidate => candidate.IdempotencyKey == idempotencyKey,
+                Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(InventoryStockAdjustmentOutcome.Success, operation.Outcome);
+        Assert.Equal(subject, operation.ActorSubject);
+        Assert.Equal(subject, operation.ActorUsername);
+        Assert.Equal("Warehouse count correction", operation.Reason);
+        Assert.Equal(10, operation.OnHandBefore);
+        Assert.Equal(14, operation.OnHandAfter);
+        Assert.Equal(created.ProductId, operation.ProductId);
+        Assert.Equal(created.Sku, operation.Sku);
+        Assert.NotNull(operation.ResultVersion);
+        Assert.False(string.IsNullOrWhiteSpace(operation.TraceId));
+    }
+
+    [Fact]
+    public async Task
+        AdjustInventoryStockValidationFailureReplaysWithoutMutation()
+    {
+        InventoryItemResponse created =
+            await CreateInventoryItemAsync(
+                initialOnHandQuantity: 10);
+
+        uint currentVersion;
+        await using (AsyncServiceScope setupScope =
+            fixture.Factory.Services.CreateAsyncScope())
+        {
+            InventoryDbContext dbContext =
+                setupScope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+            InventoryItem item = await dbContext.InventoryItems.SingleAsync(
+                candidate => candidate.Id == created.Id,
+                Xunit.TestContext.Current.CancellationToken);
+            Assert.True(item.TryReserve(6, DateTimeOffset.UtcNow));
+            await dbContext.SaveChangesAsync(Xunit.TestContext.Current.CancellationToken);
+            currentVersion = item.Version;
+        }
+
+        Guid idempotencyKey = Guid.NewGuid();
+        const string subject = "admin-validation-replay";
+        AdjustInventoryStockRequest requestBody = new()
+        {
+            QuantityDelta = -5,
+            ExpectedVersion = currentVersion,
+            Reason = "Physical stock correction"
+        };
+
+        using HttpResponseMessage firstResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+        Assert.Equal(HttpStatusCode.BadRequest, firstResponse.StatusCode);
+        Assert.False(firstResponse.Headers.Contains("Idempotent-Replay"));
+
+        using HttpResponseMessage replayResponse =
+            await SendStockAdjustmentAsync(
+                created.Id,
+                requestBody,
+                EshopRoles.Admin,
+                idempotencyKey,
+                subject);
+        Assert.Equal(HttpStatusCode.BadRequest, replayResponse.StatusCode);
+        Assert.True(replayResponse.Headers.Contains("Idempotent-Replay"));
+
+        await using AsyncServiceScope verificationScope =
+            fixture.Factory.Services.CreateAsyncScope();
+        InventoryDbContext verificationContext =
+            verificationScope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+        InventoryItem persisted = await verificationContext.InventoryItems.AsNoTracking().SingleAsync(
+            candidate => candidate.Id == created.Id,
+            Xunit.TestContext.Current.CancellationToken);
+        Assert.Equal(10, persisted.OnHandQuantity);
+        Assert.Equal(1, await verificationContext.InventoryStockAdjustmentOperations.CountAsync(
+            operation => operation.IdempotencyKey == idempotencyKey,
+            Xunit.TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1391,6 +1744,32 @@ public sealed class InventoryServiceIntegrationTests(
             JsonContent.Create(body);
 
         return await fixture.Client.SendAsync(request, Xunit.TestContext.Current.CancellationToken);
+    }
+
+    private async Task<HttpResponseMessage>
+        SendStockAdjustmentAsync(
+            Guid inventoryItemId,
+            AdjustInventoryStockRequest requestBody,
+            string role,
+            Guid? idempotencyKey = null,
+            string? subject = null)
+    {
+        using HttpRequestMessage request =
+            CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"{InventoryPath}/{inventoryItemId}/stock-adjustments",
+                subject ?? CreateSubject("admin"),
+                role);
+
+        request.Headers.Add(
+            "Idempotency-Key",
+            (idempotencyKey ?? Guid.NewGuid()).ToString("D"));
+
+        request.Content = JsonContent.Create(requestBody);
+
+        return await fixture.Client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
     }
 
     private static HttpRequestMessage
