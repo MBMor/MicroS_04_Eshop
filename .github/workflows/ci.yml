@@ -557,6 +557,106 @@ jobs:
 
           Write-Host "Desktop SHA-256 manifest generated."
 
+      - name: Verify desktop artifact integrity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $publishDirectory = "artifacts/desktop/win-x64"
+          $checksumFile = Join-Path $publishDirectory "SHA256SUMS.txt"
+          $executablePath = Join-Path $publishDirectory "Eshop.Operations.Desktop.exe"
+
+          if (-not (Test-Path $checksumFile -PathType Leaf)) {
+              throw "Desktop checksum manifest is missing."
+          }
+
+          if (-not (Test-Path $executablePath -PathType Leaf)) {
+              throw "Desktop executable is missing."
+          }
+
+          $manifestEntries = @{}
+
+          foreach ($line in Get-Content $checksumFile) {
+              if ([string]::IsNullOrWhiteSpace($line)) {
+                  continue
+              }
+
+              if ($line -notmatch '^([0-9a-f]{64})\s+(.+)$') {
+                  throw "Invalid SHA256SUMS entry: '$line'"
+              }
+
+              $expectedHash = $Matches[1]
+              $fileName = $Matches[2]
+
+              if ($manifestEntries.ContainsKey($fileName)) {
+                  throw "Duplicate checksum entry for '$fileName'."
+              }
+
+              $manifestEntries[$fileName] = $expectedHash
+          }
+
+          $publishedFiles =
+              Get-ChildItem `
+                  -Path $publishDirectory `
+                  -File |
+              Where-Object {
+                  $_.Name -ne "SHA256SUMS.txt"
+              }
+
+          foreach ($file in $publishedFiles) {
+              if (-not $manifestEntries.ContainsKey($file.Name)) {
+                  throw "Checksum entry is missing for '$($file.Name)'."
+              }
+
+              $actualHash =
+                  (Get-FileHash `
+                      -Path $file.FullName `
+                      -Algorithm SHA256).Hash.ToLowerInvariant()
+
+              $expectedHash =
+                  $manifestEntries[$file.Name]
+
+              if ($actualHash -ne $expectedHash) {
+                  throw "Checksum mismatch for '$($file.Name)'. Expected '$expectedHash', actual '$actualHash'."
+              }
+          }
+
+          foreach ($fileName in $manifestEntries.Keys) {
+              $path =
+                  Join-Path `
+                      $publishDirectory `
+                      $fileName
+
+              if (-not (Test-Path $path -PathType Leaf)) {
+                  throw "Checksum manifest references missing file '$fileName'."
+              }
+          }
+
+          if ($manifestEntries.Count -ne $publishedFiles.Count) {
+              throw "Checksum manifest does not match the published file set."
+          }
+
+          $fileVersionInfo =
+              [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+                  $executablePath)
+
+          $productVersion =
+              $fileVersionInfo.ProductVersion
+
+          if ([string]::IsNullOrWhiteSpace($productVersion)) {
+              throw "Desktop executable does not expose ProductVersion."
+          }
+
+          $expectedRevision =
+              "${{ github.sha }}"
+
+          if (-not $productVersion.Contains($expectedRevision)) {
+              throw "Desktop executable provenance mismatch. ProductVersion='$productVersion', expected revision='$expectedRevision'."
+          }
+
+          Write-Host "Desktop build provenance verified: $productVersion"
+          Write-Host "Desktop artifact checksums verified."
+
       - name: Upload desktop application
         uses: actions/upload-artifact@v7
         with:
