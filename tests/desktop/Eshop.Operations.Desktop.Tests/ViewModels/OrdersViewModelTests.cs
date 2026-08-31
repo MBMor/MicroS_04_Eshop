@@ -142,6 +142,63 @@ public sealed class OrdersViewModelTests
         Assert.True(viewModel.IsFilteredEmpty);
     }
 
+    [Fact]
+    public async Task FocusOrderAsyncLoadsDetailWithoutLoadingSummaryPages()
+    {
+        Guid orderId = Guid.NewGuid();
+        OperationalOrderDetailDto detail = CreateDetail(orderId);
+        int listRequestCount = 0;
+        Guid? capturedOrderId = null;
+
+        OrdersViewModel viewModel = CreateViewModel(new StubOrdersApiClient(
+            (offset, limit, _) =>
+            {
+                listRequestCount++;
+                return Task.FromResult(new OperationalOrderPageDto([], offset, limit, false));
+            },
+            (requestedOrderId, _) =>
+            {
+                capturedOrderId = requestedOrderId;
+                return Task.FromResult(detail);
+            }));
+
+        await viewModel.FocusOrderAsync(
+            orderId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, listRequestCount);
+        Assert.Equal(orderId, capturedOrderId);
+        Assert.Equal(orderId, viewModel.DetailOrderId);
+        Assert.Null(viewModel.SelectedOrder);
+        Assert.Same(detail, viewModel.SelectedOrderDetail);
+        Assert.False(viewModel.IsDetailLoading);
+    }
+
+    [Fact]
+    public async Task FocusOrderAsyncFiltersLoadedSummariesByOrderId()
+    {
+        OperationalOrderSummaryDto target = CreateOrder();
+        OperationalOrderSummaryDto other = CreateOrder(2);
+        OperationalOrderDetailDto detail = CreateDetail(target.Id);
+
+        OrdersViewModel viewModel = CreateViewModel(new StubOrdersApiClient(
+            (offset, limit, _) => Task.FromResult(
+                new OperationalOrderPageDto([target, other], offset, limit, false)),
+            (_, _) => Task.FromResult(detail)));
+
+        await viewModel.LoadOrdersCommand.ExecuteAsync(null);
+        await viewModel.FocusOrderAsync(
+            target.Id,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(target.Id.ToString("D"), viewModel.SearchText);
+        OperationalOrderSummaryDto visible = Assert.Single(
+            viewModel.OrdersView.Cast<OperationalOrderSummaryDto>());
+        Assert.Same(target, visible);
+        Assert.Equal(target.Id, viewModel.DetailOrderId);
+        Assert.Same(detail, viewModel.SelectedOrderDetail);
+    }
+
     private static OrdersViewModel CreateViewModel(IOrdersApiClient apiClient) =>
         new(apiClient, NullLogger<OrdersViewModel>.Instance);
 

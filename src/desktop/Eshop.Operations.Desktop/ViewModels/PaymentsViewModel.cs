@@ -159,6 +159,51 @@ public sealed partial class PaymentsViewModel : ObservableObject
         }
     }
 
+    public async Task FocusOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (orderId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Order id must not be empty.",
+                nameof(orderId));
+        }
+
+        SelectedStatus = AllStatusesLabel;
+        SearchText = orderId.ToString("D");
+
+        if (!HasLoaded && !IsLoading)
+        {
+            await LoadPaymentsAsync(cancellationToken);
+        }
+
+        PaymentDto[] matchingPayments = Payments
+            .Where(payment => payment.OrderId == orderId)
+            .ToArray();
+
+        SelectedPayment = matchingPayments.Length == 1
+            ? matchingPayments[0]
+            : null;
+    }
+
+    public void ClearContextFocus(Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+        {
+            return;
+        }
+
+        string expectedSearchText = orderId.ToString("D");
+        if (string.Equals(
+                SearchText,
+                expectedSearchText,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            SearchText = string.Empty;
+        }
+    }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadPaymentsAsync(
         CancellationToken cancellationToken)

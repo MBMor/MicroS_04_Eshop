@@ -158,6 +158,56 @@ public sealed class PaymentsViewModelTests
         Assert.Equal(2, viewModel.PaymentsView.Cast<PaymentDto>().Count());
     }
 
+    [Fact]
+    public async Task FocusOrderAsyncFiltersPaymentsByOrderId()
+    {
+        Guid targetOrderId = Guid.NewGuid();
+        PaymentDto target = CreatePayment() with { Id = Guid.NewGuid(), OrderId = targetOrderId };
+        PaymentDto other = CreatePayment() with { Id = Guid.NewGuid(), OrderId = Guid.NewGuid() };
+
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([target, other])));
+
+        await viewModel.FocusOrderAsync(
+            targetOrderId,
+            TestContext.Current.CancellationToken);
+
+        PaymentDto visible = Assert.Single(viewModel.PaymentsView.Cast<PaymentDto>());
+        Assert.Same(target, visible);
+        Assert.Equal(targetOrderId.ToString("D"), viewModel.SearchText);
+        Assert.Same(target, viewModel.SelectedPayment);
+    }
+
+    [Fact]
+    public async Task FocusOrderAsyncDoesNotAutoSelectWhenOrderHasMultiplePayments()
+    {
+        Guid orderId = Guid.NewGuid();
+        PaymentDto first = CreatePayment() with
+        {
+            Id = Guid.NewGuid(),
+            OrderId = orderId
+        };
+        PaymentDto second = CreatePayment() with
+        {
+            Id = Guid.NewGuid(),
+            OrderId = orderId
+        };
+
+        PaymentsViewModel viewModel = CreateViewModel(
+            new StubPaymentsApiClient(
+                _ => Task.FromResult<IReadOnlyList<PaymentDto>>([first, second])));
+
+        await viewModel.FocusOrderAsync(
+            orderId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            2,
+            viewModel.PaymentsView.Cast<PaymentDto>().Count());
+        Assert.Null(viewModel.SelectedPayment);
+    }
+
     private static PaymentsViewModel CreateViewModel(
         IPaymentsApiClient apiClient) =>
         new(apiClient, NullLogger<PaymentsViewModel>.Instance);

@@ -88,6 +88,9 @@ public sealed partial class OrdersViewModel : ObservableObject
     public partial OperationalOrderDetailDto? SelectedOrderDetail { get; private set; }
 
     [ObservableProperty]
+    public partial Guid? DetailOrderId { get; private set; }
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInitialState))]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
     [NotifyPropertyChangedFor(nameof(IsFilteredEmpty))]
@@ -141,6 +144,7 @@ public sealed partial class OrdersViewModel : ObservableObject
         CancelDetailLoad();
         IsDetailLoading = false;
         SelectedOrderDetail = null;
+        DetailOrderId = value?.Id;
         DetailErrorMessage = null;
         DetailStatusText = value is null
             ? "Select an order to view details."
@@ -226,49 +230,121 @@ public sealed partial class OrdersViewModel : ObservableObject
         }
     }
 
-    public async Task LoadOrderDetailAsync(OperationalOrderSummaryDto? order)
+    public async Task FocusOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
     {
-        CancelDetailLoad();
-        SelectedOrderDetail = null;
-        DetailErrorMessage = null;
-
-        if (order is null || SelectedOrder?.Id != order.Id)
+        if (orderId == Guid.Empty)
         {
-            IsDetailLoading = false;
-            DetailStatusText = "Select an order to view details.";
+            throw new ArgumentException(
+                "Order id must not be empty.",
+                nameof(orderId));
+        }
+
+        SelectedStatus = AllStatusesLabel;
+
+        if (HasLoaded)
+        {
+            SearchText = orderId.ToString("D");
+        }
+
+        SelectedOrder = null;
+        DetailOrderId = orderId;
+        StatusText = HasLoaded
+            ? $"Inspecting order {orderId:D}. The list filter applies to loaded orders only."
+            : $"Inspecting order {orderId:D} directly. The order list is not loaded.";
+
+        await LoadOrderDetailByIdAsync(orderId, cancellationToken);
+    }
+
+    public void ClearContextFocus(Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+        {
             return;
         }
 
-        using CancellationTokenSource cancellation = new();
-        _detailLoadCancellation = cancellation;
+        string expectedSearchText = orderId.ToString("D");
+        if (string.Equals(
+                SearchText,
+                expectedSearchText,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            SearchText = string.Empty;
+        }
+
+        if (DetailOrderId != orderId || SelectedOrder is not null)
+        {
+            return;
+        }
+
+        CancelDetailLoad();
+        IsDetailLoading = false;
+        SelectedOrderDetail = null;
+        DetailOrderId = null;
+        DetailErrorMessage = null;
+        DetailStatusText = "Select an order to view details.";
+        StatusText = HasLoaded
+            ? BuildLoadedStatus()
+            : "Orders not loaded.";
+    }
+
+    public Task LoadOrderDetailAsync(OperationalOrderSummaryDto? order)
+    {
+        if (order is null || SelectedOrder?.Id != order.Id)
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadOrderDetailByIdAsync(order.Id, CancellationToken.None);
+    }
+
+    private async Task LoadOrderDetailByIdAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        CancelDetailLoad();
+        SelectedOrderDetail = null;
+        DetailOrderId = orderId;
+        DetailErrorMessage = null;
         IsDetailLoading = true;
-        DetailStatusText = $"Loading details for order {order.Id:D}...";
+        DetailStatusText = $"Loading details for order {orderId:D}...";
+
+        using CancellationTokenSource cancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _detailLoadCancellation = cancellation;
 
         try
         {
             OperationalOrderDetailDto detail = await _ordersApiClient.GetOrderAsync(
-                order.Id,
+                orderId,
                 cancellation.Token);
 
-            if (!ReferenceEquals(_detailLoadCancellation, cancellation) || SelectedOrder?.Id != order.Id)
+            if (!ReferenceEquals(_detailLoadCancellation, cancellation)
+                || DetailOrderId != orderId)
             {
                 return;
             }
 
             SelectedOrderDetail = detail;
-            DetailStatusText = $"Order {order.Id:D} loaded.";
+            DetailStatusText = $"Order {orderId:D} loaded.";
         }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (cancellation.IsCancellationRequested)
         {
+            // A newer selection/context request owns the detail panel.
         }
         catch (Exception exception)
         {
-            if (!ReferenceEquals(_detailLoadCancellation, cancellation) || SelectedOrder?.Id != order.Id)
+            if (!ReferenceEquals(_detailLoadCancellation, cancellation)
+                || DetailOrderId != orderId)
             {
                 return;
             }
 
-            DetailErrorMessage = GetLoadErrorMessage(exception, "The order detail request failed.");
+            DetailErrorMessage = GetLoadErrorMessage(
+                exception,
+                "The order detail request failed.");
             DetailStatusText = "Order detail load failed.";
             if (IsUnexpectedFailure(exception))
             {

@@ -43,6 +43,32 @@
                 Value="{StaticResource ErrorTextBrush}" />
     </Style>
 
+    <Style x:Key="SelectableValueTextBoxStyle"
+           TargetType="TextBox">
+        <Setter Property="IsReadOnly"
+                Value="True" />
+        <Setter Property="IsReadOnlyCaretVisible"
+                Value="False" />
+        <Setter Property="Background"
+                Value="Transparent" />
+        <Setter Property="BorderThickness"
+                Value="0" />
+        <Setter Property="Padding"
+                Value="0" />
+        <Setter Property="Foreground"
+                Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Cursor"
+                Value="IBeam" />
+        <Setter Property="TextWrapping"
+                Value="Wrap" />
+        <Setter Property="HorizontalScrollBarVisibility"
+                Value="Disabled" />
+        <Setter Property="VerticalScrollBarVisibility"
+                Value="Disabled" />
+        <Setter Property="IsTabStop"
+                Value="False" />
+    </Style>
+
     <!-- Buttons -->
 
     <Style x:Key="BaseButtonStyle"
@@ -182,6 +208,12 @@
                 Value="{StaticResource SurfaceMutedBrush}" />
         <Setter Property="AlternationCount"
                 Value="2" />
+        <Setter Property="SelectionMode"
+                Value="Extended" />
+        <Setter Property="SelectionUnit"
+                Value="Cell" />
+        <Setter Property="ClipboardCopyMode"
+                Value="ExcludeHeader" />
     </Style>
 
 </ResourceDictionary>

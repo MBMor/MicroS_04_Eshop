@@ -247,6 +247,7 @@ public partial class App : Application
         builder.Services.AddSingleton<InventoryViewModel>();
         builder.Services.AddSingleton<OrdersViewModel>();
         builder.Services.AddSingleton<PaymentsViewModel>();
+        builder.Services.AddSingleton<InvestigationViewModel>();
         builder.Services.AddSingleton<DiagnosticsViewModel>();
         builder.Services.AddSingleton<ShellViewModel>();
         builder.Services.AddSingleton<MainWindow>();

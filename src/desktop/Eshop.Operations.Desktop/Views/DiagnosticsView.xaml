@@ -34,20 +34,21 @@
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text="Environment" />
 
-                <TextBlock Grid.Row="0"
-                           Grid.Column="1"
-                           Text="{Binding EnvironmentName}" />
+                <TextBox Grid.Row="0"
+                         Grid.Column="1"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding EnvironmentName, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="1"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text="API Gateway" />
 
-                <TextBlock Grid.Row="1"
-                           Grid.Column="1"
-                           Margin="0,10,0,0"
-                           Text="{Binding ApiGatewayBaseAddress}"
-                           TextWrapping="Wrap" />
+                <TextBox Grid.Row="1"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding ApiGatewayBaseAddress, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="2"
                            Margin="0,10,0,0"
@@ -58,7 +59,8 @@
                             Grid.Column="1"
                             Margin="0,10,0,0"
                             Orientation="Horizontal">
-                    <TextBlock Text="{Binding ApiGatewayTimeoutSeconds}" />
+                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                             Text="{Binding ApiGatewayTimeoutSeconds, Mode=OneWay}" />
                     <TextBlock Margin="4,0,0,0"
                                Text="seconds" />
                 </StackPanel>
@@ -68,41 +70,44 @@
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text="Application version" />
 
-                <TextBlock Grid.Row="3"
-                           Grid.Column="1"
-                           Margin="0,10,0,0"
-                           Text="{Binding ApplicationVersion}" />
+                <TextBox Grid.Row="3"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding ApplicationVersion, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="4"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text=".NET runtime" />
 
-                <TextBlock Grid.Row="4"
-                           Grid.Column="1"
-                           Margin="0,10,0,0"
-                           Text="{Binding RuntimeDescription}" />
+                <TextBox Grid.Row="4"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding RuntimeDescription, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="5"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text="Operating system" />
 
-                <TextBlock Grid.Row="5"
-                           Grid.Column="1"
-                           Margin="0,10,0,0"
-                           Text="{Binding OperatingSystemDescription}"
-                           TextWrapping="Wrap" />
+                <TextBox Grid.Row="5"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding OperatingSystemDescription, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="6"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
                            Text="Process architecture" />
 
-                <TextBlock Grid.Row="6"
-                           Grid.Column="1"
-                           Margin="0,10,0,0"
-                           Text="{Binding ProcessArchitecture}" />
+                <TextBox Grid.Row="6"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding ProcessArchitecture, Mode=OneWay}" />
             </Grid>
 
 			<Border Margin="0,28,0,0"

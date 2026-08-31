@@ -20,6 +20,7 @@
         <DataTemplate DataType="{x:Type viewModels:InventoryViewModel}"><views:InventoryView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:OrdersViewModel}"><views:OrdersView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:PaymentsViewModel}"><views:PaymentsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:InvestigationViewModel}"><views:InvestigationView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}"><views:DiagnosticsView /></DataTemplate>
     </Window.Resources>
     <Grid Margin="12">
@@ -45,7 +46,27 @@
                     <TextBlock FontWeight="SemiBold" Text="{Binding Authentication.CurrentUser.DisplayName}" />
                     <TextBlock Margin="6,0,0,0" Style="{StaticResource MutedTextStyle}"><Run Text="· " /><Run Text="{Binding Authentication.CurrentUser.RolesDisplay, Mode=OneWay}" /></TextBlock>
                 </StackPanel>
-                <TextBlock Grid.Column="3" Margin="20,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource MutedTextStyle}" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+                <Grid Grid.Column="3" Margin="20,0,20,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasTroubleshootingContext}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Padding="8,3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Visibility="{Binding HasTroubleshootingContext, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="Context:" />
+                            <TextBlock Margin="6,0,0,0" MaxWidth="260" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding TroubleshootingContextText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ActiveTroubleshootingContext.CorrelationText}" />
+                            <Button Margin="8,0,0,0" MinWidth="52" MinHeight="24" Padding="6,2" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding ClearTroubleshootingContextCommand}" Content="Clear" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
                 <Grid Grid.Column="4">
                     <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignInCommand}" Content="Sign in" Visibility="{Binding Authentication.IsAnonymous, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignOutCommand}" Content="Sign out" Visibility="{Binding Authentication.IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -60,6 +81,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <ToggleButton Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsCatalogActive, Mode=OneWay}" Command="{Binding ShowCatalogCommand}" Content="Catalog" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsInvestigationActive, Mode=OneWay}" Command="{Binding ShowInvestigationCommand}" Content="Investigate" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsOrdersActive, Mode=OneWay}" Command="{Binding ShowOrdersCommand}" Content="Orders" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsInventoryActive, Mode=OneWay}" Command="{Binding ShowInventoryCommand}" Content="Inventory" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsPaymentsActive, Mode=OneWay}" Command="{Binding ShowPaymentsCommand}" Content="Payments" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />

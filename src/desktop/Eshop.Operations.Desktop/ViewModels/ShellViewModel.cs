@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Eshop.Operations.Desktop.Configuration;
 using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.Authentication;
+using Eshop.Operations.Desktop.Navigation;
 
 namespace Eshop.Operations.Desktop.ViewModels;
 
@@ -17,6 +18,7 @@ public sealed partial class ShellViewModel : ObservableObject
         InventoryViewModel inventory,
         OrdersViewModel orders,
         PaymentsViewModel payments,
+        InvestigationViewModel investigation,
         DiagnosticsViewModel diagnostics,
         IAuthenticationService authenticationService,
         AuthenticationState authentication)
@@ -26,6 +28,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(orders);
         ArgumentNullException.ThrowIfNull(payments);
+        ArgumentNullException.ThrowIfNull(investigation);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(authenticationService);
         ArgumentNullException.ThrowIfNull(authentication);
@@ -37,6 +40,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Inventory = inventory;
         Orders = orders;
         Payments = payments;
+        Investigation = investigation;
         Diagnostics = diagnostics;
 
         CurrentViewModel = Catalog;
@@ -63,6 +67,11 @@ public sealed partial class ShellViewModel : ObservableObject
             CurrentViewModel,
             Catalog);
 
+    public bool IsInvestigationActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Investigation);
+
     public bool IsInventoryActive =>
         ReferenceEquals(
             CurrentViewModel,
@@ -81,7 +90,8 @@ public sealed partial class ShellViewModel : ObservableObject
     private bool IsProtectedOperationActive =>
         IsInventoryActive
         || IsOrdersActive
-        || IsPaymentsActive;
+        || IsPaymentsActive
+        || IsInvestigationActive;
 
     public bool IsDiagnosticsActive =>
         ReferenceEquals(
@@ -105,6 +115,7 @@ public sealed partial class ShellViewModel : ObservableObject
             InventoryViewModel => "Inventory",
             OrdersViewModel => "Orders",
             PaymentsViewModel => "Payments",
+            InvestigationViewModel => "Investigate",
             DiagnosticsViewModel => "Diagnostics",
             _ => "Operations"
         };
@@ -112,6 +123,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentSectionTitle))]
     [NotifyPropertyChangedFor(nameof(IsCatalogActive))]
+    [NotifyPropertyChangedFor(nameof(IsInvestigationActive))]
     [NotifyPropertyChangedFor(nameof(IsInventoryActive))]
     [NotifyPropertyChangedFor(nameof(IsOrdersActive))]
     [NotifyPropertyChangedFor(nameof(IsPaymentsActive))]
@@ -122,10 +134,100 @@ public sealed partial class ShellViewModel : ObservableObject
     public partial string StatusText { get; set; } =
         "Ready";
 
+    public InvestigationViewModel Investigation { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTroubleshootingContext))]
+    [NotifyPropertyChangedFor(nameof(TroubleshootingContextText))]
+    public partial TroubleshootingContext? ActiveTroubleshootingContext
+    {
+        get;
+        private set;
+    }
+
+    public bool HasTroubleshootingContext =>
+        ActiveTroubleshootingContext is not null;
+
+    public string TroubleshootingContextText =>
+        ActiveTroubleshootingContext?.DisplayText
+        ?? string.Empty;
+
+    private void ClearTroubleshootingContextState()
+    {
+        TroubleshootingContext? context =
+            ActiveTroubleshootingContext;
+
+        if (context is null)
+        {
+            return;
+        }
+
+        switch (context.Kind)
+        {
+            case TroubleshootingContextKind.OrderToPayments:
+                Payments.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.ProductToInventory:
+                Inventory.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.PaymentToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.LookupToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
+        }
+
+        ActiveTroubleshootingContext = null;
+    }
+
+    [RelayCommand]
+    private void ClearTroubleshootingContext()
+    {
+        if (ActiveTroubleshootingContext is null)
+        {
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+        StatusText = "Troubleshooting context cleared.";
+    }
+
+    private void ResetNavigationStatus()
+    {
+        StatusText = Authentication.IsAuthenticated
+            ? $"Signed in as {Authentication.CurrentUser?.DisplayName}."
+            : "Ready";
+    }
+
     [RelayCommand]
     private void ShowCatalog()
     {
+        ClearTroubleshootingContextState();
         CurrentViewModel = Catalog;
+        ResetNavigationStatus();
+    }
+
+    [RelayCommand]
+    private void ShowInvestigation()
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to investigate operational data.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        CurrentViewModel =
+            Investigation;
+
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -139,8 +241,10 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Inventory;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -154,8 +258,141 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Orders;
+        ResetNavigationStatus();
+    }
+
+    [RelayCommand]
+    private async Task OpenOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Orders.";
+
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Orders.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.PaymentToOrder,
+                orderId);
+
+        CurrentViewModel =
+            Orders;
+
+        StatusText =
+            $"Inspecting order {orderId:D}.";
+
+        await Orders.FocusOrderAsync(
+            orderId,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task InspectOperationalIdentifierAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to investigate operational data.";
+
+            return;
+        }
+
+        if (!Investigation.TryGetLookup(
+                out OperationalLookupKind lookupKind,
+                out Guid identifier))
+        {
+            return;
+        }
+
+        switch (lookupKind)
+        {
+            case OperationalLookupKind.Order:
+                await InspectOrderAsync(identifier, cancellationToken);
+                break;
+
+            case OperationalLookupKind.PaymentsForOrder:
+                await OpenPaymentsForOrderAsync(identifier, cancellationToken);
+                break;
+
+            case OperationalLookupKind.InventoryForProduct:
+                await OpenInventoryForProductAsync(identifier, cancellationToken);
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported lookup kind '{lookupKind}'.");
+        }
+    }
+
+    private async Task InspectOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.LookupToOrder,
+                orderId);
+
+        CurrentViewModel =
+            Orders;
+
+        StatusText =
+            $"Inspecting order {orderId:D}.";
+
+        await Orders.FocusOrderAsync(
+            orderId,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task OpenPaymentsForOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Payments.";
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Payments.";
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.OrderToPayments,
+                orderId);
+
+        CurrentViewModel = Payments;
+        StatusText = $"Inspecting payments for order {orderId:D}.";
+        await Payments.FocusOrderAsync(orderId, cancellationToken);
     }
 
     [RelayCommand]
@@ -169,14 +406,49 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Payments;
+        ResetNavigationStatus();
+    }
+
+    [RelayCommand]
+    private async Task OpenInventoryForProductAsync(
+        Guid productId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Inventory.";
+            return;
+        }
+
+        if (productId == Guid.Empty)
+        {
+            StatusText =
+                "A valid product id is required to inspect Inventory.";
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.ProductToInventory,
+                productId);
+
+        CurrentViewModel = Inventory;
+        StatusText = $"Inspecting inventory for product {productId:D}.";
+        await Inventory.FocusProductAsync(productId, cancellationToken);
     }
 
     [RelayCommand]
     private void ShowDiagnostics()
     {
+        ClearTroubleshootingContextState();
         CurrentViewModel = Diagnostics;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -229,6 +501,8 @@ public sealed partial class ShellViewModel : ObservableObject
         if (!Authentication.CanAccessOperations
             && IsProtectedOperationActive)
         {
+            ClearTroubleshootingContextState();
+
             CurrentViewModel =
                 Catalog;
 

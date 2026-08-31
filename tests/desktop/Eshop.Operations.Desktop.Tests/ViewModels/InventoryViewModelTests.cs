@@ -387,6 +387,26 @@ public sealed class InventoryViewModelTests
             DateTimeOffset.Parse("2026-08-30T10:00:00+00:00", CultureInfo.InvariantCulture).AddMinutes(sequence));
     }
 
+    [Fact]
+    public async Task FocusProductAsyncFiltersInventoryByProductId()
+    {
+        Guid targetProductId = Guid.NewGuid();
+        InventoryItemDto target = CreateItem() with { Id = Guid.NewGuid(), ProductId = targetProductId };
+        InventoryItemDto other = CreateItem() with { Id = Guid.NewGuid(), ProductId = Guid.NewGuid() };
+
+        InventoryViewModel viewModel = CreateViewModel(
+            new StubInventoryApiClient(
+                (_, _) => Task.FromResult<IReadOnlyList<InventoryItemDto>>([target, other])));
+
+        await viewModel.FocusProductAsync(
+            targetProductId,
+            TestContext.Current.CancellationToken);
+
+        InventoryItemDto visible = Assert.Single(viewModel.ItemsView.Cast<InventoryItemDto>());
+        Assert.Same(target, visible);
+        Assert.Equal(targetProductId.ToString("D"), viewModel.SearchText);
+    }
+
     private static InventoryViewModel CreateViewModel(
         IInventoryApiClient apiClient,
         AuthenticationState? authentication = null,
