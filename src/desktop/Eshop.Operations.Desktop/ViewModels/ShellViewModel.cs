@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Eshop.Operations.Desktop.Configuration;
 using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.Authentication;
+using Eshop.Operations.Desktop.Navigation;
 
 namespace Eshop.Operations.Desktop.ViewModels;
 
@@ -122,10 +123,75 @@ public sealed partial class ShellViewModel : ObservableObject
     public partial string StatusText { get; set; } =
         "Ready";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTroubleshootingContext))]
+    [NotifyPropertyChangedFor(nameof(TroubleshootingContextText))]
+    public partial TroubleshootingContext? ActiveTroubleshootingContext
+    {
+        get;
+        private set;
+    }
+
+    public bool HasTroubleshootingContext =>
+        ActiveTroubleshootingContext is not null;
+
+    public string TroubleshootingContextText =>
+        ActiveTroubleshootingContext?.DisplayText
+        ?? string.Empty;
+
+    private void ClearTroubleshootingContextState()
+    {
+        TroubleshootingContext? context =
+            ActiveTroubleshootingContext;
+
+        if (context is null)
+        {
+            return;
+        }
+
+        switch (context.Kind)
+        {
+            case TroubleshootingContextKind.OrderToPayments:
+                Payments.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.ProductToInventory:
+                Inventory.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.PaymentToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
+        }
+
+        ActiveTroubleshootingContext = null;
+    }
+
+    [RelayCommand]
+    private void ClearTroubleshootingContext()
+    {
+        if (ActiveTroubleshootingContext is null)
+        {
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+        StatusText = "Troubleshooting context cleared.";
+    }
+
+    private void ResetNavigationStatus()
+    {
+        StatusText = Authentication.IsAuthenticated
+            ? $"Signed in as {Authentication.CurrentUser?.DisplayName}."
+            : "Ready";
+    }
+
     [RelayCommand]
     private void ShowCatalog()
     {
+        ClearTroubleshootingContextState();
         CurrentViewModel = Catalog;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -139,8 +205,10 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Inventory;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -154,8 +222,10 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Orders;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -178,6 +248,13 @@ public sealed partial class ShellViewModel : ObservableObject
 
             return;
         }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.PaymentToOrder,
+                orderId);
 
         CurrentViewModel =
             Orders;
@@ -209,6 +286,13 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.OrderToPayments,
+                orderId);
+
         CurrentViewModel = Payments;
         StatusText = $"Inspecting payments for order {orderId:D}.";
         await Payments.FocusOrderAsync(orderId, cancellationToken);
@@ -225,8 +309,10 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
         CurrentViewModel =
             Payments;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -248,6 +334,13 @@ public sealed partial class ShellViewModel : ObservableObject
             return;
         }
 
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.ProductToInventory,
+                productId);
+
         CurrentViewModel = Inventory;
         StatusText = $"Inspecting inventory for product {productId:D}.";
         await Inventory.FocusProductAsync(productId, cancellationToken);
@@ -256,7 +349,9 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private void ShowDiagnostics()
     {
+        ClearTroubleshootingContextState();
         CurrentViewModel = Diagnostics;
+        ResetNavigationStatus();
     }
 
     [RelayCommand]
@@ -309,6 +404,8 @@ public sealed partial class ShellViewModel : ObservableObject
         if (!Authentication.CanAccessOperations
             && IsProtectedOperationActive)
         {
+            ClearTroubleshootingContextState();
+
             CurrentViewModel =
                 Catalog;
 

@@ -177,6 +177,31 @@ public sealed partial class PaymentsViewModel : ObservableObject
         {
             await LoadPaymentsAsync(cancellationToken);
         }
+
+        PaymentDto[] matchingPayments = Payments
+            .Where(payment => payment.OrderId == orderId)
+            .ToArray();
+
+        SelectedPayment = matchingPayments.Length == 1
+            ? matchingPayments[0]
+            : null;
+    }
+
+    public void ClearContextFocus(Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+        {
+            return;
+        }
+
+        string expectedSearchText = orderId.ToString("D");
+        if (string.Equals(
+                SearchText,
+                expectedSearchText,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            SearchText = string.Empty;
+        }
     }
 
     [RelayCommand(IncludeCancelCommand = true)]

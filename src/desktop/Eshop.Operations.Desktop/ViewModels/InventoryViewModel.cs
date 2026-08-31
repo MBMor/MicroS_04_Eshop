@@ -188,6 +188,23 @@ public sealed partial class InventoryViewModel : ObservableObject
         }
     }
 
+    public void ClearContextFocus(Guid productId)
+    {
+        if (productId == Guid.Empty)
+        {
+            return;
+        }
+
+        string expectedSearchText = productId.ToString("D");
+        if (string.Equals(
+                SearchText,
+                expectedSearchText,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            SearchText = string.Empty;
+        }
+    }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadInventoryAsync(CancellationToken cancellationToken)
     {

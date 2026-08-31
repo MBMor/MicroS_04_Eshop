@@ -257,6 +257,38 @@ public sealed partial class OrdersViewModel : ObservableObject
         await LoadOrderDetailByIdAsync(orderId, cancellationToken);
     }
 
+    public void ClearContextFocus(Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+        {
+            return;
+        }
+
+        string expectedSearchText = orderId.ToString("D");
+        if (string.Equals(
+                SearchText,
+                expectedSearchText,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            SearchText = string.Empty;
+        }
+
+        if (DetailOrderId != orderId || SelectedOrder is not null)
+        {
+            return;
+        }
+
+        CancelDetailLoad();
+        IsDetailLoading = false;
+        SelectedOrderDetail = null;
+        DetailOrderId = null;
+        DetailErrorMessage = null;
+        DetailStatusText = "Select an order to view details.";
+        StatusText = HasLoaded
+            ? BuildLoadedStatus()
+            : "Orders not loaded.";
+    }
+
     public Task LoadOrderDetailAsync(OperationalOrderSummaryDto? order)
     {
         if (order is null || SelectedOrder?.Id != order.Id)

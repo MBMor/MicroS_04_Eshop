@@ -6,6 +6,7 @@ using Eshop.Operations.Desktop.Api.Orders;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.Models;
+using Eshop.Operations.Desktop.Navigation;
 using Eshop.Operations.Desktop.Services;
 using Eshop.Operations.Desktop.ViewModels;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -316,6 +317,15 @@ public sealed class ShellViewModelTests
 
         Assert.Same(viewModel.Payments, viewModel.CurrentViewModel);
         Assert.Equal(orderId.ToString("D"), viewModel.Payments.SearchText);
+        Assert.True(viewModel.HasTroubleshootingContext);
+        Assert.NotNull(viewModel.ActiveTroubleshootingContext);
+        Assert.Equal(
+            TroubleshootingContextKind.OrderToPayments,
+            viewModel.ActiveTroubleshootingContext.Kind);
+        Assert.Equal(orderId, viewModel.ActiveTroubleshootingContext.CorrelationId);
+        Assert.Equal(
+            $"Order {orderId.ToString("D")[..8]}… → Payments",
+            viewModel.TroubleshootingContextText);
     }
 
     [Fact]
@@ -335,6 +345,12 @@ public sealed class ShellViewModelTests
 
         Assert.Same(viewModel.Inventory, viewModel.CurrentViewModel);
         Assert.Equal(productId.ToString("D"), viewModel.Inventory.SearchText);
+        Assert.Equal(
+            TroubleshootingContextKind.ProductToInventory,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+        Assert.Equal(
+            productId,
+            viewModel.ActiveTroubleshootingContext?.CorrelationId);
     }
 
     [Fact]
@@ -356,6 +372,138 @@ public sealed class ShellViewModelTests
         Assert.Equal(
             "Sign in with a support or admin account to access Orders.",
             viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task ClearTroubleshootingContextRemovesOwnedPaymentsFilter()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Equal(orderId.ToString("D"), viewModel.Payments.SearchText);
+        Assert.True(viewModel.HasTroubleshootingContext);
+
+        viewModel.ClearTroubleshootingContextCommand.Execute(null);
+
+        Assert.False(viewModel.HasTroubleshootingContext);
+        Assert.Null(viewModel.ActiveTroubleshootingContext);
+        Assert.Equal(string.Empty, viewModel.Payments.SearchText);
+        Assert.Equal("Troubleshooting context cleared.", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task ClearTroubleshootingContextPreservesUserChangedSearch()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+        viewModel.Payments.SearchText = "Failed";
+
+        viewModel.ClearTroubleshootingContextCommand.Execute(null);
+
+        Assert.Equal("Failed", viewModel.Payments.SearchText);
+        Assert.False(viewModel.HasTroubleshootingContext);
+    }
+
+    [Fact]
+    public async Task ManualNavigationClearsTroubleshootingContext()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+        Assert.True(viewModel.HasTroubleshootingContext);
+
+        viewModel.ShowCatalogCommand.Execute(null);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.False(viewModel.HasTroubleshootingContext);
+        Assert.Equal(string.Empty, viewModel.Payments.SearchText);
+    }
+
+    [Fact]
+    public async Task ManualNavigationClearsInspectingStatus()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Contains(
+            "Inspecting payments for order",
+            viewModel.StatusText,
+            StringComparison.Ordinal);
+
+        viewModel.ShowInventoryCommand.Execute(null);
+
+        Assert.Equal("Signed in as sam.support.", viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task ClearTroubleshootingContextClearsDirectOrderDetail()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        Guid orderId = Guid.NewGuid();
+        OperationalOrderDetailDto detail = new(
+            orderId,
+            "customer-123",
+            "customer@example.com",
+            "Confirmed",
+            1499.50m,
+            "CZK",
+            "test-success",
+            DateTimeOffset.UtcNow,
+            null,
+            [],
+            []);
+        var ordersApiClient = new StubOrdersApiClient(
+            (_, _) => Task.FromResult(detail));
+        ShellViewModel viewModel = CreateViewModel(
+            authentication,
+            ordersApiClient);
+
+        await viewModel.OpenOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Equal(orderId, viewModel.Orders.DetailOrderId);
+        Assert.Same(detail, viewModel.Orders.SelectedOrderDetail);
+
+        viewModel.ClearTroubleshootingContextCommand.Execute(null);
+
+        Assert.Null(viewModel.Orders.DetailOrderId);
+        Assert.Null(viewModel.Orders.SelectedOrderDetail);
+        Assert.False(viewModel.HasTroubleshootingContext);
     }
 
     [Fact]
@@ -393,6 +541,15 @@ public sealed class ShellViewModelTests
         Assert.Equal(orderId, viewModel.Orders.DetailOrderId);
         Assert.Same(detail, viewModel.Orders.SelectedOrderDetail);
         Assert.Equal($"Inspecting order {orderId:D}.", viewModel.StatusText);
+        Assert.Equal(
+            TroubleshootingContextKind.PaymentToOrder,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+        Assert.Equal(
+            orderId,
+            viewModel.ActiveTroubleshootingContext?.CorrelationId);
+        Assert.Equal(
+            $"Payments → Order {orderId.ToString("D")[..8]}…",
+            viewModel.TroubleshootingContextText);
     }
 
     private static ShellViewModel CreateViewModel(

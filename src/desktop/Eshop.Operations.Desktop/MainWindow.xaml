@@ -45,7 +45,27 @@
                     <TextBlock FontWeight="SemiBold" Text="{Binding Authentication.CurrentUser.DisplayName}" />
                     <TextBlock Margin="6,0,0,0" Style="{StaticResource MutedTextStyle}"><Run Text="· " /><Run Text="{Binding Authentication.CurrentUser.RolesDisplay, Mode=OneWay}" /></TextBlock>
                 </StackPanel>
-                <TextBlock Grid.Column="3" Margin="20,0,20,0" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource MutedTextStyle}" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+                <Grid Grid.Column="3" Margin="20,0,20,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasTroubleshootingContext}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Padding="8,3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Visibility="{Binding HasTroubleshootingContext, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="Context:" />
+                            <TextBlock Margin="6,0,0,0" MaxWidth="260" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding TroubleshootingContextText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding ActiveTroubleshootingContext.CorrelationText}" />
+                            <Button Margin="8,0,0,0" MinWidth="52" MinHeight="24" Padding="6,2" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding ClearTroubleshootingContextCommand}" Content="Clear" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
                 <Grid Grid.Column="4">
                     <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignInCommand}" Content="Sign in" Visibility="{Binding Authentication.IsAnonymous, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <Button Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding SignOutCommand}" Content="Sign out" Visibility="{Binding Authentication.IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}" />
