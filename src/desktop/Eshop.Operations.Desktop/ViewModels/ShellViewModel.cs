@@ -159,6 +159,38 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task OpenOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Orders.";
+
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Orders.";
+
+            return;
+        }
+
+        CurrentViewModel =
+            Orders;
+
+        StatusText =
+            $"Inspecting order {orderId:D}.";
+
+        await Orders.FocusOrderAsync(
+            orderId,
+            cancellationToken);
+    }
+
+    [RelayCommand]
     private async Task OpenPaymentsForOrderAsync(
         Guid orderId,
         CancellationToken cancellationToken)

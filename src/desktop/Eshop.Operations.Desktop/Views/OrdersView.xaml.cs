@@ -17,12 +17,12 @@ public partial class OrdersView : UserControl
         SelectionChangedEventArgs e)
     {
         if (DataContext is not OrdersViewModel viewModel
-            || sender is not DataGrid dataGrid)
+            || sender is not DataGrid dataGrid
+            || dataGrid.SelectedItem is not OperationalOrderSummaryDto selectedOrder)
         {
             return;
         }
 
-        await viewModel.LoadOrderDetailAsync(
-            dataGrid.SelectedItem as OperationalOrderSummaryDto);
+        await viewModel.LoadOrderDetailAsync(selectedOrder);
     }
 }

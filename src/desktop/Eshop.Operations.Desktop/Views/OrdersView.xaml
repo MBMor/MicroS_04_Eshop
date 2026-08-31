@@ -92,7 +92,7 @@
                             <Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedOrder}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding DetailOrderId}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
@@ -102,7 +102,7 @@
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Visible" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SelectedOrder}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding DetailOrderId}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Grid.Style>

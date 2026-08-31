@@ -349,10 +349,55 @@ public sealed class ShellViewModelTests
         Assert.Equal(
             "Sign in with a support or admin account to access Payments.",
             viewModel.StatusText);
+
+        await viewModel.OpenOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to access Orders.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task OpenOrderCommandOpensExactOrderForSupportUser()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        Guid orderId = Guid.NewGuid();
+        OperationalOrderDetailDto detail = new(
+            orderId,
+            "customer-123",
+            "customer@example.com",
+            "Confirmed",
+            1499.50m,
+            "CZK",
+            "test-success",
+            DateTimeOffset.UtcNow,
+            null,
+            [],
+            []);
+        var ordersApiClient = new StubOrdersApiClient(
+            (_, _) => Task.FromResult(detail));
+
+        ShellViewModel viewModel = CreateViewModel(
+            authentication,
+            ordersApiClient);
+
+        await viewModel.OpenOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+        Assert.Equal(orderId, viewModel.Orders.DetailOrderId);
+        Assert.Same(detail, viewModel.Orders.SelectedOrderDetail);
+        Assert.Equal($"Inspecting order {orderId:D}.", viewModel.StatusText);
     }
 
     private static ShellViewModel CreateViewModel(
-        AuthenticationState? authentication = null)
+        AuthenticationState? authentication = null,
+        IOrdersApiClient? ordersApiClient = null)
     {
         IOptions<DesktopOptions> options =
             Options.Create(
@@ -383,7 +428,7 @@ public sealed class ShellViewModelTests
 
         var ordersViewModel =
             new OrdersViewModel(
-                new StubOrdersApiClient(),
+                ordersApiClient ?? new StubOrdersApiClient(),
                 NullLogger<OrdersViewModel>.Instance);
 
         DiagnosticsViewModel diagnosticsViewModel =
@@ -502,7 +547,9 @@ public sealed class ShellViewModelTests
         }
     }
 
-    private sealed class StubOrdersApiClient : IOrdersApiClient
+    private sealed class StubOrdersApiClient(
+        Func<Guid, CancellationToken, Task<OperationalOrderDetailDto>>? getOrder = null)
+        : IOrdersApiClient
     {
         public Task<OperationalOrderPageDto> GetOrdersAsync(
             int offset,
@@ -521,8 +568,13 @@ public sealed class ShellViewModelTests
             Guid orderId,
             CancellationToken cancellationToken)
         {
-            throw new InvalidOperationException(
-                "Order detail was not expected in this test.");
+            if (getOrder is null)
+            {
+                throw new InvalidOperationException(
+                    "Order detail was not expected in this test.");
+            }
+
+            return getOrder(orderId, cancellationToken);
         }
     }
 

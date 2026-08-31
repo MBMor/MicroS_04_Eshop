@@ -185,8 +185,23 @@
                             <DataTemplate>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource PageTitleTextStyle}"
-                                                   Text="Payment details" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource PageTitleTextStyle}"
+                                                       Text="Payment details" />
+                                            <Button Grid.Column="1"
+                                                    Margin="12,0,0,0"
+                                                    Style="{StaticResource CompactToolbarButtonStyle}"
+                                                    Command="{Binding DataContext.OpenOrderCommand,
+                                                                      RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                    CommandParameter="{Binding OrderId}"
+                                                    Content="Open order" />
+                                        </Grid>
                                         <TextBlock Margin="0,16,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Payment ID" />
