@@ -7,11 +7,16 @@ using BasketService.Options;
 using Eshop.ErrorHandling;
 using Eshop.HealthChecks;
 using Eshop.OpenApi;
+using Eshop.Observability;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 using Microsoft.Extensions.Caching.Distributed;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "basket-service");
 
 builder.Services.AddControllers();
 

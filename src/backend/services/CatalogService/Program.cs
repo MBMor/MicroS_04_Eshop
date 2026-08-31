@@ -2,12 +2,17 @@ using Asp.Versioning;
 using CatalogService.Data;
 using Eshop.ErrorHandling;
 using Eshop.HealthChecks;
+using Eshop.Observability;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Eshop.OpenApi;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "catalog-service");
 
 builder.Services.AddControllers();
 

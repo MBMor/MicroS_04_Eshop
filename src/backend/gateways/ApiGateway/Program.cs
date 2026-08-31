@@ -2,11 +2,16 @@ using System.Security.Claims;
 using ApiGateway.RateLimiting;
 using Eshop.ErrorHandling;
 using Eshop.HealthChecks;
+using Eshop.Observability;
 using Eshop.Security.Authentication;
 using Eshop.Security.Authorization;
 
 WebApplicationBuilder builder =
     WebApplication.CreateBuilder(args);
+
+builder.Services.AddEshopObservability(
+    builder.Configuration,
+    serviceName: "api-gateway");
 
 builder.Services.AddHealthChecks();
 
