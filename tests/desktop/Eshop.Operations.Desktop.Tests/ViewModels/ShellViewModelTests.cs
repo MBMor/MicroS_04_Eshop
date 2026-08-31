@@ -299,6 +299,58 @@ public sealed class ShellViewModelTests
             viewModel.StatusText);
     }
 
+    [Fact]
+    public async Task OpenPaymentsForOrderCommandFocusesPaymentsForSupportUser()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Same(viewModel.Payments, viewModel.CurrentViewModel);
+        Assert.Equal(orderId.ToString("D"), viewModel.Payments.SearchText);
+    }
+
+    [Fact]
+    public async Task OpenInventoryForProductCommandFocusesInventoryForSupportUser()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        Guid productId = Guid.NewGuid();
+
+        await viewModel.OpenInventoryForProductCommand.ExecuteAsync(productId);
+
+        Assert.Same(viewModel.Inventory, viewModel.CurrentViewModel);
+        Assert.Equal(productId.ToString("D"), viewModel.Inventory.SearchText);
+    }
+
+    [Fact]
+    public async Task ContextualNavigationIsBlockedWithoutOperationalRole()
+    {
+        ShellViewModel viewModel = CreateViewModel();
+        Guid orderId = Guid.NewGuid();
+
+        await viewModel.OpenPaymentsForOrderCommand.ExecuteAsync(orderId);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to access Payments.",
+            viewModel.StatusText);
+    }
+
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null)
     {

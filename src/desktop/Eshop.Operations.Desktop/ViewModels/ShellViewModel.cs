@@ -159,6 +159,30 @@ public sealed partial class ShellViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task OpenPaymentsForOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Payments.";
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Payments.";
+            return;
+        }
+
+        CurrentViewModel = Payments;
+        StatusText = $"Inspecting payments for order {orderId:D}.";
+        await Payments.FocusOrderAsync(orderId, cancellationToken);
+    }
+
+    [RelayCommand]
     private void ShowPayments()
     {
         if (!Authentication.CanAccessOperations)
@@ -171,6 +195,30 @@ public sealed partial class ShellViewModel : ObservableObject
 
         CurrentViewModel =
             Payments;
+    }
+
+    [RelayCommand]
+    private async Task OpenInventoryForProductAsync(
+        Guid productId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Inventory.";
+            return;
+        }
+
+        if (productId == Guid.Empty)
+        {
+            StatusText =
+                "A valid product id is required to inspect Inventory.";
+            return;
+        }
+
+        CurrentViewModel = Inventory;
+        StatusText = $"Inspecting inventory for product {productId:D}.";
+        await Inventory.FocusProductAsync(productId, cancellationToken);
     }
 
     [RelayCommand]

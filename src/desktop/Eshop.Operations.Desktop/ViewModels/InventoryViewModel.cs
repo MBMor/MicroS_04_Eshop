@@ -169,6 +169,25 @@ public sealed partial class InventoryViewModel : ObservableObject
         if (value is not null) ApplySort(value);
     }
 
+    public async Task FocusProductAsync(
+        Guid productId,
+        CancellationToken cancellationToken)
+    {
+        if (productId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Product id must not be empty.",
+                nameof(productId));
+        }
+
+        SearchText = productId.ToString("D");
+
+        if (!HasLoaded && !IsLoading)
+        {
+            await LoadInventoryAsync(cancellationToken);
+        }
+    }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadInventoryAsync(CancellationToken cancellationToken)
     {
