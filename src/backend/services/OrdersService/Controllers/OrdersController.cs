@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using Asp.Versioning;
+using Eshop.Observability;
 using Eshop.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -72,6 +73,13 @@ public sealed class OrdersController(
                     idempotencyKey,
                     cancellationToken);
 
+            if (result.Order is not null)
+            {
+                Activity.Current?.SetTag(
+                    BusinessTelemetryTagNames.OrderId,
+                    result.Order.Id.ToString("D"));
+            }
+
             return result.Status switch
             {
                 CreateOrderStatus.Success
@@ -133,6 +141,10 @@ public sealed class OrdersController(
         Guid id,
         CancellationToken cancellationToken)
     {
+        Activity.Current?.SetTag(
+            BusinessTelemetryTagNames.OrderId,
+            id.ToString("D"));
+
         string? customerId =
             orderOwnerProvider.GetCustomerId(HttpContext);
 

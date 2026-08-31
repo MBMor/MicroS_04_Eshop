@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Eshop.Contracts.IntegrationEvents.V1;
 using Eshop.Messaging.RabbitMq;
+using Eshop.Observability;
 using Microsoft.EntityFrameworkCore;
 using PaymentsService.Data;
 using PaymentsService.Domain;
@@ -19,6 +21,10 @@ public sealed class PaymentRequestedProcessingService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
+
+        Activity.Current?.SetTag(
+            BusinessTelemetryTagNames.OrderId,
+            integrationEvent.OrderId.ToString("D"));
 
         bool alreadyProcessed = await dbContext.ProcessedMessages
             .AnyAsync(
@@ -68,6 +74,10 @@ public sealed class PaymentRequestedProcessingService(
             currency: integrationEvent.Currency,
             paymentMethod: decision.PaymentMethod,
             createdAtUtc: now);
+
+        Activity.Current?.SetTag(
+            BusinessTelemetryTagNames.PaymentId,
+            payment.Id.ToString("D"));
 
         dbContext.Payments.Add(payment);
 
@@ -139,6 +149,10 @@ public sealed class PaymentRequestedProcessingService(
             currency: integrationEvent.Currency,
             paymentMethod: integrationEvent.PaymentMethod,
             createdAtUtc: now);
+
+        Activity.Current?.SetTag(
+            BusinessTelemetryTagNames.PaymentId,
+            payment.Id.ToString("D"));
 
         payment.Fail(
             failureReason,
