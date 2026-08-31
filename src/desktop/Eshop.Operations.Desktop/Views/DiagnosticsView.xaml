@@ -110,11 +110,78 @@
                          Text="{Binding ProcessArchitecture, Mode=OneWay}" />
             </Grid>
 
+            <Border Margin="0,28,0,0"
+                    Style="{StaticResource PanelBorderStyle}">
+
+                <StackPanel>
+
+                    <TextBlock FontSize="16"
+                               FontWeight="SemiBold"
+                               Text="Observability" />
+
+                    <TextBlock Margin="0,6,0,0"
+                               Style="{StaticResource MutedTextStyle}"
+                               Text="Use Aspire to inspect distributed traces, service calls, RabbitMQ processing, errors, and business correlation metadata."
+                               TextWrapping="Wrap" />
+
+                    <Grid Margin="0,16,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Style="{StaticResource FieldLabelTextStyle}"
+                                   Text="Aspire dashboard" />
+
+                        <TextBox Grid.Column="1"
+                                 Style="{StaticResource SelectableValueTextBoxStyle}"
+                                 Text="{Binding AspireDashboardUrl,
+                                                Mode=OneWay,
+                                                TargetNullValue=Not configured}" />
+
+                    </Grid>
+
+                    <StackPanel Margin="0,16,0,0"
+                                Orientation="Horizontal">
+
+                        <Button Style="{StaticResource ToolbarButtonStyle}"
+                                Command="{Binding OpenAspireDashboardCommand}"
+                                Content="Open Aspire dashboard" />
+
+                    </StackPanel>
+
+                    <TextBlock Margin="0,14,0,0"
+                               Style="{StaticResource MutedTextStyle}"
+                               TextWrapping="Wrap">
+
+                        <Run Text="Useful trace tags: " />
+
+                        <Run FontFamily="Consolas"
+                             Text="eshop.order.id" />
+
+                        <Run Text=", " />
+
+                        <Run FontFamily="Consolas"
+                             Text="eshop.payment.id" />
+
+                        <Run Text=", " />
+
+                        <Run FontFamily="Consolas"
+                             Text="eshop.correlation_id" />
+
+                    </TextBlock>
+
+                </StackPanel>
+
+            </Border>
+
 			<Border Margin="0,28,0,0"
 					Style="{StaticResource MutedPanelBorderStyle}">
 
 				<TextBlock Style="{StaticResource MutedTextStyle}"
-						   Text="This screen displays configuration only. It does not perform network health checks."
+						   Text="This screen displays local configuration and provides hand-off to external observability tooling. It does not perform network health checks or query telemetry itself."
 						   TextWrapping="Wrap" />
 
 			</Border>

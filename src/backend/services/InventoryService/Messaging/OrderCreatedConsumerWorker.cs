@@ -7,6 +7,7 @@ using Eshop.Messaging.Contracts;
 using Eshop.Messaging.RabbitMq;
 using Eshop.Messaging.Serialization;
 using Eshop.Messaging.Telemetry;
+using Eshop.Observability;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using RabbitMQ.Client;
@@ -177,6 +178,10 @@ public sealed class OrderCreatedConsumerWorker(
             activity?.SetTag(
                 "eshop.correlation_id",
                 correlationId.ToString("D"));
+
+            activity?.SetTag(
+                BusinessTelemetryTagNames.OrderId,
+                envelope.Payload.OrderId.ToString("D"));
 
             await using AsyncServiceScope scope =
                 scopeFactory.CreateAsyncScope();

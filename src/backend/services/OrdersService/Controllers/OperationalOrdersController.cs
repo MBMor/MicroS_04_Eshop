@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Asp.Versioning;
+using Eshop.Observability;
 using Eshop.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -76,6 +78,10 @@ public sealed class OperationalOrdersController(
             Guid id,
             CancellationToken cancellationToken)
     {
+        Activity.Current?.SetTag(
+            BusinessTelemetryTagNames.OrderId,
+            id.ToString("D"));
+
         Order? order =
             await orderService.GetOperationalAsync(
                 id,

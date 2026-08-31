@@ -120,6 +120,20 @@ public partial class App : Application
                 "ApiGateway:TimeoutSeconds must be between 1 and 120.")
             .ValidateOnStart();
 
+        builder.Services
+            .AddOptions<ObservabilityOptions>()
+            .Bind(
+                builder.Configuration.GetSection(
+                    ObservabilityOptions.SectionName))
+            .Validate(
+                static options =>
+                    string.IsNullOrWhiteSpace(
+                        options.DashboardUrl)
+                    || IsValidHttpUri(
+                        options.DashboardUrl),
+                "Observability:DashboardUrl must be empty or an absolute HTTP or HTTPS URI.")
+            .ValidateOnStart();
+
         builder.Services.AddSingleton<
             IValidateOptions<AuthenticationOptions>,
             AuthenticationOptionsValidator>();
@@ -208,6 +222,10 @@ public partial class App : Application
             IInventoryStockAdjustmentDialogService,
             InventoryStockAdjustmentDialogService>();
 
+        builder.Services.AddSingleton<
+            IExternalUriLauncher,
+            ExternalUriLauncher>();
+
         builder.Services.AddSingleton<AuthenticationState>();
 
         builder.Services.AddSingleton<TimeProvider>(
@@ -253,6 +271,17 @@ public partial class App : Application
         builder.Services.AddSingleton<MainWindow>();
 
         return builder.Build();
+    }
+
+    private static bool IsValidHttpUri(
+        string value)
+    {
+        return Uri.TryCreate(
+                   value,
+                   UriKind.Absolute,
+                   out Uri? uri)
+            && (uri.Scheme == Uri.UriSchemeHttp
+                || uri.Scheme == Uri.UriSchemeHttps);
     }
 
     private async void OnMainWindowClosed(

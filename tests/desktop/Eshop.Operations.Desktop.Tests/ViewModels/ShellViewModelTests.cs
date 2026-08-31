@@ -745,9 +745,24 @@ public sealed class ShellViewModelTests
                     TimeoutSeconds = 15
                 });
 
+        IOptions<ObservabilityOptions> observabilityOptions =
+            Options.Create(
+                new ObservabilityOptions());
+
         return new DiagnosticsViewModel(
             desktopOptions,
-            apiGatewayOptions);
+            apiGatewayOptions,
+            observabilityOptions,
+            new StubExternalUriLauncher());
+    }
+
+    private sealed class StubExternalUriLauncher
+        : IExternalUriLauncher
+    {
+        public void Open(
+            Uri uri)
+        {
+        }
     }
 
     private sealed class StubCatalogApiClient
