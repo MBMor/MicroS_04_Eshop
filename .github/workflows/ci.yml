@@ -523,6 +523,26 @@ jobs:
 
           Write-Host "Desktop publish artifact verified."
 
+      - name: Smoke test published desktop startup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $executable = Resolve-Path `
+            "artifacts/desktop/win-x64/Eshop.Operations.Desktop.exe"
+
+          $process = Start-Process `
+            -FilePath $executable `
+            -ArgumentList "--validate-startup" `
+            -PassThru `
+            -Wait
+
+          if ($process.ExitCode -ne 0) {
+            throw "Desktop startup validation failed with exit code $($process.ExitCode)."
+          }
+
+          Write-Host "Published desktop startup validation passed."
+
       - name: Generate desktop artifact checksums
         shell: pwsh
         run: |
