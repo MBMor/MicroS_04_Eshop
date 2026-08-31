@@ -468,6 +468,12 @@ jobs:
           dotnet restore
           tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
 
+      - name: Restore desktop publish target
+        run: >
+          dotnet restore
+          src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+          --runtime win-x64
+
       - name: Build desktop tests
         run: >
           dotnet build
@@ -482,6 +488,47 @@ jobs:
           tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
           --configuration Release
           --no-build
+
+      - name: Publish desktop application
+        run: >
+          dotnet publish
+          src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --no-restore
+          -p:PublishProfile=WindowsX64
+          --output artifacts/desktop/win-x64
+          -warnaserror
+
+      - name: Verify desktop publish artifact
+        shell: pwsh
+        run: |
+          $publishDirectory = "artifacts/desktop/win-x64"
+
+          $requiredFiles = @(
+            "Eshop.Operations.Desktop.exe",
+            "Eshop.Operations.Desktop.dll",
+            "appsettings.json"
+          )
+
+          foreach ($file in $requiredFiles) {
+            $path = Join-Path $publishDirectory $file
+
+            if (-not (Test-Path $path -PathType Leaf)) {
+              throw "Required desktop publish file is missing: $path"
+            }
+          }
+
+          Write-Host "Desktop publish artifact verified."
+
+      - name: Upload desktop application
+        uses: actions/upload-artifact@v7
+        with:
+          name: eshop-operations-desktop-win-x64
+          path: artifacts/desktop/win-x64/**
+          if-no-files-found: error
+          retention-days: 7
 
   frontend:
     name: Frontend
