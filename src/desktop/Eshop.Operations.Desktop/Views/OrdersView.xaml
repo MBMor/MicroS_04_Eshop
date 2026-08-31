@@ -72,7 +72,7 @@
                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="Refresh Orders to load operational data." Visibility="{Binding IsInitialState, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="No orders were returned." Visibility="{Binding IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="No loaded orders match the current filters." Visibility="{Binding IsFilteredEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <DataGrid x:Name="OrdersDataGrid" ItemsSource="{Binding OrdersView}" SelectedItem="{Binding SelectedOrder, Mode=TwoWay}" Visibility="{Binding HasVisibleOrders, Converter={StaticResource BooleanToVisibilityConverter}}" SelectionChanged="OrdersDataGrid_SelectionChanged" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column">
+                <DataGrid x:Name="OrdersDataGrid" ItemsSource="{Binding OrdersView}" Visibility="{Binding HasVisibleOrders, Converter={StaticResource BooleanToVisibilityConverter}}" CurrentCellChanged="OrdersDataGrid_CurrentCellChanged" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="*" />
                         <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat={}{0:N2}}" Width="*" />
@@ -121,12 +121,12 @@
                                                 <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="Order detail" />
                                                 <Button Grid.Column="1" Margin="12,0,0,0" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding DataContext.OpenPaymentsForOrderCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" CommandParameter="{Binding Id}" Content="Open payments" />
                                             </Grid>
-                                            <TextBlock Margin="0,8,0,0" Text="{Binding Id}" TextWrapping="Wrap" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding CustomerEmail}" TextWrapping="Wrap" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding CustomerId}" TextWrapping="Wrap" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding Status}" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding PaymentMethod}" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding TotalAmount, StringFormat={}{0:N2}}" />
+                                            <TextBox Margin="0,8,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Id, Mode=OneWay}" />
+                                            <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding CustomerEmail, Mode=OneWay}" />
+                                            <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding CustomerId, Mode=OneWay}" />
+                                            <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Status, Mode=OneWay}" />
+                                            <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding PaymentMethod, Mode=OneWay}" />
+                                            <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding TotalAmount, Mode=OneWay, StringFormat={}{0:N2}}" />
                                             <TextBlock Margin="0,16,0,6" FontWeight="SemiBold" Text="Items" />
                                             <DataGrid ItemsSource="{Binding Items}" MinHeight="120" MaxHeight="190" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
                                                 <DataGrid.Columns><DataGridTextColumn Header="Product" Binding="{Binding ProductName}" Width="2*" /><DataGridTextColumn Header="Qty" Binding="{Binding Quantity}" Width="55" /><DataGridTextColumn Header="Unit" Binding="{Binding UnitPrice, StringFormat={}{0:N2}}" Width="*" /><DataGridTextColumn Header="Total" Binding="{Binding LineTotal, StringFormat={}{0:N2}}" Width="*" /><DataGridTemplateColumn Header="" Width="Auto"><DataGridTemplateColumn.CellTemplate><DataTemplate><Button Margin="4,2" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding DataContext.OpenInventoryForProductCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" CommandParameter="{Binding ProductId}" Content="Inventory" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns>

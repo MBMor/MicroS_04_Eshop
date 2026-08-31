@@ -159,16 +159,15 @@
                                                     Converter={StaticResource BooleanToVisibilityConverter}}" />
 
 					<!-- Product list -->
-					<DataGrid ItemsSource="{Binding ProductsView}"
-                              SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                    <DataGrid x:Name="CatalogDataGrid"
+                              ItemsSource="{Binding ProductsView}"
+                              CurrentCellChanged="CatalogDataGrid_CurrentCellChanged"
                               Style="{StaticResource OperationalDataGridStyle}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
                               CanUserSortColumns="False"
-                              SelectionMode="Single"
-                              SelectionUnit="FullRow"
                               EnableRowVirtualization="True"
                               EnableColumnVirtualization="True"
                               HeadersVisibility="Column"
@@ -286,23 +285,24 @@
 											</Grid.RowDefinitions>
 
 											<!-- Product name -->
-											<TextBlock Grid.Row="0"
+							<TextBox Grid.Row="0"
                                                        Grid.ColumnSpan="2"
                                                        Margin="0,0,0,16"
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
                                                        FontSize="20"
                                                        FontWeight="SemiBold"
-                                                       Text="{Binding Name}"
-                                                       TextWrapping="Wrap" />
+                                                       Text="{Binding Name, Mode=OneWay}" />
 
 											<!-- SKU -->
 											<TextBlock Grid.Row="1"
                                                        FontWeight="SemiBold"
                                                        Text="SKU:" />
 
-											<TextBlock Grid.Row="1"
+							<TextBox Grid.Row="1"
                                                        Grid.Column="1"
                                                        Margin="12,0,0,0"
-                                                       Text="{Binding Sku}" />
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                       Text="{Binding Sku, Mode=OneWay}" />
 
 											<!-- Category -->
 											<TextBlock Grid.Row="2"
@@ -310,10 +310,11 @@
                                                        FontWeight="SemiBold"
                                                        Text="Category:" />
 
-											<TextBlock Grid.Row="2"
+							<TextBox Grid.Row="2"
                                                        Grid.Column="1"
                                                        Margin="12,8,0,0"
-                                                       Text="{Binding Category}" />
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                       Text="{Binding Category, Mode=OneWay}" />
 
 											<!-- Price -->
 											<TextBlock Grid.Row="3"
@@ -326,11 +327,12 @@
                                                         Margin="12,8,0,0"
                                                         Orientation="Horizontal">
 
-												<TextBlock Text="{Binding PriceAmount,
-                                                                         StringFormat=N2}" />
+																<TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+																								 Text="{Binding PriceAmount, Mode=OneWay, StringFormat=N2}" />
 
-												<TextBlock Margin="4,0,0,0"
-                                                           Text="{Binding Currency}" />
+																<TextBox Margin="4,0,0,0"
+                                                           Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                           Text="{Binding Currency, Mode=OneWay}" />
 											</StackPanel>
 
 											<!-- Active -->
@@ -351,11 +353,11 @@
                                                        FontWeight="SemiBold"
                                                        Text="Created:" />
 
-											<TextBlock Grid.Row="5"
+							<TextBox Grid.Row="5"
                                                        Grid.Column="1"
                                                        Margin="12,8,0,0"
-                                                       Text="{Binding CreatedAtUtc,
-                                                                      StringFormat=g}" />
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                       Text="{Binding CreatedAtUtc, Mode=OneWay, StringFormat=g}" />
 
 											<!-- Updated -->
 											<TextBlock Grid.Row="6"
@@ -363,12 +365,11 @@
                                                        FontWeight="SemiBold"
                                                        Text="Updated:" />
 
-											<TextBlock Grid.Row="6"
+							<TextBox Grid.Row="6"
                                                        Grid.Column="1"
                                                        Margin="12,8,0,0"
-                                                       Text="{Binding UpdatedAtUtc,
-                                                                      StringFormat=g,
-                                                                      TargetNullValue=—}" />
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                       Text="{Binding UpdatedAtUtc, Mode=OneWay, StringFormat=g, TargetNullValue=—}" />
 
 											<!-- Description heading -->
 											<TextBlock Grid.Row="7"
@@ -378,11 +379,10 @@
                                                        Text="Description" />
 
 											<!-- Description -->
-											<TextBlock Grid.Row="8"
+							<TextBox Grid.Row="8"
                                                        Grid.ColumnSpan="2"
-                                                       Text="{Binding Description,
-                                                                      TargetNullValue=—}"
-                                                       TextWrapping="Wrap" />
+                                                       Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                       Text="{Binding Description, Mode=OneWay, TargetNullValue=—}" />
 										</Grid>
 									</ScrollViewer>
 								</DataTemplate>

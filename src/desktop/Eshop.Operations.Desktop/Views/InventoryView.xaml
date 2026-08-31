@@ -118,7 +118,7 @@
                                Style="{StaticResource FieldLabelTextStyle}"
                                Text="Operation ID" />
                     <TextBox Margin="0,4,0,0"
-                             IsReadOnly="True"
+                             Style="{StaticResource SelectableValueTextBoxStyle}"
                              Text="{Binding UnknownOutcomeOperationId,
                                             Mode=OneWay}" />
                     <StackPanel Margin="0,12,0,0"
@@ -167,17 +167,16 @@
                        Visibility="{Binding IsFilteredEmpty,
                            Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-            <DataGrid ItemsSource="{Binding ItemsView}"
+            <DataGrid x:Name="InventoryDataGrid"
+                      ItemsSource="{Binding ItemsView}"
                       Visibility="{Binding HasVisibleItems,
                           Converter={StaticResource BooleanToVisibilityConverter}}"
-                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                      CurrentCellChanged="InventoryDataGrid_CurrentCellChanged"
                       Style="{StaticResource OperationalDataGridStyle}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
-                      SelectionMode="Single"
-                      SelectionUnit="FullRow"
                       EnableRowVirtualization="True"
                       EnableColumnVirtualization="True"
                       HeadersVisibility="Column">
@@ -262,7 +261,7 @@
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MutedTextStyle}" Text="No stock adjustments have been recorded for this item." Visibility="{Binding IsHistoryEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            <DataGrid ItemsSource="{Binding StockAdjustmentHistory}" SelectedItem="{Binding SelectedHistoryItem, Mode=TwoWay}" Visibility="{Binding HasHistory, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column">
+                            <DataGrid x:Name="AdjustmentHistoryDataGrid" ItemsSource="{Binding StockAdjustmentHistory}" CurrentCellChanged="AdjustmentHistoryDataGrid_CurrentCellChanged" Visibility="{Binding HasHistory, Converter={StaticResource BooleanToVisibilityConverter}}" Style="{StaticResource OperationalDataGridStyle}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Occurred UTC" Binding="{Binding OccurredAtUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Width="*" />
                                     <DataGridTextColumn Header="Outcome" Binding="{Binding Outcome}" Width="*" />
@@ -292,31 +291,31 @@
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="Audit detail" />
                                                     <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Operation ID" />
-                                                    <TextBlock Text="{Binding OperationId}" TextWrapping="Wrap" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding OperationId, Mode=OneWay}" />
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Occurred UTC" />
-                                                    <TextBlock Text="{Binding OccurredAtUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding OccurredAtUtc, Mode=OneWay, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Outcome" />
-                                                    <TextBlock Text="{Binding Outcome}" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Outcome, Mode=OneWay}" />
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Actor" />
-                                                    <TextBlock Text="{Binding ActorUsername}" />
-                                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource MutedTextStyle}" Text="{Binding ActorSubject}" TextWrapping="Wrap" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding ActorUsername, Mode=OneWay}" />
+                                                    <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding ActorSubject, Mode=OneWay}" />
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Reason" />
-                                                    <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Reason, Mode=OneWay}" />
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Error" />
-                                                    <TextBlock Text="{Binding Error, TargetNullValue=—}" TextWrapping="Wrap" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Error, Mode=OneWay, TargetNullValue=—}" />
                                                     <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Quantities" />
                                                     <Grid Margin="0,6,0,0">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                                         <TextBlock Grid.Row="0" Style="{StaticResource MutedTextStyle}" Text="Metric" /><TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource MutedTextStyle}" Text="Before" /><TextBlock Grid.Row="0" Grid.Column="2" Style="{StaticResource MutedTextStyle}" Text="After" />
-                                                        <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="On hand" /><TextBlock Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" Text="{Binding OnHandBefore, TargetNullValue=—}" /><TextBlock Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" Text="{Binding OnHandAfter, TargetNullValue=—}" />
-                                                        <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="Available" /><TextBlock Grid.Row="2" Grid.Column="1" Margin="0,6,0,0" Text="{Binding AvailableBefore, TargetNullValue=—}" /><TextBlock Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" Text="{Binding AvailableAfter, TargetNullValue=—}" />
+                                                        <TextBlock Grid.Row="1" Margin="0,6,0,0" Text="On hand" /><TextBox Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding OnHandBefore, Mode=OneWay, TargetNullValue=—}" /><TextBox Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding OnHandAfter, Mode=OneWay, TargetNullValue=—}" />
+                                                        <TextBlock Grid.Row="2" Margin="0,6,0,0" Text="Available" /><TextBox Grid.Row="2" Grid.Column="1" Margin="0,6,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding AvailableBefore, Mode=OneWay, TargetNullValue=—}" /><TextBox Grid.Row="2" Grid.Column="2" Margin="0,6,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding AvailableAfter, Mode=OneWay, TargetNullValue=—}" />
                                                     </Grid>
                                                     <TextBlock Margin="0,14,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Versions" />
-                                                    <TextBlock Margin="0,4,0,0"><Run Text="Expected: " /><Run Text="{Binding ExpectedVersion}" /></TextBlock>
-                                                    <TextBlock Margin="0,4,0,0"><Run Text="Result: " /><Run Text="{Binding ResultVersion, TargetNullValue=—}" /></TextBlock>
+                                                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal"><TextBlock Text="Expected: " /><TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding ExpectedVersion, Mode=OneWay}" /></StackPanel>
+                                                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal"><TextBlock Text="Result: " /><TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding ResultVersion, Mode=OneWay, TargetNullValue=—}" /></StackPanel>
                                                     <TextBlock Margin="0,10,0,0" Style="{StaticResource FieldLabelTextStyle}" Text="Trace ID" />
-                                                    <TextBlock Text="{Binding TraceId, TargetNullValue=—}" TextWrapping="Wrap" />
+                                                    <TextBox Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding TraceId, Mode=OneWay, TargetNullValue=—}" />
                                                 </StackPanel>
                                             </ScrollViewer>
                                         </DataTemplate>

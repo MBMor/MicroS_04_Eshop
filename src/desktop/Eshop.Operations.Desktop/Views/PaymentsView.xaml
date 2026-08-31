@@ -116,17 +116,16 @@
                            Visibility="{Binding IsFilteredEmpty,
                                Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                <DataGrid ItemsSource="{Binding PaymentsView}"
+                <DataGrid x:Name="PaymentsDataGrid"
+                          ItemsSource="{Binding PaymentsView}"
                           Visibility="{Binding HasVisiblePayments,
                               Converter={StaticResource BooleanToVisibilityConverter}}"
-                          SelectedItem="{Binding SelectedPayment, Mode=TwoWay}"
+                          CurrentCellChanged="PaymentsDataGrid_CurrentCellChanged"
                           Style="{StaticResource OperationalDataGridStyle}"
                           AutoGenerateColumns="False"
                           IsReadOnly="True"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
-                          SelectionMode="Single"
-                          SelectionUnit="FullRow"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"
                           HeadersVisibility="Column">
@@ -205,44 +204,53 @@
                                         <TextBlock Margin="0,16,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Payment ID" />
-                                        <TextBlock Text="{Binding Id}" TextWrapping="Wrap" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding Id, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Order ID" />
-                                        <TextBlock Text="{Binding OrderId}" TextWrapping="Wrap" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding OrderId, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Customer ID" />
-                                        <TextBlock Text="{Binding CustomerId}" TextWrapping="Wrap" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding CustomerId, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Status" />
-                                        <TextBlock Text="{Binding Status}" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding Status, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Amount" />
-                                        <TextBlock>
-                                            <Run Text="{Binding Amount, StringFormat={}{0:N2}}" />
-                                            <Run Text=" " />
-                                            <Run Text="{Binding Currency}" />
-                                        </TextBlock>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                     Text="{Binding Amount, Mode=OneWay, StringFormat={}{0:N2}}" />
+                                            <TextBox Margin="4,0,0,0"
+                                                     Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                     Text="{Binding Currency, Mode=OneWay}" />
+                                        </StackPanel>
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Payment method" />
-                                        <TextBlock Text="{Binding PaymentMethod}" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding PaymentMethod, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Failure reason" />
-                                        <TextBlock Text="{Binding FailureReason, TargetNullValue=—}"
-                                                   TextWrapping="Wrap" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding FailureReason, Mode=OneWay, TargetNullValue=—}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Created UTC" />
-                                        <TextBlock Text="{Binding CreatedAtUtc}" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding CreatedAtUtc, Mode=OneWay}" />
                                         <TextBlock Margin="0,12,0,0"
                                                    Style="{StaticResource FieldLabelTextStyle}"
                                                    Text="Processed UTC" />
-                                        <TextBlock Text="{Binding ProcessedAtUtc, TargetNullValue=—}" />
+                                        <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                                 Text="{Binding ProcessedAtUtc, Mode=OneWay, TargetNullValue=—}" />
                                     </StackPanel>
                                 </ScrollViewer>
                             </DataTemplate>

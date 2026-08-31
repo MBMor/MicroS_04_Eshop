@@ -1,3 +1,5 @@
+using System;
+
 using System.Windows.Controls;
 
 using Eshop.Operations.Desktop.Api.Orders;
@@ -12,17 +14,24 @@ public partial class OrdersView : UserControl
         InitializeComponent();
     }
 
-    private async void OrdersDataGrid_SelectionChanged(
+    private async void OrdersDataGrid_CurrentCellChanged(
         object sender,
-        SelectionChangedEventArgs e)
+        EventArgs e)
     {
         if (DataContext is not OrdersViewModel viewModel
             || sender is not DataGrid dataGrid
-            || dataGrid.SelectedItem is not OperationalOrderSummaryDto selectedOrder)
+            || !dataGrid.CurrentCell.IsValid
+            || dataGrid.CurrentCell.Item is not OperationalOrderSummaryDto selectedOrder)
         {
             return;
         }
 
+        if (viewModel.SelectedOrder?.Id == selectedOrder.Id)
+        {
+            return;
+        }
+
+        viewModel.SelectedOrder = selectedOrder;
         await viewModel.LoadOrderDetailAsync(selectedOrder);
     }
 }
