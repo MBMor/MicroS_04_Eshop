@@ -20,6 +20,7 @@
         <DataTemplate DataType="{x:Type viewModels:InventoryViewModel}"><views:InventoryView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:OrdersViewModel}"><views:OrdersView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:PaymentsViewModel}"><views:PaymentsView /></DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:InvestigationViewModel}"><views:InvestigationView /></DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:DiagnosticsViewModel}"><views:DiagnosticsView /></DataTemplate>
     </Window.Resources>
     <Grid Margin="12">
@@ -80,6 +81,7 @@
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
                 <ToggleButton Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsCatalogActive, Mode=OneWay}" Command="{Binding ShowCatalogCommand}" Content="Catalog" />
+                <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsInvestigationActive, Mode=OneWay}" Command="{Binding ShowInvestigationCommand}" Content="Investigate" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsOrdersActive, Mode=OneWay}" Command="{Binding ShowOrdersCommand}" Content="Orders" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsInventoryActive, Mode=OneWay}" Command="{Binding ShowInventoryCommand}" Content="Inventory" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <ToggleButton Margin="0,4,0,0" Style="{StaticResource NavigationToggleButtonStyle}" IsChecked="{Binding IsPaymentsActive, Mode=OneWay}" Command="{Binding ShowPaymentsCommand}" Content="Payments" Visibility="{Binding Authentication.CanAccessOperations, Converter={StaticResource BooleanToVisibilityConverter}}" />

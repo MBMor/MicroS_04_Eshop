@@ -375,6 +375,125 @@ public sealed class ShellViewModelTests
     }
 
     [Fact]
+    public async Task InspectOrderLookupUsesExactDetailWithoutLoadingSummaries()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        Guid orderId = Guid.NewGuid();
+        OperationalOrderDetailDto detail = new(
+            orderId,
+            "customer-123",
+            "customer@example.com",
+            "Confirmed",
+            1499.50m,
+            "CZK",
+            "test-success",
+            DateTimeOffset.UtcNow,
+            null,
+            [],
+            []);
+        int listRequestCount = 0;
+        var ordersApiClient = new StubOrdersApiClient(
+            (_, _) => Task.FromResult(detail),
+            getOrders: (_, _, _) =>
+            {
+                listRequestCount++;
+                return Task.FromResult(
+                    new OperationalOrderPageDto([], 0, 25, false));
+            });
+        ShellViewModel viewModel = CreateViewModel(
+            authentication,
+            ordersApiClient);
+        viewModel.Investigation.IdentifierText = orderId.ToString("D");
+
+        await viewModel.InspectOperationalIdentifierCommand.ExecuteAsync(null);
+
+        Assert.Same(viewModel.Orders, viewModel.CurrentViewModel);
+        Assert.Equal(orderId, viewModel.Orders.DetailOrderId);
+        Assert.Same(detail, viewModel.Orders.SelectedOrderDetail);
+        Assert.Equal(
+            TroubleshootingContextKind.LookupToOrder,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+        Assert.Equal(orderId, viewModel.ActiveTroubleshootingContext?.CorrelationId);
+        Assert.Equal(0, listRequestCount);
+    }
+
+    [Fact]
+    public async Task InspectPaymentsLookupFocusesPayments()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        Guid orderId = Guid.NewGuid();
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        viewModel.Investigation.SelectedLookupOption =
+            viewModel.Investigation.LookupOptions.Single(
+                option => option.Kind == OperationalLookupKind.PaymentsForOrder);
+        viewModel.Investigation.IdentifierText = orderId.ToString("D");
+
+        await viewModel.InspectOperationalIdentifierCommand.ExecuteAsync(null);
+
+        Assert.Same(viewModel.Payments, viewModel.CurrentViewModel);
+        Assert.Equal(orderId.ToString("D"), viewModel.Payments.SearchText);
+        Assert.Equal(
+            TroubleshootingContextKind.OrderToPayments,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+    }
+
+    [Fact]
+    public async Task InspectInventoryLookupFocusesInventory()
+    {
+        var authentication = new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
+        Guid productId = Guid.NewGuid();
+        ShellViewModel viewModel = CreateViewModel(authentication);
+        viewModel.Investigation.SelectedLookupOption =
+            viewModel.Investigation.LookupOptions.Single(
+                option => option.Kind == OperationalLookupKind.InventoryForProduct);
+        viewModel.Investigation.IdentifierText = productId.ToString("D");
+
+        await viewModel.InspectOperationalIdentifierCommand.ExecuteAsync(null);
+
+        Assert.Same(viewModel.Inventory, viewModel.CurrentViewModel);
+        Assert.Equal(productId.ToString("D"), viewModel.Inventory.SearchText);
+        Assert.Equal(
+            TroubleshootingContextKind.ProductToInventory,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+    }
+
+    [Fact]
+    public async Task InvestigationIsBlockedWithoutOperationalRole()
+    {
+        ShellViewModel viewModel = CreateViewModel();
+        viewModel.Investigation.IdentifierText = Guid.NewGuid().ToString("D");
+
+        viewModel.ShowInvestigationCommand.Execute(null);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to investigate operational data.",
+            viewModel.StatusText);
+
+        await viewModel.InspectOperationalIdentifierCommand.ExecuteAsync(null);
+
+        Assert.Same(viewModel.Catalog, viewModel.CurrentViewModel);
+        Assert.Equal(
+            "Sign in with a support or admin account to investigate operational data.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
     public async Task ClearTroubleshootingContextRemovesOwnedPaymentsFilter()
     {
         var authentication = new AuthenticationState(
@@ -583,6 +702,9 @@ public sealed class ShellViewModelTests
                 new StubPaymentsApiClient(),
                 NullLogger<PaymentsViewModel>.Instance);
 
+        var investigationViewModel =
+            new InvestigationViewModel();
+
         var ordersViewModel =
             new OrdersViewModel(
                 ordersApiClient ?? new StubOrdersApiClient(),
@@ -600,6 +722,7 @@ public sealed class ShellViewModelTests
             inventoryViewModel,
             ordersViewModel,
             paymentsViewModel,
+            investigationViewModel,
             diagnosticsViewModel,
             authenticationService,
             authentication);
@@ -705,7 +828,8 @@ public sealed class ShellViewModelTests
     }
 
     private sealed class StubOrdersApiClient(
-        Func<Guid, CancellationToken, Task<OperationalOrderDetailDto>>? getOrder = null)
+        Func<Guid, CancellationToken, Task<OperationalOrderDetailDto>>? getOrder = null,
+        Func<int, int, CancellationToken, Task<OperationalOrderPageDto>>? getOrders = null)
         : IOrdersApiClient
     {
         public Task<OperationalOrderPageDto> GetOrdersAsync(
@@ -713,12 +837,13 @@ public sealed class ShellViewModelTests
             int limit,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(
-                new OperationalOrderPageDto(
-                    [],
-                    offset,
-                    limit,
-                    false));
+            return getOrders?.Invoke(offset, limit, cancellationToken)
+                ?? Task.FromResult(
+                    new OperationalOrderPageDto(
+                        [],
+                        offset,
+                        limit,
+                        false));
         }
 
         public Task<OperationalOrderDetailDto> GetOrderAsync(

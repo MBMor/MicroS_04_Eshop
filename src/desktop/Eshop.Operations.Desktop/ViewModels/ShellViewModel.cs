@@ -18,6 +18,7 @@ public sealed partial class ShellViewModel : ObservableObject
         InventoryViewModel inventory,
         OrdersViewModel orders,
         PaymentsViewModel payments,
+        InvestigationViewModel investigation,
         DiagnosticsViewModel diagnostics,
         IAuthenticationService authenticationService,
         AuthenticationState authentication)
@@ -27,6 +28,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(orders);
         ArgumentNullException.ThrowIfNull(payments);
+        ArgumentNullException.ThrowIfNull(investigation);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(authenticationService);
         ArgumentNullException.ThrowIfNull(authentication);
@@ -38,6 +40,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Inventory = inventory;
         Orders = orders;
         Payments = payments;
+        Investigation = investigation;
         Diagnostics = diagnostics;
 
         CurrentViewModel = Catalog;
@@ -64,6 +67,11 @@ public sealed partial class ShellViewModel : ObservableObject
             CurrentViewModel,
             Catalog);
 
+    public bool IsInvestigationActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Investigation);
+
     public bool IsInventoryActive =>
         ReferenceEquals(
             CurrentViewModel,
@@ -82,7 +90,8 @@ public sealed partial class ShellViewModel : ObservableObject
     private bool IsProtectedOperationActive =>
         IsInventoryActive
         || IsOrdersActive
-        || IsPaymentsActive;
+        || IsPaymentsActive
+        || IsInvestigationActive;
 
     public bool IsDiagnosticsActive =>
         ReferenceEquals(
@@ -106,6 +115,7 @@ public sealed partial class ShellViewModel : ObservableObject
             InventoryViewModel => "Inventory",
             OrdersViewModel => "Orders",
             PaymentsViewModel => "Payments",
+            InvestigationViewModel => "Investigate",
             DiagnosticsViewModel => "Diagnostics",
             _ => "Operations"
         };
@@ -113,6 +123,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentSectionTitle))]
     [NotifyPropertyChangedFor(nameof(IsCatalogActive))]
+    [NotifyPropertyChangedFor(nameof(IsInvestigationActive))]
     [NotifyPropertyChangedFor(nameof(IsInventoryActive))]
     [NotifyPropertyChangedFor(nameof(IsOrdersActive))]
     [NotifyPropertyChangedFor(nameof(IsPaymentsActive))]
@@ -122,6 +133,8 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty]
     public partial string StatusText { get; set; } =
         "Ready";
+
+    public InvestigationViewModel Investigation { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasTroubleshootingContext))]
@@ -162,6 +175,10 @@ public sealed partial class ShellViewModel : ObservableObject
             case TroubleshootingContextKind.PaymentToOrder:
                 Orders.ClearContextFocus(context.CorrelationId);
                 break;
+
+            case TroubleshootingContextKind.LookupToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
         }
 
         ActiveTroubleshootingContext = null;
@@ -191,6 +208,25 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         ClearTroubleshootingContextState();
         CurrentViewModel = Catalog;
+        ResetNavigationStatus();
+    }
+
+    [RelayCommand]
+    private void ShowInvestigation()
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to investigate operational data.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        CurrentViewModel =
+            Investigation;
+
         ResetNavigationStatus();
     }
 
@@ -254,6 +290,67 @@ public sealed partial class ShellViewModel : ObservableObject
         ActiveTroubleshootingContext =
             new TroubleshootingContext(
                 TroubleshootingContextKind.PaymentToOrder,
+                orderId);
+
+        CurrentViewModel =
+            Orders;
+
+        StatusText =
+            $"Inspecting order {orderId:D}.";
+
+        await Orders.FocusOrderAsync(
+            orderId,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private async Task InspectOperationalIdentifierAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to investigate operational data.";
+
+            return;
+        }
+
+        if (!Investigation.TryGetLookup(
+                out OperationalLookupKind lookupKind,
+                out Guid identifier))
+        {
+            return;
+        }
+
+        switch (lookupKind)
+        {
+            case OperationalLookupKind.Order:
+                await InspectOrderAsync(identifier, cancellationToken);
+                break;
+
+            case OperationalLookupKind.PaymentsForOrder:
+                await OpenPaymentsForOrderAsync(identifier, cancellationToken);
+                break;
+
+            case OperationalLookupKind.InventoryForProduct:
+                await OpenInventoryForProductAsync(identifier, cancellationToken);
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Unsupported lookup kind '{lookupKind}'.");
+        }
+    }
+
+    private async Task InspectOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.LookupToOrder,
                 orderId);
 
         CurrentViewModel =
