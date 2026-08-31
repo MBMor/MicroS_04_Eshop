@@ -71,6 +71,10 @@ public sealed class DiagnosticsViewModelTests
 
         Assert.False(
             string.IsNullOrWhiteSpace(
+                viewModel.BuildInformation));
+
+        Assert.False(
+            string.IsNullOrWhiteSpace(
                 viewModel.RuntimeDescription));
 
         Assert.False(

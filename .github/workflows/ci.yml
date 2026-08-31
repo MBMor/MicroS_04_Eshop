@@ -498,6 +498,7 @@ jobs:
           --self-contained true
           --no-restore
           -p:PublishProfile=WindowsX64
+          -p:SourceRevisionId=${{ github.sha }}
           --output artifacts/desktop/win-x64
           -warnaserror
 
@@ -521,6 +522,40 @@ jobs:
           }
 
           Write-Host "Desktop publish artifact verified."
+
+      - name: Generate desktop artifact checksums
+        shell: pwsh
+        run: |
+          $publishDirectory = "artifacts/desktop/win-x64"
+          $checksumFile = Join-Path $publishDirectory "SHA256SUMS.txt"
+
+          Get-ChildItem `
+            -Path $publishDirectory `
+            -File |
+            Where-Object {
+              $_.Name -ne "SHA256SUMS.txt"
+            } |
+            Sort-Object Name |
+            ForEach-Object {
+              $hash = Get-FileHash `
+                -Path $_.FullName `
+                -Algorithm SHA256
+
+              "$($hash.Hash.ToLowerInvariant())  $($_.Name)"
+            } |
+            Set-Content `
+            -Path $checksumFile `
+            -Encoding ascii
+
+          if (-not (Test-Path $checksumFile -PathType Leaf)) {
+            throw "Desktop checksum manifest was not created."
+          }
+
+          if ((Get-Item $checksumFile).Length -eq 0) {
+            throw "Desktop checksum manifest is empty."
+          }
+
+          Write-Host "Desktop SHA-256 manifest generated."
 
       - name: Upload desktop application
         uses: actions/upload-artifact@v7

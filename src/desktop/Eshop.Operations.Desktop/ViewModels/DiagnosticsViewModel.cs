@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Eshop.Operations.Desktop.Api;
 using Eshop.Operations.Desktop.Configuration;
@@ -43,12 +44,22 @@ public sealed partial class DiagnosticsViewModel
         ApiGatewayTimeoutSeconds =
             apiGateway.TimeoutSeconds;
 
-        ApplicationVersion =
+        Assembly assembly =
             typeof(DiagnosticsViewModel)
-                .Assembly
+                .Assembly;
+
+        ApplicationVersion =
+            assembly
                 .GetName()
                 .Version?
                 .ToString()
+            ?? "Unknown";
+
+        BuildInformation =
+            assembly
+                .GetCustomAttribute<
+                    AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion
             ?? "Unknown";
 
         RuntimeDescription =
@@ -74,6 +85,8 @@ public sealed partial class DiagnosticsViewModel
     public int ApiGatewayTimeoutSeconds { get; }
 
     public string ApplicationVersion { get; }
+
+    public string BuildInformation { get; }
 
     public string RuntimeDescription { get; }
 
