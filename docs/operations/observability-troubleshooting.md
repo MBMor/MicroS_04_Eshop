@@ -80,8 +80,8 @@ In the Operations Console open:
 
 ```text
 Diagnostics
-› Observability
-› Open Aspire dashboard
+> Observability
+> Open Aspire dashboard
 ```
 
 Open the distributed traces view.
@@ -228,6 +228,29 @@ Payments processing
   eshop.payment.id = Y
 ```
 
+## Notifications processing
+
+Notifications are also processed asynchronously through RabbitMQ.
+
+Inside the same distributed checkout trace, a Notifications processing span can appear after relevant order or payment workflow events.
+
+Look for a span belonging to:
+
+```text
+notifications-service
+```
+
+and inspect the messaging-processing activity.
+
+Useful business attributes can include:
+
+```text
+eshop.order.id
+eshop.correlation_id
+```
+
+The Order ID should match the business Order being investigated.
+
 ## Cross-check in the Operations Console
 
 After identifying the Payment ID or Order ID in Aspire, return to the Operations Console.
@@ -247,21 +270,63 @@ For example:
 
 ```text
 Aspire trace
-    ¡
+    >
 eshop.order.id
-    ¡
-Operations Console › Investigate › Order
+    >
+Operations Console > Investigate > Order
 ```
 
 or:
 
 ```text
-Operations Console › Order
-    ¡
+Operations Console > Order
+    >
 Open payments
-    ¡
+    >
 Payment state
 ```
+
+Unlike Orders, Inventory, and Payments, Notifications can also be inspected directly through the Operations Console using operational filters.
+
+For example:
+
+```text
+Operations Console
+    -> Notifications
+    -> Order ID
+```
+
+or:
+
+```text
+Operations Console
+    -> Notifications
+    -> Correlation ID
+```
+
+This provides another bridge between persisted operational state and distributed telemetry.
+
+A typical relationship is:
+
+```text
+Order
+    eshop.order.id = X
+
+Inventory processing
+    eshop.order.id = X
+
+Payments processing
+    eshop.order.id = X
+    eshop.payment.id = Y
+
+Notifications processing
+    eshop.order.id = X
+    eshop.correlation_id = Z
+```
+
+The exact span hierarchy depends on which business event produced the notification.
+
+Do not require Notifications to appear as an HTTP child span. Notification processing is normally triggered asynchronously.
 
 The Operations Console represents business state.
 
@@ -300,15 +365,15 @@ For example:
 ```text
 POST /orders
 -
-+¦ orders-service
++> orders-service
 -
-+¦ RabbitMQ publish
++> RabbitMQ publish
 -
-+¦ inventory-service process
++> inventory-service process
 -
-+¦ RabbitMQ publish
++> RabbitMQ publish
 -
-L¦ payments-service process
+L> payments-service process
 ```
 
 The exact hierarchy can differ depending on where messages are published and consumed.
@@ -359,6 +424,52 @@ For operational investigation, Order ID is normally the most useful starting ide
 
 ## Acceptance criteria
 
+For a fast operational check before investigating a distributed trace, the API Gateway exposes:
+
+```text
+GET /api/v1/operations/health
+```
+
+The endpoint requires:
+
+```text
+support
+or
+admin
+```
+
+It probes:
+
+```text
+Catalog
+Basket
+Orders
+Inventory
+Payments
+Notifications
+```
+
+and reports the status and response duration of each service.
+
+Use this endpoint to answer:
+
+```text
+Is one of the application services currently unavailable?
+```
+
+Use Aspire to answer:
+
+```text
+Where did this particular distributed workflow fail or become slow?
+```
+
+These are different diagnostic questions.
+
+Operational health is a point-in-time dependency check.
+Aspire provides execution history and distributed telemetry.
+
+A degraded operational health result should therefore be used as investigation context, not as a replacement for trace inspection.
+
 A successful observability verification must demonstrate:
 
 ```text
@@ -380,7 +491,9 @@ A successful observability verification must demonstrate:
 
 9. The Order ID can be cross-checked in the Operations Console.
 
-10. The Operations Console can open the Aspire Dashboard without querying telemetry itself.
+10. Notifications processing can be correlated by Order ID or correlation ID.
+
+11. The Operations Console can open the Aspire Dashboard without querying telemetry itself.
 ```
 
 ## Architecture decision
