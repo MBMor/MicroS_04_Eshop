@@ -57,6 +57,18 @@ class JUnitToolsTests(unittest.TestCase):
             ],
         )
 
+    def test_repository_manifest_resolves_operational_notifications_selector(self) -> None:
+        manifest = SCRIPT_DIR / "automation-id-map.json"
+        bindings = load_bindings(manifest)
+
+        self.assertEqual(
+            ("ESHOP-NOTIFICATION-002",),
+            bindings[
+                "NotificationsServiceIntegrationTests."
+                "OperationalSupportUserCanInspectNotificationsAcrossCustomers"
+            ],
+        )
+
     def test_canonicalizes_dotnet_theory_and_vitest(self) -> None:
         dotnet = self.write(
             "dotnet.xml",
