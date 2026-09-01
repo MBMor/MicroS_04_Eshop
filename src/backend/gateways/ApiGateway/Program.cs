@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ApiGateway.OperationalHealth;
 using ApiGateway.RateLimiting;
 using Eshop.ErrorHandling;
 using Eshop.HealthChecks;
@@ -14,6 +15,17 @@ builder.Services.AddEshopObservability(
     serviceName: "api-gateway");
 
 builder.Services.AddHealthChecks();
+
+builder.Services.AddHttpClient(
+    "OperationalHealthProbe",
+    client =>
+    {
+        client.Timeout =
+            Timeout.InfiniteTimeSpan;
+    });
+
+builder.Services.AddSingleton<
+    OperationalHealthService>();
 
 builder.Services.AddEshopErrorHandling();
 
@@ -48,6 +60,23 @@ app.MapGet("/", () => Results.Ok(new
 }));
 
 app.MapEshopHealthChecks();
+
+app.MapGet(
+        "/api/v1/operations/health",
+        async (
+            OperationalHealthService healthService,
+            CancellationToken cancellationToken) =>
+        {
+            OperationalHealthResponse response =
+                await healthService.CheckAsync(
+                    cancellationToken);
+
+            return Results.Ok(response);
+        })
+    .RequireAuthorization(
+        EshopPolicies.SupportOrAdmin)
+    .RequireRateLimiting(
+        "Operational");
 
 app.MapGet(
         "/api/v1/auth/me",

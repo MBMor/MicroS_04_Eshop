@@ -65,6 +65,14 @@ internal sealed class FakeDownstreamServer
             "/{**path}",
             (HttpRequest request) =>
             {
+                if (string.Equals(
+                        request.Path,
+                        "/health",
+                        StringComparison.Ordinal))
+                {
+                    return Results.Ok();
+                }
+
                 requestCounter.Increment();
 
                 return
