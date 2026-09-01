@@ -10,38 +10,48 @@ The authentication architecture consists of:
 
 - Keycloak realm `eshop`
 - React SPA client `eshop-frontend`
+- WPF native desktop client `eshop-operations-desktop`
 - API audience `eshop-api`
 - API Gateway JWT validation
 - downstream service JWT validation
 - realm-role authorization
 - customer ownership derived from the JWT `sub` claim
-- Authorization Code Flow with PKCE in the React frontend
+- Authorization Code Flow with PKCE for both interactive application clients
 
-The frontend authenticates users directly with Keycloak. It then sends the access token to the API Gateway using the HTTP `Authorization` header.
+The React frontend and the WPF Operations Console authenticate users directly with Keycloak.
+
+Both applications then send the resulting access token to the API Gateway using the HTTP `Authorization` header.
 
 ```text
-Browser
-  |
-  | Authorization Code Flow with PKCE
-  v
-Keycloak
-  |
-  | access token
-  v
-React frontend
-  |
-  | Authorization: Bearer <access-token>
-  v
-API Gateway
-  |
-  | validates token and authorization policy
-  v
-Backend service
-  |
-  | validates token again
-  v
-Application operation
+React SPA -------------------+
+                             |
+                             | Authorization Code + PKCE
+                             v
+                          Keycloak
+                             ^
+                             | Authorization Code + PKCE
+                             |
+WPF Operations Console ------+
+                             |
+                             | access token
+                             v
+                        API Gateway
+                             |
+                             | validates token
+                             | and authorization policy
+                             v
+                       Backend service
+                             |
+                             | validates token again
+                             v
+                      Application operation
 ```
+
+The frontend and desktop clients are separate public OpenID Connect clients because they have different runtime and redirect requirements.
+
+Neither client is a security boundary.
+
+The API Gateway and protected backend services enforce the actual authentication and authorization rules.
 
 ## Trust Boundaries
 
@@ -73,6 +83,29 @@ It is responsible for:
 The frontend is not responsible for enforcing security.
 
 Hiding a navigation item or rendering an access-denied page is only a user-experience feature. The API Gateway and backend services enforce the actual authorization rules.
+
+### Operations Console
+
+The WPF Operations Console is also an untrusted public client.
+
+It is responsible for:
+
+* starting authentication in the system browser
+* completing Authorization Code Flow with PKCE
+* receiving the native loopback callback
+* keeping access and refresh tokens in memory
+* refreshing access tokens when required
+* attaching bearer tokens to protected API requests
+* showing role-aware operational navigation
+* clearing authentication state after sign-out or authentication failure
+
+The desktop application does not contain a client secret.
+
+A distributed native application cannot reliably protect a static secret installed on an end-user machine, so the desktop client uses PKCE instead.
+
+Desktop role checks and hidden navigation items improve usability, but they are not security controls.
+
+The API Gateway and backend services remain the authoritative authorization boundaries.
 
 ### API Gateway
 
@@ -168,6 +201,31 @@ http://localhost:5173/
 
 A client secret must never be added to the React frontend. Browser applications cannot protect confidential credentials.
 
+### `eshop-operations-desktop`
+
+`eshop-operations-desktop` is a public OpenID Connect client used by the Windows WPF Operations Console.
+
+Configuration:
+
+* public client
+* no client secret
+* Authorization Code Flow enabled
+* PKCE required with `S256`
+* implicit flow disabled
+* direct access grants disabled
+* service account disabled
+* access-token audience includes `eshop-api`
+
+Local redirect URI:
+
+`http://127.0.0.1/`
+
+The Operations Console starts authentication in the system browser and receives the authorization response through a loopback callback.
+
+A client secret must not be embedded in the desktop application. Native applications are distributed to end-user machines and cannot safely protect a static confidential credential.
+
+PKCE protects the authorization-code exchange without requiring such a secret.
+
 ### `eshop-api`
 
 `eshop-api` represents the protected API audience.
@@ -218,22 +276,43 @@ Typical operations:
 
 Operational support access.
 
-Typical operations:
+Typical operations include:
 
-- inspect inventory
-- inspect payment operations
+* inspect cross-customer operational Orders
+* inspect Inventory
+* inspect stock-adjustment history
+* inspect Payments
+* inspect cross-customer operational Notifications
+* inspect Operational Health
+* follow related entities across operational workflows
 
-The support role does not grant access to another customer's basket or customer-owned orders.
+The `support` role is read-only for administrative mutations such as inventory stock adjustment.
+
+The role does not grant customer ownership.
+
+A support user therefore cannot use another customer's customer-owned Basket, Orders, or Notifications endpoints. Cross-customer investigation is exposed only through explicitly separated operational APIs.
 
 ### `admin`
 
-Application administration access.
+Administrative operational access.
 
-Typical operations:
+The `admin` role includes the operational read capabilities available to support users and additionally permits approved administrative mutations.
 
-- inspect inventory
-- inspect payment operations
-- perform future administrative operations
+Typical operations include:
+
+* inspect cross-customer operational Orders
+* inspect Inventory
+* inspect stock-adjustment history
+* inspect Payments
+* inspect cross-customer operational Notifications
+* inspect Operational Health
+* perform authorized inventory stock adjustments
+
+Administrative operations remain protected by server-side authorization.
+
+The `admin` role does not automatically grant customer ownership.
+
+An admin therefore does not gain access to customer-owned APIs unless the identity also has the required customer role and ownership context.
 
 The application `admin` role does not grant access to the Keycloak Admin Console.
 
@@ -269,8 +348,26 @@ Shared policy names are defined in `Security.Shared`.
 | `/api/v1/notifications/{...}` | `customer` |
 | `/api/v1/inventory-items` | `support` or `admin` |
 | `/api/v1/inventory-items/{...}` | `support` or `admin` |
+| `/api/v1/inventory-items/{id}/stock-adjustments` `POST` | `admin` |
 | `/api/v1/payments` | `support` or `admin` |
 | `/api/v1/payments/{...}` | `support` or `admin` |
+| `/api/v1/operations/orders` | `support` or `admin` |
+| `/api/v1/operations/orders/{...}` | `support` or `admin` |
+| `/api/v1/operations/notifications` | `support` or `admin` |
+| `/api/v1/operations/notifications/{...}` | `support` or `admin` |
+| `/api/v1/operations/health` | `support` or `admin` |
+
+Customer-owned and operational routes are intentionally separate.
+
+For example:
+
+`/api/v1/orders`
+
+represents the authenticated customer's Orders, while:
+
+`/api/v1/operations/orders`
+
+provides explicitly authorized cross-customer operational inspection for support and admin users.
 
 An unauthenticated request to a protected endpoint returns:
 
@@ -420,7 +517,47 @@ It does not use:
 - manual password collection
 - token exchange through the frontend server
 
-## Token Storage
+## Operations Console Authentication
+
+The WPF Operations Console uses OpenID Connect Authorization Code Flow with PKCE `S256`.
+
+The flow is designed for a native desktop application:
+
+    Operations Console
+        -> start system browser
+        -> Keycloak sign-in
+        -> authorization code
+        -> loopback redirect
+        -> PKCE token exchange
+        -> access and refresh tokens
+        -> protected API Gateway requests
+
+The application uses the dedicated Keycloak client:
+
+`eshop-operations-desktop`
+
+The desktop client does not use:
+
+* implicit flow
+* password grant
+* direct access grants
+* a service account
+* an embedded client secret
+* manual collection of the user's Keycloak password
+
+Access and refresh tokens are kept in application memory.
+
+They are not persisted to a local application database.
+
+Protected API requests send:
+
+`Authorization: Bearer <access-token>`
+
+Catalog remains available anonymously.
+
+Operational screens require authentication and the appropriate application role, normally `support` or `admin`.
+
+## React Token Storage
 
 The Keycloak JavaScript adapter keeps access and refresh tokens in memory.
 
@@ -441,7 +578,7 @@ This value is used to restore the application route after login.
 
 It does not contain authentication credentials.
 
-## Access-Token Refresh
+## React Access-Token Refresh
 
 Before an API request, the frontend attempts to refresh the access token when it is close to expiration.
 
@@ -459,7 +596,7 @@ If refresh fails:
 
 Concurrent refresh requests share the same in-flight refresh operation to avoid multiple simultaneous refresh calls.
 
-## Silent SSO
+## React Silent SSO
 
 The frontend uses:
 
@@ -761,6 +898,21 @@ Open:
 http://localhost:5173
 ```
 
+### Operations Console
+
+The WPF Operations Console requires Windows.
+
+After the infrastructure, API Gateway, and required backend services are running, start:
+
+    dotnet run \
+      --project src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+
+The desktop application authenticates against the same `eshop` Keycloak realm using the dedicated `eshop-operations-desktop` client.
+
+Catalog can be opened anonymously.
+
+Operational sections require a user with the appropriate `support` or `admin` role.
+
 ## Manual Verification
 
 ### Anonymous catalog access
@@ -837,20 +989,25 @@ A customer token must receive `403 Forbidden` from:
 
 ### Support access
 
-A support token must be accepted by:
+A support token must be accepted by operational APIs including:
 
 ```text
 /api/v1/inventory-items
 /api/v1/payments
+/api/v1/operations/orders
+/api/v1/operations/notifications
+/api/v1/operations/health
 ```
 
-A support token must receive `403 Forbidden` from:
+A support token must receive `403 Forbidden` from customer-only APIs including:
 
 ```text
 /api/v1/basket
 /api/v1/orders
 /api/v1/notifications
 ```
+
+This distinction verifies that support access is provided through explicit operational API surfaces rather than by bypassing customer ownership.
 
 ## Automated Tests
 
@@ -913,6 +1070,27 @@ npm run test
 npm run build
 ```
 
+### Desktop authentication tests
+
+The Operations Console test suite verifies authentication-related behavior including:
+
+* anonymous application state
+* sign-in and sign-out state transitions
+* token lifecycle behavior
+* bearer-token attachment
+* protected operational navigation
+* role-aware navigation
+* `401 Unauthorized` handling
+* `403 Forbidden` handling
+* authentication failure handling
+* Operational Health authorization behavior
+
+Run:
+
+    dotnet test \
+      tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj \
+      --configuration Release
+
 ## CI Quality Gates
 
 The CI pipeline should validate:
@@ -932,6 +1110,14 @@ The CI pipeline should validate:
 - ESLint
 - Vitest
 - production build
+
+### Desktop
+
+* deterministic .NET restore
+* Release build with warnings treated as errors
+* desktop xUnit tests
+* self-contained `win-x64` publish
+* published application startup validation
 
 Identity changes should not be merged when any of these checks fail.
 

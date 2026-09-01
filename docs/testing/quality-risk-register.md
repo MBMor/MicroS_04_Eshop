@@ -2,11 +2,12 @@
 
 > **Document type:** Authoritative risk and control registry  
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`  
-> **Version:** 1.9
-> **Status:** Point-in-time assessed baseline — pending governance approval  
-> **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval  
-> **Last reviewed:** 2026-07-29
-> **Next scheduled review:** 2026-10-26  
+> **Version:** 1.10
+> **Status:** Point-in-time assessed baseline with post-baseline implementation evidence — pending governance approval
+> **Effective from:** 2026-07-26 audit baseline; normative use begins only after package approval
+> **Last reviewed:** 2026-09-01
+> **Next scheduled review:** 2026-10-26
+> **Current source reference:** `main` / `a8d344a` — documentation synchronization only; no risk-score, acceptance, oracle, control-strength or gate-state reassessment
 > **Accountable owner:** QA Architecture
 
 This file is the sole authoritative registry for all `R-*` and `CTRL-*` identifiers. Other documents may reference, never independently define, controls. IDs remain after retirement with status and successor. `R-AUTH-001` remains the legacy stable ID for the Catalog mutation boundary; it is not reused for general identity or gateway authorization.
@@ -26,6 +27,100 @@ This file is the sole authoritative registry for all `R-*` and `CTRL-*` identifi
 Risk score is `Likelihood × Impact`: 1–4 Low, 5–9 Medium, 10–16 High, 17–25 Critical. No residual-score reduction was approved during the audit; residual scores remain equal to inherent scores. Every Critical/High reduction requires the accountable risk owner and QA Architecture to approve the exact material variants and evidence.
 
 No tenant discriminator/model was found; tenant isolation is `Not applicable`. Customer ownership remains applicable.
+
+## Post-baseline implementation evidence
+
+The formal risk assessment baseline remains the 2026-07-26 audit state recorded above.
+
+The current source state at `a8d344a` contains additional implementation and automated-test evidence that did not exist in that baseline.
+
+This evidence is recorded here for traceability, but it does not by itself change:
+
+* inherent risk scores
+* residual risk scores
+* target risk scores
+* Oracle approval
+* risk acceptance
+* control evidence strength
+* gate state
+
+The following material changes are present.
+
+### Native Operations Console authentication
+
+The Windows WPF Operations Console introduces a second interactive OpenID Connect client:
+
+`eshop-operations-desktop`
+
+It uses Authorization Code Flow with PKCE as a public native client and does not contain a client secret.
+
+This expands the implementation surface relevant to:
+
+* `R-IDENTITY-001`
+* `R-GW-AUTH-001`
+
+The desktop client and its authentication behavior require inclusion in the next formal identity and authorization risk reassessment.
+
+### Operational APIs
+
+The platform now exposes explicit support/admin operational APIs for cross-customer investigation, including:
+
+* operational Orders
+* operational Notifications
+* Operational Health
+
+These APIs extend the authorization surface relevant to:
+
+`R-GW-AUTH-001`
+
+Operational Notifications include automated evidence for customer denial and authorized support cross-customer inspection.
+
+The current TestRail binding map records this capability as:
+
+`ESHOP-NOTIFICATION-002`
+
+### Aggregated Operational Health
+
+The API Gateway now provides aggregated Operational Health across backend services.
+
+The implementation performs bounded downstream probes and produces an overall `Healthy` or `Degraded` result together with service-level diagnostics.
+
+Six automated integration selectors are mapped to:
+
+`ESHOP-GW-003`
+
+They cover:
+
+* all-services-healthy aggregation
+* degraded aggregation
+* failed dependency diagnostics
+* concurrent probes
+* bounded probe timeout
+* unreachable-service handling
+
+This is additional source evidence relevant to:
+
+`R-RESILIENCE-001`
+
+It does not prove continuous monitoring, alert delivery or complete orchestration-level readiness consumption.
+
+Those gaps remain governed separately.
+
+### Operations Console diagnostics and observability
+
+The Operations Console now exposes Operational Health in its Diagnostics screen and provides a hand-off to the Aspire Dashboard for distributed-trace investigation.
+
+This improves the operational troubleshooting workflow but does not by itself provide new evidence for trace parentage or end-to-end telemetry propagation under:
+
+`R-OBS-001`
+
+### Windows desktop delivery
+
+The CI pipeline now builds, tests and publishes a self-contained Windows Operations Console artifact.
+
+This is additional delivery evidence for the desktop application.
+
+It does not close the existing full-stack deployment gaps governed by `R-DEPLOY-002`, which remain focused on backend topology, startup dependencies, restart behavior and production-relevant runtime configuration.
 
 ## Assessed risks
 
@@ -165,13 +260,15 @@ One accountable risk owner is mandatory. Responsible teams and evidence owners d
 - Inventory commit: the domain method exists, but no active path owns the complete lifecycle; oracle is `Decision required`.
 - Production ingress: the repository lacks a frontend `/api` proxy and full backend Compose topology; oracle is `Decision required`.
 - Secrets: fixture/default credentials exist in Keycloak and E2E configuration and are not reproduced here.
-- Health: TECH-08 proves separate process liveness and owned PostgreSQL/Redis readiness through Main CI #66/R92 and governed Release #4/R95; full Compose/orchestration consumption and alerting remain outstanding under GAP-013 and the observability backlog.
+- Health: TECH-08 remains the accepted evidence baseline for separate process liveness and owned PostgreSQL/Redis readiness through Main CI #66/R92 and governed Release #4/R95. Source state `a8d344a` additionally implements API Gateway Operational Health aggregation with bounded downstream probes and desktop Diagnostics consumption. This additional source evidence does not constitute an approved residual-risk reduction. Full Compose/orchestration consumption and alert delivery remain outstanding under GAP-013 and the observability backlog.
+- Operations Console: the native desktop client, its in-memory token lifecycle, Windows packaging and operational workflows were implemented after the formal audit baseline. No separate desktop-specific risk identifier is introduced by this documentation synchronization; relevant risk attribution remains under the existing identity, gateway authorization, resilience and deployment risks until the next formal reassessment.
 - Risk acceptance references and target scores remain blank until accountable decisions are recorded.
 
 ## Change log
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.10 | 2026-09-01 | Recorded post-baseline Operations Console, native OIDC client, operational API, Operational Health and Windows desktop delivery evidence from source state `a8d344a` without changing risk scores, control strength, acceptance, Oracle approval or gate state. | Pending review |
 | 1.9 | 2026-07-29 | Accepted TECH-08 direct readiness evidence through Main CI #66/R92 and governed Release #4/R95; retained the residual score because orchestration consumption, alerts and GATE-OPS-001 remain outstanding. | Pending review |
 | 1.8 | 2026-07-29 | Approved QA-05 dependency ownership and recorded local TECH-08 direct PostgreSQL/Redis readiness evidence without reducing residual risk scores or activating GATE-OPS-001. | Pending review |
 | 1.7 | 2026-07-29 | Recorded first accepted Nightly R49 and Release R50 evidence without changing residual risk scores, acceptance or gate state. | Pending review |

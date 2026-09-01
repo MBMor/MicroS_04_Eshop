@@ -89,22 +89,45 @@ They must not be reused in production environments.
 
 ## Clients
 
+The `eshop` realm defines separate OpenID Connect clients for the browser frontend, the native Operations Console, and the protected API audience.
+
 ### `eshop-frontend`
 
 Public OpenID Connect client for the React SPA.
 
 Configuration:
 
-- Authorization Code Flow enabled
-- PKCE required with `S256`
-- implicit flow disabled
-- Resource Owner Password Credentials grant disabled
-- service account disabled
-- no client secret
-- redirect URI: `http://localhost:5173/*`
-- web origin: `http://localhost:5173`
+* Authorization Code Flow enabled
+* PKCE required with `S256`
+* implicit flow disabled
+* Resource Owner Password Credentials grant disabled
+* service account disabled
+* no client secret
+* redirect URI: `http://localhost:5173/*`
+* web origin: `http://localhost:5173`
 
 The client adds `eshop-api` to the access-token audience.
+
+### `eshop-operations-desktop`
+
+Public OpenID Connect client for the Windows WPF Operations Console.
+
+Configuration:
+
+* public native client
+* Authorization Code Flow enabled
+* PKCE required with `S256`
+* implicit flow disabled
+* direct access grants disabled
+* service account disabled
+* no client secret
+* loopback redirect URI: `http://127.0.0.1/`
+
+The desktop application starts authentication in the system browser and receives the authorization response through the loopback callback.
+
+The client adds `eshop-api` to the access-token audience.
+
+A client secret is intentionally not used. A native desktop application distributed to an end-user machine cannot reliably protect a static confidential credential.
 
 ### `eshop-api`
 
@@ -112,21 +135,25 @@ Bearer-only OpenID Connect client representing the API Gateway and backend APIs.
 
 Configuration:
 
-- bearer-only client
-- browser login flow disabled
-- direct access grants disabled
-- service account disabled
-- no interactive login
+* bearer-only client
+* browser login flow disabled
+* direct access grants disabled
+* service account disabled
+* no interactive login
 
-The API Gateway will validate access tokens against this audience in a later implementation step.
+Access tokens issued to the interactive Eshop clients include `eshop-api` in their audience.
+
+The API Gateway validates incoming access tokens and applies the configured authorization policies.
+
+Protected downstream services also validate bearer tokens at their own security boundary.
 
 ## Token Claims
 
 Keycloak provides standard OpenID Connect claims, including:
 
-- `sub`
-- `email`
-- `preferred_username`
+* `sub`
+* `email`
+* `preferred_username`
 
 Realm roles remain available in the standard claim:
 
@@ -134,17 +161,26 @@ Realm roles remain available in the standard claim:
 realm_access.roles
 ```
 
-The frontend client also maps realm roles to the convenience claim:
+The interactive Eshop clients also map realm roles to the convenience claim:
 
 ```text
 roles
 ```
 
-Access tokens issued for `eshop-frontend` include the API audience:
+Access tokens issued for:
+
+* `eshop-frontend`
+* `eshop-operations-desktop`
+
+include the API audience:
 
 ```text
 eshop-api
 ```
+
+The API Gateway and protected backend services use the token claims for authentication and authorization.
+
+Customer ownership is derived from the authenticated subject rather than from a caller-supplied customer identifier.
 
 ## Automatic Realm Import
 
@@ -335,6 +371,31 @@ standardFlowEnabled: true
 directAccessGrantsEnabled: false
 ```
 
+### Verify the Operations Desktop Client
+
+```bash
+MSYS_NO_PATHCONV=1 docker exec eshop-keycloak \
+  /opt/keycloak/bin/kcadm.sh get clients \
+  -r eshop \
+  --config /tmp/eshop-kcadm.config \
+  --query clientId=eshop-operations-desktop \
+  --fields clientId,publicClient,standardFlowEnabled,directAccessGrantsEnabled,serviceAccountsEnabled,redirectUris,attributes
+```
+
+Expected configuration includes:
+
+```text
+clientId: eshop-operations-desktop
+publicClient: true
+standardFlowEnabled: true
+directAccessGrantsEnabled: false
+serviceAccountsEnabled: false
+redirectUris: http://127.0.0.1/
+PKCE code challenge method: S256
+```
+
+The exact JSON formatting produced by `kcadm.sh` may differ, but the effective values above must be present.
+
 ### Verify the API Client
 
 ```bash
@@ -482,10 +543,12 @@ Changing these variables later does not automatically change the password of an 
 
 ## Security Notes
 
-- Do not store a client secret in React.
-- Do not expose Keycloak administrator credentials to frontend code.
-- Do not log access tokens, refresh tokens or passwords.
-- Do not use local development passwords in production.
-- Do not rely on hidden frontend elements as an authorization mechanism.
-- Enforce authorization in the API Gateway and relevant downstream services.
-- Use HTTPS and production Keycloak mode outside local development.
+* Do not store a client secret in the React frontend.
+* Do not embed a client secret in the native Operations Console.
+* Public browser and native clients must use Authorization Code Flow with PKCE.
+* Do not expose Keycloak administrator credentials to application code.
+* Do not log access tokens, refresh tokens or passwords.
+* Do not use local development passwords in production.
+* Do not rely on hidden frontend or desktop UI elements as an authorization mechanism.
+* Enforce authorization in the API Gateway and relevant downstream services.
+* Use HTTPS and production Keycloak mode outside local development.

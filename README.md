@@ -264,23 +264,25 @@ The repository also contains a Windows WPF application for support and administr
 
 `src/desktop/Eshop.Operations.Desktop`
 
-The Operations Console complements the customer-facing React frontend.
+The Operations Console complements the customer-facing React frontend. It provides a dedicated operational view of the system without bypassing the API Gateway or backend service boundaries.
 
 It provides:
 
-- anonymous Catalog inspection
-- native OIDC sign-in using Authorization Code + PKCE
-- support/admin protected operational navigation
-- Orders inspection with bounded paging and lazy-loaded details
-- Inventory inspection and stock-adjustment history
-- admin-only stock adjustments with optimistic concurrency and idempotency
-- Payments inspection
-- Notifications inspection by Order ID, Customer ID, or Correlation ID
-- cross-service troubleshooting navigation
-- direct investigation by known business identifier
-- runtime Diagnostics
-- hand-off to the Aspire Dashboard for distributed trace inspection
-- copy-friendly operational details and DataGrid cells
+* anonymous Catalog inspection
+* native OIDC sign-in using Authorization Code Flow with PKCE
+* support/admin protected operational navigation
+* Orders inspection with bounded paging and lazy-loaded details
+* Inventory inspection and stock-adjustment history
+* admin-only stock adjustments with optimistic concurrency and idempotency
+* Payments inspection
+* Notifications inspection by Order ID, Customer ID, or Correlation ID
+* cross-service troubleshooting navigation
+* direct investigation by known business identifier
+* aggregated Operational Health across backend services
+* service-level diagnostics for degraded or unavailable dependencies
+* contextual investigation from the Diagnostics screen
+* hand-off to the Aspire Dashboard for distributed trace inspection
+* copy-friendly operational details and DataGrid cells
 
 Operational navigation includes:
 
@@ -294,11 +296,31 @@ Operational navigation includes:
 
 `Notification -> Order`
 
+### Diagnostics and observability
+
+The Diagnostics screen serves two different troubleshooting purposes.
+
+**Operational Health** answers:
+
+> Which backend service is unhealthy right now?
+
+The Operations Console retrieves an aggregated health snapshot through the API Gateway and shows the overall platform status together with service-level diagnostics.
+
+**Aspire Dashboard** answers:
+
+> What happened during a specific request or distributed business operation?
+
+Aspire is used for deeper analysis of traces, spans, timings, errors and correlation identifiers.
+
+Operational Health is therefore a point-in-time diagnostic view. It complements, rather than replaces, distributed tracing in Aspire.
+
 The desktop application does not bypass service boundaries and does not call backend services directly. Business API traffic goes through the API Gateway.
 
 Detailed documentation:
 
 `docs/operations/operations-console.md`
+
+`docs/operations/observability-troubleshooting.md`
 
 ## API Gateway
 
@@ -362,15 +384,18 @@ The E2E environment overrides production-oriented limits with higher test-only l
 
 The project uses Keycloak as its OpenID Connect provider.
 
-The React frontend uses Authorization Code Flow with PKCE.
+Both interactive application clients authenticate through Keycloak using OpenID Connect Authorization Code Flow with PKCE.
+
+The React frontend uses the browser-based flow through the Keycloak JavaScript adapter. The WPF Operations Console uses the system browser and a native desktop callback flow.
 
 ```text
-React SPA
-  → Keycloak authorization endpoint
-  → authorization code
-  → PKCE token exchange
-  → access token
-  → API Gateway
+React SPA -----------------+
+                           |
+                           v
+                        Keycloak
+                           |
+                           v
+WPF Operations Console ----+----> access token ----> API Gateway
 ```
 
 ### Keycloak Realm
@@ -384,6 +409,7 @@ eshop
 | Client | Type | Purpose |
 |---|---|---|
 | `eshop-frontend` | Public OpenID Connect client | React SPA authentication |
+| `eshop-operations-desktop` | Public native OpenID Connect client | WPF Operations Console authentication |
 | `eshop-api` | Backend API audience | Bearer-token API protection |
 
 ### Application Roles
@@ -1167,12 +1193,17 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 │   ├── operations
 │   └── testing
 ├── infrastructure
+│   ├── aspire
+│   ├── dev-data
+│   │   └── keycloak
 │   ├── keycloak
 │   └── postgres
+│       └── init
 ├── scripts
-│   └── e2e
-│       ├── start-stack.sh
-│       └── stop-stack.sh
+│   ├── dev
+│   ├── e2e
+│   ├── quality
+│   └── testrail
 ├── src
 │   ├── backend
 │   │   ├── gateways
@@ -1195,25 +1226,9 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 │   │   ├── integration
 │   │   └── unit
 │   ├── desktop
+│   │   └── Eshop.Operations.Desktop.Tests
 │   ├── e2e
-│   │   ├── specs
-│   │   │   ├── checkout-failure-paths.spec.ts
-│   │   │   └── checkout-success.spec.ts
-│   │   ├── package-lock.json
-│   │   ├── package.json
-│   │   └── playwright.config.ts
 │   └── frontend
-├── infrastructure
-│   ├── keycloak
-│   ├── postgres
-│   └── dev-data
-│       ├── keycloak
-│       │   └── eshop-realm.json
-│       ├── catalog_db.sql
-│       ├── inventory_db.sql
-│       ├── notifications_db.sql
-│       ├── orders_db.sql
-│       └── payments_db.sql
 ├── .dockerignore
 ├── .editorconfig
 ├── .env.example
@@ -1291,11 +1306,12 @@ Keycloak imports the local `eshop` realm from the repository infrastructure conf
 
 The realm defines:
 
-- frontend and API clients
+- React frontend, desktop Operations Console and API clients
 - application roles
 - local development users
 - redirect URIs
-- audience configuration
+- PKCE configuration for public clients
+- API audience configuration
 
 The import runs only when the realm does not already exist.
 
@@ -1401,18 +1417,38 @@ dotnet run \
   --project src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
 ```
 
-The application validates its configuration during startup.
-The desktop communicates with application APIs only through the configured API Gateway.
-Operational sections require a support or admin Keycloak user.
-Catalog remains available anonymously.
-For observability troubleshooting, configure the Aspire Dashboard URL and use:
+The application validates its configuration during startup and communicates with application APIs only through the configured API Gateway.
 
-`Diagnostics -> Observability -> Open Aspire dashboard`
+Catalog is available anonymously. Operational sections require a Keycloak user with the `support` or `admin` role.
+
+### Operational health
+
+Use the Diagnostics screen when you need a quick view of the current backend state:
+
+```text
+Diagnostics
+  -> Operational health
+  -> Refresh health
+```
+
+The view shows the aggregate platform status together with service-level diagnostics. A degraded service can then be used as the starting point for further investigation.
+
+### Distributed troubleshooting
+
+When a problem requires analysis of a specific request, message or business workflow, use the Aspire Dashboard:
+
+```text
+Diagnostics
+  -> Observability
+  -> Open Aspire dashboard
+```
+
+Operational Health answers which service is currently unhealthy. Aspire provides the deeper distributed trace needed to understand why a specific operation failed.
 
 See:
 
-`docs/operations/operations-console.md`
-`docs/operations/observability-troubleshooting.md`
+* `docs/operations/operations-console.md`
+* `docs/operations/observability-troubleshooting.md`
 
 ## Running the Frontend
 
@@ -1670,10 +1706,12 @@ The planned portfolio scope of the project is complete.
 Implemented capabilities include:
 
 - database-per-service architecture
-- React single-page frontend
+- React single-page customer frontend
+- Windows WPF Operations Console for support and administrative workflows
 - API Gateway with YARP
-- Keycloak authentication with Authorization Code Flow and PKCE
+- Keycloak authentication for browser and native desktop clients using Authorization Code Flow with PKCE
 - JWT validation in the Gateway and protected downstream services
+- aggregated Operational Health with service-level diagnostics
 - customer, support and administrator authorization policies
 - partitioned API rate limiting
 - Redis-backed customer baskets
@@ -1693,6 +1731,7 @@ Implemented capabilities include:
 - full-stack Playwright checkout tests
 - Docker Compose validation
 - Docker image build validation
+- Windows desktop testing and self-contained `win-x64` publishing
 - GitHub Actions quality gates
 
 The project is intended as a production-oriented portfolio demonstration.

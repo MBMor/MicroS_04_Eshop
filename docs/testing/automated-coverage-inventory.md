@@ -13,6 +13,66 @@ GitHub Actions PR `CI #37` accepted the reduced PR runtime, and Main `CI #38` ac
 
 Risk attribution uses the 2.1 taxonomy: `R-IDENTITY-001` for token/session trust; `R-GW-AUTH-001` for gateway and addressable-service authorization; legacy `R-AUTH-001` only for the direct Catalog mutation boundary; and `R-ORDER-SEC-001` for customer order ownership.
 
+## Current-state notice
+
+This document intentionally remains the accepted TECH-08 point-in-time executable-test inventory.
+
+The detailed tables below describe the test portfolio as it existed at baseline:
+
+`main / 36f6c5d`
+
+They must not be interpreted as the current complete repository test inventory.
+
+The source state has changed since that baseline.
+
+At `a8d344a`, the authoritative governed tier policy defines:
+
+* PR ownership: 77 logical selectors
+* Main ownership: 113 logical selectors
+* cumulative Main execution: 190 logical selectors
+* Nightly execution: 19 logical selectors
+* Release overlap: 17 logical selectors
+* Main aggregate publication: 32 TestIntents
+* Release aggregate publication: 9 TestIntents
+
+The current Main TestRail report cardinality is:
+
+```text
+Backend Unit         12
+Backend Integration  26
+Frontend Unit         3
+Checkout E2E          4
+```
+
+or:
+
+```text
+12/26/3/4
+```
+
+The executable source of truth for these current governed counts is:
+
+`scripts/quality/test-tier-policy.json`
+
+The current TestRail binding map is:
+
+`scripts/testrail/automation-id-map.json`
+
+Since TECH-08, the binding map has added operational coverage including:
+
+* `ESHOP-GW-003` — aggregated Operational Health
+* `ESHOP-NOTIFICATION-002` — operational Notifications investigation
+
+The repository also now contains a separate Windows desktop test project:
+
+`tests/desktop/Eshop.Operations.Desktop.Tests`
+
+That project is not represented in the historical TECH-08 inventory tables below.
+
+Do not update this snapshot by adding individual current tests or changing isolated totals.
+
+If a new current executable-test inventory is required, regenerate the inventory as a new assessed snapshot from the current repository, test discovery, tier policy and TestRail binding map.
+
 ## Summary and reconciliation
 
 | Project / framework | Logical | Executable | Level | Active/skipped | Recommended tier |

@@ -1,14 +1,29 @@
 # Quality Traceability Matrix
 
 > **Document type:** Current cross-artifact mapping  
-> **Version:** 3.1
-> **Status:** Refreshed evidence baseline — pending governance approval
-> **Effective from:** 2026-07-28 evidence refresh; no gate activation is implied
-> **Baseline:** `main` / `36f6c5d`; Main CI #66 and governed Release #4 accepted
-> **Analysis date:** 2026-07-29 (Europe/Prague)
+> **Version:** 3.2
+> **Status:** Source mapping refreshed — pending governance approval
+> **Effective from:** No gate activation is implied
+> **Source baseline:** `main` / `a8d344a`
+> **Last explicitly accepted execution baseline:** TECH-08 Main CI #66 and governed Release #4
+> **Analysis date:** 2026-09-01 (Europe/Prague)
 > **Repository:** `https://github.com/MBMor/MicroS_04_Eshop`
 
-GitHub Actions PR `CI #37` accepts PR-owned execution without Docker, browser or TestRail publication; Main `CI #38` accepts cumulative execution and locked publication. The accepted TECH-08 baseline governs 198 selectors (`PR=77`, `Main=102`, `Nightly=19`, `Release=17`; cumulative Main 179) and maps 33 automated TestIntents through 217 edges. QA-04/TECH-06 still makes successful upstream execution and an exact complete report set prerequisites for TestRail publication. TECH-08 outage/recovery evidence is Valid after Main run `30486673945`/CI #66/R92 and governed Release `30487730431`/Release #4/R95 passed. Exact provenance and limits are recorded in the [executable evidence baseline](evidence-baseline.md).
+The checked-in test-tier policy at source baseline `a8d344a` defines the current governed execution contract:
+
+* PR ownership: 77 logical selectors
+* Main ownership: 113 logical selectors
+* cumulative Main execution: 190 logical selectors
+* Nightly execution: 19 logical selectors
+* explicit Release overlap: 17 logical selectors
+* Main aggregate publication: 32 TestIntents
+* Main report cardinality: `12/26/3/4`
+
+The current automation binding map includes 35 automated TestIntents, including the newly automated Operational Health (`ESHOP-GW-003`) and operational Notifications (`ESHOP-NOTIFICATION-002`) capabilities.
+
+The latest explicitly accepted execution evidence recorded by this document remains the TECH-08 baseline: Main CI #66/R92 and governed Release #4/R95.
+
+The source mapping and accepted execution evidence are intentionally distinguished. A source-code or mapping change does not become accepted execution evidence until the corresponding governed CI/TestRail result is recorded.
 
 Every status column below contains exactly one canonical value. Scope qualifications and residual detail are carried in dedicated columns rather than mixed status strings. All gate mappings are `Future` and `Not evaluated` until a concrete activation record is approved.
 
@@ -20,6 +35,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Gateway and addressable-service authorization (`ESHOP-GW-001`) | R-GW-AUTH-001 | CTRL-SEC-GATEWAY-001 | customer/support/admin/public route matrix and denial non-forwarding | registry covers 13 proxy routes and 5 local endpoints; 45 variants, including `/live` and `/ready`, passed Main CI #66/R92 and Release #4/R95 | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main/release | Main + Release | Security owner | downstream ownership remains separate |
 | Catalog mutation boundary (`ESHOP-CATALOG-001`) | R-AUTH-001 | CTRL-SEC-CATALOG-BOUNDARY-001 | direct POST/PUT/DELETE requires admin; gateway mutations are not forwarded | Catalog shared JWT/AdminOnly enforcement; nine direct 401/403/no-write variants; three gateway 405/no-forwarding variants; Catalog 19/19 and Gateway 68/68; Main CI #62/R87 and Release R90 Passed; C53 synchronized | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main/release | Main + Release | Catalog Engineering owner | full deployable-network topology remains GAP-013 |
 | Gateway throttling (`ESHOP-GW-002`) | R-GW-001 | CTRL-GW-RATELIMIT-001 | fixed windows, trusted identity/address and health exemptions | rate-limit extension; seven in-process tests | Applicable | Decision required | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Release | Gateway Engineering owner | forwarded-header trust, spoofing, multi-replica consistency and reset |
+| Operational health aggregation (`ESHOP-GW-003`) | R-RESILIENCE-001 | CTRL-OPS-READINESS-001 | bounded concurrent downstream probes produce one Healthy/Degraded operational view without allowing one slow or unavailable service to fail the aggregate request | six `OperationalHealthServiceTests` cover all-healthy aggregation, degraded status, dependency diagnostics, concurrent probes, probe timeout and unreachable service behavior | Applicable | Decision required | Implemented | Direct | Automated | Not run | Unknown | main | Main | Platform owner | source mapping is current; post-change accepted CI/TestRail evidence must be recorded separately |
 | Basket ownership and storage (`ESHOP-BASKET-001`) | R-BASKET-002 | CTRL-BASKET-CUSTOMERKEY-001 | customer-scoped Redis key, serialization, TTL and ownership | subject provider, key factory, repository; isolation/roundtrip/TTL tests | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Basket Engineering owner | key-normalization and serialization fuzz variants |
 | Concurrent basket mutation (`ESHOP-BASKET-002`) | R-BASKET-001 | CTRL-BASKET-CONCURRENCY-001 | simultaneous add/update/remove under approved merge or conflict policy | whole-value get/mutate/set; sequential tests only | Applicable | Decision required | Not implemented | Missing | Planned | Not run | Unknown | None | Nightly | Basket Engineering owner | approved semantics, CAS/version/atomic implementation and deterministic race |
 | Basket expiry, loss and clear recovery (`ESHOP-BASKET-003`) | R-BASKET-003 | CTRL-BASKET-EXPIRY-001 | Redis expiry/restart and clear failure after committed order | TTL exists; Orders catches clear failure; fake clear evidence | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Nightly | Checkout workflow owner | real Redis outage, repeat checkout and user/retry outcome |
@@ -33,6 +49,7 @@ Every status column below contains exactly one canonical value. Scope qualificat
 | Asynchronous payment outcome (`ESHOP-PAYMENT-001`) | R-PAYMENT-001 | CTRL-PAY-UNIQUE-001 | PaymentRequested produces one authorized/failed decision and outbox outcome | consumer/processing service; unique OrderId; sagas | Applicable | Decision required | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Nightly + Release | Payments Engineering owner | concurrent duplicates, outbox outage and collision semantics |
 | Operational payment and async collision (`ESHOP-PAYMENT-002`) | R-PAYMENT-001 | CTRL-PAY-UNIQUE-001 | support/admin POST and broker request converge on one defined outcome | controller/application success/failure/duplicate tests; no defined result event | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | Nightly + Release | Payments Engineering owner | operation orderings, concurrency, result event and poison-message behavior |
 | Notification privacy (`ESHOP-NOTIFICATION-001`) | R-NOTIFICATION-001 | CTRL-SEC-OWNERSHIP-001 | list/detail/unread/filter cannot expose another customer data | application subject filtering and ownership tests | Applicable | Approved | Implemented | Direct | Automated | Passed | Valid | PR/main | Main | Notifications Engineering owner | mark-read ownership only if that capability is implemented |
+| Operational notification investigation (`ESHOP-NOTIFICATION-002`) | R-GW-AUTH-001 | CTRL-SEC-GATEWAY-001 | support/admin users can inspect bounded cross-customer operational notification data while customer-only identities remain denied | five Notifications integration tests cover customer denial, support cross-customer inspection, bounded paging, Order filtering and audit metadata | Applicable | Decision required | Implemented | Direct | Automated | Not run | Unknown | main | Main | Notifications Engineering owner | source mapping is current; broader operational filter/error and gateway-route evidence remains separate |
 | Rabbit topology and terminal routing (`ESHOP-MSG-001`) | R-MSG-002 | CTRL-MSG-DLQ-001 | topic exchange, quorum queues, bindings, DLXs and terminal paths | topology initializer; smoke and failure-path tests | Applicable | Approved | Implemented | Partial | Automated | Passed | Valid | PR/main | Main + Nightly | Shared Messaging owner | exhaustive production binding, queue argument and DLQ matrix |
 | Retry and delivery-limit policy (`ESHOP-MSG-002`) | R-MSG-003 | CTRL-MSG-DLQ-001 | consumer retry/requeue and declared delivery limit share one approved contract | consumer base/options/settings/harness; initializer ignores option | Applicable | Decision required | Partially implemented | Partial | Automated | Passed | Valid | PR/main | PR + Main | Shared Messaging owner | choose fixed or configurable ownership and assert declaration |
 | Consumer idempotency and ack recovery (`ESHOP-MSG-003`) | R-MSG-001 | CTRL-MSG-INBOX-001 | sequential/concurrent duplicates and commit-before-ack produce one logical effect | consumer inboxes; one stock-failure duplicate test | Applicable | Approved | Implemented | Partial | Automated | Passed | Valid | PR/main | Nightly | Shared Messaging owner | all side-effecting consumers, concurrent duplicate and restart/ack windows |

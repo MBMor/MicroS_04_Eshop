@@ -4,19 +4,42 @@ This runbook describes how to investigate an e-shop workflow across services usi
 
 ## Scope
 
-Use this workflow for local operational troubleshooting of:
+Use this runbook for local operational troubleshooting across the Eshop services.
 
-- API Gateway requests
-- Orders processing
-- Inventory processing
-- Payments processing
-- RabbitMQ message publishing and consumption
-- cross-service latency and failures
-- business correlation through Order ID, Payment ID, and messaging correlation ID
+The Operations Console and Aspire Dashboard provide two complementary diagnostic views.
+
+The Operations Console is useful for:
+
+* inspecting current business state
+* locating Orders, Payments, Inventory, and Notifications
+* following related entities across service boundaries
+* checking current Operational Health
+* identifying which backend service is degraded or unavailable
+* obtaining business identifiers for deeper investigation
+
+Aspire is useful for:
+
+* API Gateway requests
+* Orders processing
+* Inventory processing
+* Payments processing
+* Notifications processing
+* RabbitMQ message publishing and consumption
+* cross-service latency
+* distributed failures
+* tracing one operation across service boundaries
 
 The Operations Console does not query telemetry directly.
 
-It provides business identifiers and a hand-off to the Aspire Dashboard, where distributed traces are inspected.
+It provides business state, operational health information, business identifiers, and a hand-off to Aspire, where distributed traces are inspected.
+
+A useful rule is:
+
+`Operational Health -> What is unhealthy right now?`
+
+`Aspire -> What happened during this specific operation?`
+
+Business correlation between the two surfaces is based primarily on Order ID, Payment ID, and messaging Correlation ID.
 
 ## Useful telemetry tags
 
@@ -39,6 +62,55 @@ eshop.correlation_id
 Start the application through the local Aspire development environment and verify that the Aspire Dashboard receives traces.
 
 The Operations Console Diagnostics screen should show a configured Aspire Dashboard URL.
+
+## Choose the diagnostic starting point
+
+Start with Operational Health when the symptom suggests a general service-availability problem.
+
+For example:
+
+* an operational screen cannot load data
+* several requests fail against the same service
+* the API Gateway reports a downstream connectivity problem
+* it is not yet clear which service is responsible
+
+Use:
+
+    Operations Console
+        -> Diagnostics
+        -> Operational health
+        -> Refresh health
+
+If a service is degraded, use its `Investigate` action to continue troubleshooting.
+
+Start with Aspire when you already have a specific failed business operation or identifier.
+
+For example:
+
+* one checkout failed
+* one Order is stuck in an unexpected state
+* a Payment failed
+* a Notification was not produced as expected
+* asynchronous processing appears delayed
+
+Use:
+
+    Operations Console
+        -> obtain Order ID / Payment ID / Correlation ID
+        -> Diagnostics
+        -> Observability
+        -> Open Aspire dashboard
+        -> inspect distributed trace
+
+In many incidents the workflow uses both surfaces:
+
+    Operational Health
+        -> identify affected service
+        -> Operations Console business state
+        -> obtain business identifier
+        -> Aspire trace
+        -> return to Operations Console
+        -> verify final state
 
 ## Scenario: trace a successful checkout
 
@@ -261,6 +333,7 @@ You can use:
 Orders
 Payments
 Inventory
+Notifications
 Investigate
 ```
 

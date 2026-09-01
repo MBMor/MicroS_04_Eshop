@@ -1,8 +1,53 @@
 # TestRail CI integration
 
-This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer. The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per TestIntent.
+This repository uses TestRail's code-first JUnit flow with a deliberate aggregation layer.
 
-The accepted TECH-08 baseline maps 198 unique source selectors through 217 binding edges to 33 automated TestIntents and leaves the 45-case catalogue unchanged. Main publication is locked to `12/24/3/4`; governed Release contains 17 selectors and aggregates 9 TestIntents over 26 edges. Existing C80/`ESHOP-RESILIENCE-002` is synchronized and receives the PostgreSQL and Redis outage/recovery selectors. Main run `30486673945` published CI #66/R92 at 24/24 Passed, and governed Release `30487730431` published Release #4/R95 at 9/9 Passed.
+The TestRail suite contains 45 high-level TestIntents, while the automated implementation contains many lower-level xUnit, Vitest and Playwright tests. Raw test cases are therefore retained as CI artifacts, but TestRail receives one synthetic JUnit result per automated TestIntent.
+
+## Current checked-in contract
+
+At source baseline `a8d344a`, the automation binding map contains 35 automated TestIntents.
+
+The governed test-tier policy defines:
+
+* PR ownership: 77 logical selectors
+* Main ownership: 113 logical selectors
+* cumulative Main execution: 190 logical selectors
+* Nightly execution: 19 logical selectors
+* Release overlap: 17 logical selectors
+* Main aggregate publication: 32 TestIntents
+* Release aggregate publication: 9 TestIntents
+
+The current Main publication cardinality is:
+
+```text
+Backend Unit         12
+Backend Integration  26
+Frontend Unit         3
+Checkout E2E          4
+```
+
+or, in compact form:
+
+```text
+12/26/3/4
+```
+
+The Release contract remains an explicit 17-selector overlap producing 9 aggregate TestIntents over 26 mapping edges.
+
+## Historical accepted baseline
+
+The accepted TECH-08 baseline contained 198 unique source selectors, 217 binding edges and 33 automated TestIntents.
+
+Its Main publication contract was:
+
+```text
+12/24/3/4
+```
+
+Main run `30486673945` published CI #66/R92 at 24/24 Passed, and governed Release `30487730431` published Release #4/R95 at 9/9 Passed.
+
+These TECH-08 values are retained as historical execution evidence. They are not the current checked-in publication contract.
 
 ## Identity contract
 
@@ -31,6 +76,29 @@ Do not use TestRail case IDs, case titles, references, a JUnit `test_id` propert
 5. emits one aggregate testcase per TestIntent and run area.
 
 Aggregate status is conservative: any bound failure/error makes the TestIntent fail; otherwise any skipped source makes it skipped; only an all-passed set passes. Theory rows are matched by class and base method name, so argument formatting does not change the stable aggregate ID. Renaming or adding a test requires updating the binding manifest in the same pull request.
+
+### Current operational mappings
+
+The current binding map includes two additional operational TestIntents compared with the accepted TECH-08 baseline.
+
+`ESHOP-GW-003` covers Operational Health aggregation through six integration selectors:
+
+* healthy aggregate behavior
+* degraded aggregate behavior
+* downstream dependency diagnostics
+* concurrent probing
+* bounded probe timeout
+* unreachable-service handling
+
+`ESHOP-NOTIFICATION-002` covers operational Notifications through five integration selectors:
+
+* customer denial
+* support cross-customer inspection
+* bounded paging
+* Order ID filtering
+* operational audit metadata
+
+These mappings are Main-owned and contribute to the current Backend Integration aggregate count.
 
 ## Reports and artifacts
 
@@ -76,7 +144,19 @@ All four independent runs are required as one complete CI publication set:
 
 ## Production failure handling
 
-TestRail publication is a blocking CI job. Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with the exact checked-in cardinality before Automation ID preflight or the first TRCLI call (`12/24/3/4` in the accepted TECH-08 baseline). Missing configuration, an upstream failure, a missing/malformed report, cardinality drift, mapping drift, a TestRail outage or a TRCLI failure therefore prevents or fails publication instead of creating an accepted-looking subset.
+TestRail publication is a blocking CI job.
+
+Artifact downloads are mandatory, and the aggregated report set must exist as valid XML with the exact current checked-in cardinality before Automation ID preflight or the first TRCLI call.
+
+At source baseline `a8d344a`, the required Main report cardinality is:
+
+```text
+12/26/3/4
+```
+
+Missing configuration, an upstream failure, a missing or malformed report, cardinality drift, mapping drift, a TestRail outage, or a TRCLI failure prevents or fails publication instead of creating an accepted-looking subset.
+
+Historical cardinalities recorded later in this document describe earlier accepted baselines and must not be used as the current publication contract.
 
 TestRail outage recovery is a controlled workflow re-run. The job does not retry blindly and never reuses a partial run. Because TestRail receives four independent API operations rather than one transaction, an outage during TRCLI calls can still leave an externally partial diagnostic set; that residual must be identified by CI number and excluded from acceptance until a complete rerun passes.
 
@@ -122,12 +202,23 @@ The first shared tier acceptance completed on 2026-07-29. GitHub run [`304307883
 
 ## Governed PR and Main execution
 
-The accepted GAP-022 cutover uses primary tier as selector ownership and cumulative event semantics for safety:
+The governed tier model uses primary tier as selector ownership and cumulative event semantics for safety.
 
-- pull requests execute the PR-owned 77 logical selectors: 64 backend unit and 13 frontend;
-- pushes to `main` and manual CI dispatch execute PR + Main ownership, 179 logical selectors in the accepted TECH-08 baseline;
-- Nightly remains an independent 19-selector execution rather than being folded into Main;
-- Release is a 17-selector explicit overlap for TECH-08 and is not inferred from a normal Main pass.
+The current checked-in policy defines:
+
+* pull requests execute the 77 PR-owned logical selectors;
+* Main owns 113 additional logical selectors;
+* pushes to `main` and manual CI dispatch execute PR + Main ownership cumulatively, for 190 logical selectors;
+* Nightly remains an independent 19-selector execution rather than being folded into Main;
+* Release remains an explicit 17-selector overlap and is not inferred from a normal Main pass;
+* Main aggregation produces 32 TestIntents;
+* Release aggregation produces 9 TestIntents.
+
+The authoritative values are stored in:
+
+`scripts/quality/test-tier-policy.json`
+
+Documentation must not be treated as the executable source of truth for selector or aggregate counts.
 
 Backend integration projects still restore and compile on pull requests, but their Docker-backed tests do not execute. Container images, Checkout E2E and TestRail publication are also skipped, preventing untrusted PR code from using repository secrets. Main filters are generated from the checked-in policy for the three mixed projects; their approved selector counts are Inventory 14, Messaging 4 and Orders 9.
 

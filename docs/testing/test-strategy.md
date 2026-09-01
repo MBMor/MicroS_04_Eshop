@@ -2,7 +2,7 @@
 
 > **Document type:** Long-term quality and test strategy  
 > **Repository:** `MBMor/MicroS_04_Eshop`  
-> **Version:** 1.1
+> **Version:** 1.2
 > **Status:** Draft — pending approval  
 > **Effective from:** Not effective; approval establishes the strategy, while every release gate requires a separate explicit activation record  
 > **Last approved:** Not yet approved  
@@ -155,7 +155,22 @@ Gate evidence MUST be attributable, immutable or tamper-evident, provenance-link
 
 ## 5. Product and architecture context
 
-The platform comprises React, ASP.NET Core YARP, Catalog, Basket, Orders, Inventory, Payments and Notifications services, Keycloak, PostgreSQL, Redis, RabbitMQ, transactional outboxes and inboxes, OpenTelemetry and Docker-based infrastructure. Checkout is an asynchronous distributed-state workflow.
+The platform comprises:
+
+* a React customer-facing web application;
+* a Windows WPF Operations Console for support and administrative workflows;
+* an ASP.NET Core YARP API Gateway;
+* Catalog, Basket, Orders, Inventory, Payments and Notifications services;
+* Keycloak authentication and role-based authorization;
+* PostgreSQL and Redis persistence;
+* RabbitMQ messaging;
+* transactional outboxes and inboxes;
+* OpenTelemetry observability;
+* Docker-based local infrastructure.
+
+Checkout is an asynchronous distributed-state workflow.
+
+The Operations Console is an operational client of the same backend platform. It does not bypass the API Gateway or backend service security boundaries.
 
 No tenant model is assumed. Customer ownership remains applicable. Tenant isolation is `Not applicable` only while evidence shows no tenant discriminator, context or enforcement model exists.
 
@@ -165,7 +180,32 @@ No tenant model is assumed. Customer ownership remains applicable. Tenant isolat
 
 ### 6.1 In scope
 
-Product/domain logic; APIs and middleware; gateway; frontend and accessibility; PostgreSQL, Redis and migrations; RabbitMQ topology and recovery; outbox/inbox; duplicates and disorder; compensation, DLQ and reconciliation; authentication, authorization and ownership; security and supply chain; observability and health; containers, deployment and ingress; backup and recovery; CI evidence and waivers; performance, resilience and exploration; TestRail traceability and production feedback.
+The strategy covers:
+
+* product and domain logic;
+* APIs and middleware;
+* API Gateway behavior;
+* React frontend behavior and accessibility;
+* WPF Operations Console behavior;
+* desktop API-client contracts and cancellation behavior;
+* browser and native-client authentication;
+* authorization and ownership boundaries;
+* role-aware operational workflows;
+* operational health and diagnostics;
+* PostgreSQL, Redis and database migrations;
+* RabbitMQ topology and recovery;
+* transactional outbox and inbox behavior;
+* duplicate, delayed and out-of-order processing;
+* compensation, DLQ and reconciliation;
+* security and supply-chain controls;
+* observability and distributed tracing;
+* containers, deployment and ingress;
+* Windows desktop build and packaging;
+* backup and recovery;
+* CI evidence and waivers;
+* performance, resilience and exploratory testing;
+* TestRail traceability;
+* production feedback and incident learning.
 
 ### 6.2 Decision required
 
@@ -295,6 +335,7 @@ Review quarterly, after material incidents/findings or architecture changes, and
 
 | Version | Date | Material change | Approved by |
 |---|---|---|---|
+| 1.2 | 2026-09-01 | Added the WPF Operations Console, native-client authentication, operational workflows, Operational Health, and Windows desktop quality scope. | Pending review |
 | 1.1 | 2026-07-28 | Removed checkout idempotency from undecided scope after approval of ADR 0002. | Pending review |
 
 

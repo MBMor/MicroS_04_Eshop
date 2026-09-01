@@ -18,6 +18,8 @@ The Operations Console is designed for scenarios such as:
 - reviewing stock-adjustment history
 - performing controlled administrative stock adjustments
 - following related entities across service boundaries
+- checking the current operational health of backend services
+- investigating degraded or unavailable service dependencies
 - handing off from business state to OpenTelemetry traces in Aspire
 - inspecting local application and environment diagnostics
 
@@ -327,27 +329,70 @@ When an Order-focused lookup returns exactly one notification, the matching noti
 
 ### Diagnostics
 
-Diagnostics exposes local application/runtime information including:
+Diagnostics combines three related but intentionally separate troubleshooting surfaces:
 
-- environment
-- API Gateway base address
-- API timeout
-- application version
-- build information
-- .NET runtime
-- operating system
-- process architecture
-- Aspire Dashboard URL
+1. local application and environment information
+2. Operational Health
+3. observability hand-off to Aspire
 
-The values are copy-friendly.
+#### Local diagnostics
 
-Diagnostics also provides:
+The screen exposes local application/runtime information including:
 
-```text
-Open Aspire dashboard
-```
+* environment
+* API Gateway base address
+* API timeout
+* application version
+* build information
+* .NET runtime
+* operating system
+* process architecture
+* Aspire Dashboard URL
 
-when an Aspire Dashboard URL is configured.
+The values are copy-friendly so they can be included in support notes or troubleshooting reports.
+
+#### Operational Health
+
+Operational Health provides a point-in-time view of the backend services reachable through the API Gateway.
+
+A support or admin user can explicitly refresh the health snapshot.
+
+The screen shows:
+
+* overall platform status
+* check timestamp
+* individual service status
+* probe duration
+* failure information
+* failed dependency information
+* downstream HTTP status where available
+
+Each service row also provides an `Investigate` action so that a degraded service can become the starting point for further troubleshooting.
+
+Operational Health answers the question:
+
+> Which backend service is unhealthy right now?
+
+It does not perform continuous monitoring and does not replace alerting or distributed tracing.
+
+#### Observability
+
+When an Aspire Dashboard URL is configured, Diagnostics provides:
+
+`Open Aspire dashboard`
+
+Aspire is used for deeper investigation of:
+
+* distributed traces
+* HTTP service calls
+* RabbitMQ message processing
+* errors
+* durations
+* business correlation metadata
+
+Aspire answers a different question:
+
+> What happened during this specific request or distributed business operation?
 
 The Operations Console intentionally does not query OpenTelemetry telemetry directly.
 
@@ -379,7 +424,7 @@ Contextual navigation records why the operator arrived at the destination.
 Example:
 
 ```text
-Context: Order 29ae3072… -> Payments
+Context: Order 29ae3072â€¦ -> Payments
 ```
 
 The full business identifier remains available in the target view.
@@ -452,16 +497,24 @@ Operations Console
     operational actions
     audit history
     cross-service navigation
+    current operational health
+    service-level failure diagnostics
 
 Aspire Dashboard
     traces
     spans
-    service dependencies
+    distributed service dependencies
     messaging execution
     durations
     errors
     telemetry attributes
 ```
+
+A useful distinction is:
+
+`Operational Health -> What is unhealthy right now?`
+
+`Aspire -> What happened during this specific operation?`
 
 The recommended troubleshooting workflow is:
 
@@ -487,57 +540,81 @@ See:
 docs/operations/observability-troubleshooting.md
 ```
 
-## Operational health
+## Operational Health
 
 The API Gateway exposes a protected operational health aggregation endpoint:
 
-```text
-GET /api/v1/operations/health
-```
+`GET /api/v1/operations/health`
 
 Required access:
 
-```text
-support
-or
-admin
-```
+`support` or `admin`
 
 The endpoint probes the health endpoints of:
 
-- Catalog
-- Basket
-- Orders
-- Inventory
-- Payments
-- Notifications
+* Catalog
+* Basket
+* Orders
+* Inventory
+* Payments
+* Notifications
 
-The response contains:
+Each downstream probe is bounded by a timeout so that one unavailable service cannot block the health request indefinitely.
 
-- overall status
-- check timestamp
-- per-service status
-- per-service response duration
+The aggregate response contains:
 
-Overall status is:
+* overall status
+* check timestamp
+* per-service status
+* per-service response duration
+* failure diagnostics where applicable
+* failed dependency information where applicable
+* downstream HTTP status where available
 
-```text
-Healthy
-```
+The overall status is `Healthy` when every monitored downstream service reports healthy.
 
-when every downstream service reports healthy.
+If one or more services cannot report healthy, the aggregate status is `Degraded`.
 
-Otherwise it is:
+### Operations Console workflow
 
-```text
-Degraded
-```
+Operational Health is exposed directly through the Diagnostics screen:
 
-Each downstream probe has a bounded timeout.
+    Operations Console
+        -> Diagnostics
+        -> Operational health
+        -> Refresh health
 
-The endpoint is protected by the operational rate-limit policy.
+The desktop retrieves the aggregate through the API Gateway and displays both the overall status and individual service results.
 
-At the current implementation stage this is a backend operational API surface; the Operations Console does not need to duplicate full health-monitoring functionality already available through backend health endpoints and Aspire.
+For a service that requires attention, the operator can use:
+
+`Investigate`
+
+to continue into the relevant troubleshooting context.
+
+The desktop also handles common operational failure states explicitly, including:
+
+* missing authentication
+* expired authentication session
+* insufficient role
+* request timeout
+* unavailable API Gateway
+* unexpected request failure
+
+Operational Health is intentionally a point-in-time diagnostic check.
+
+It is useful for answering:
+
+> Which service is unhealthy right now?
+
+It is not intended to replace:
+
+* continuous infrastructure monitoring
+* alerting
+* trace storage
+* distributed tracing
+
+For investigation of a specific distributed operation, use the Aspire Dashboard.
 
 ## Configuration
 
@@ -647,7 +724,12 @@ The desktop test suite covers areas such as:
 - cross-service contextual navigation
 - Notifications operational filtering
 - investigation lookup
-- Diagnostics behavior
+- local Diagnostics behavior
+- Operational Health API contracts
+- Operational Health refresh and cancellation behavior
+- Operational Health authentication and authorization failures
+- Operational Health connectivity and timeout handling
+- service-level investigation navigation
 
 ## CI and publishing
 
