@@ -1110,6 +1110,17 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 │   │   ├── package.json
 │   │   └── playwright.config.ts
 │   └── frontend
+├── infrastructure
+│   ├── keycloak
+│   ├── postgres
+│   └── dev-data
+│       ├── keycloak
+│       │   └── eshop-realm.json
+│       ├── catalog_db.sql
+│       ├── inventory_db.sql
+│       ├── notifications_db.sql
+│       ├── orders_db.sql
+│       └── payments_db.sql
 ├── .dockerignore
 ├── .editorconfig
 ├── .env.example
@@ -1122,7 +1133,6 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 ├── docker-bake.hcl
 ├── docker-compose.e2e.yml
 ├── docker-compose.yml
-├── eshop-realm.json
 └── global.json
 ```
 

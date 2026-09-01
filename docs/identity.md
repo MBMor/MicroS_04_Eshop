@@ -615,7 +615,7 @@ curl --fail \
 The realm definition is stored in:
 
 ```text
-infrastructure/keycloak/eshop-realm.json
+infrastructure/dev-data/keycloak/eshop-realm.json
 ```
 
 Docker Compose mounts it into:

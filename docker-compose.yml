@@ -101,7 +101,7 @@ services:
     ports:
       - "${KEYCLOAK_HTTP_PORT:-18080}:8080"
     volumes:
-      - ./infrastructure/keycloak/eshop-realm.json:/opt/keycloak/data/import/eshop-realm.json:ro
+      - ./infrastructure/dev-data/keycloak/eshop-realm.json:/opt/keycloak/data/import/eshop-realm.json:ro
     depends_on:
       postgres:
         condition: service_healthy

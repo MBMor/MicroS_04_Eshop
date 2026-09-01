@@ -109,10 +109,12 @@ jobs:
         shell: bash
         run: |
           bash -n \
+            scripts/dev/*.sh \
             scripts/e2e/*.sh \
             scripts/e2e/lib/*.sh \
             scripts/e2e/tests/*.sh
           shellcheck --severity=error \
+            scripts/dev/*.sh \
             scripts/e2e/*.sh \
             scripts/e2e/lib/*.sh \
             scripts/e2e/tests/*.sh

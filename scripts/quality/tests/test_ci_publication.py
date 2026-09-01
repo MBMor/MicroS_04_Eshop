@@ -181,6 +181,10 @@ class PublicationWorkflowTests(unittest.TestCase):
         self.assertIn("- name: Validate E2E shell portability", self.workflow)
         self.assertIn("bash -n \\", self.workflow)
         self.assertIn("shellcheck --severity=error \\", self.workflow)
+        self.assertEqual(
+            2,
+            self.workflow.count("scripts/dev/*.sh"),
+        )
         self.assertIn(
             "bash scripts/e2e/tests/port-check.test.sh",
             self.workflow,
