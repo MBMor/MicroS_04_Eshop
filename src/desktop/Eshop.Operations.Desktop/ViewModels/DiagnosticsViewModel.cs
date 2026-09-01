@@ -14,14 +14,18 @@ public sealed partial class DiagnosticsViewModel
         IOptions<DesktopOptions> desktopOptions,
         IOptions<ApiGatewayOptions> apiGatewayOptions,
         IOptions<ObservabilityOptions> observabilityOptions,
-        IExternalUriLauncher externalUriLauncher)
+        IExternalUriLauncher externalUriLauncher,
+        OperationalHealthViewModel operationalHealth)
     {
         ArgumentNullException.ThrowIfNull(desktopOptions);
         ArgumentNullException.ThrowIfNull(apiGatewayOptions);
         ArgumentNullException.ThrowIfNull(observabilityOptions);
         ArgumentNullException.ThrowIfNull(externalUriLauncher);
+        ArgumentNullException.ThrowIfNull(operationalHealth);
 
         _externalUriLauncher = externalUriLauncher;
+
+        OperationalHealth = operationalHealth;
 
         DesktopOptions desktop =
             desktopOptions.Value;
@@ -73,6 +77,11 @@ public sealed partial class DiagnosticsViewModel
     }
 
     public string EnvironmentName { get; }
+
+    public OperationalHealthViewModel OperationalHealth
+    {
+        get;
+    }
 
     public string ApiGatewayBaseAddress { get; }
 

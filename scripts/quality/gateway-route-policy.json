@@ -63,6 +63,18 @@
       "rate_limiter_policy": null
     },
     {
+      "id": "gateway-operational-health",
+      "kind": "local",
+      "cluster_id": null,
+      "path_template": "/api/v1/operations/health",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/api/v1/operations/health",
+      "authorization_policy": "SupportOrAdmin",
+      "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
+    },
+    {
       "id": "catalog-list-route",
       "kind": "proxy",
       "cluster_id": "catalog-cluster",

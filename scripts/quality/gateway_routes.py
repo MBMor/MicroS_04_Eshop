@@ -59,6 +59,13 @@ LOCAL_ROUTES = {
         "allowed_roles": [],
         "rate_limiter_policy": None,
     },
+    "gateway-operational-health": {
+        "path_template": "/api/v1/operations/health",
+        "methods": ["GET"],
+        "authorization_policy": "SupportOrAdmin",
+        "allowed_roles": ["support", "admin"],
+        "rate_limiter_policy": "Operational",
+    },
 }
 
 

@@ -3,31 +3,31 @@
   "description": "Authoritative primary ownership plus cumulative PR/Main event execution and explicit Release overlap for governed test selectors.",
   "expected_counts": {
     "PR": 77,
-    "Main": 107,
+    "Main": 112,
     "Nightly": 19,
     "Release": 17
   },
   "expected_execution_selector_counts": {
     "PR": 77,
-    "Main": 184,
+    "Main": 189,
     "Nightly": 19,
     "Release": 17
   },
   "expected_aggregate_counts": {
     "PR": 15,
-    "Main": 31,
+    "Main": 32,
     "Nightly": 11,
     "Release": 9
   },
   "expected_mapping_edges": {
     "PR": 80,
-    "Main": 197,
+    "Main": 202,
     "Nightly": 25,
     "Release": 26
   },
   "expected_main_report_counts": {
     "backend-unit": 12,
-    "backend-integration": 25,
+    "backend-integration": 26,
     "frontend-unit": 3,
     "checkout-e2e": 4
   },
@@ -67,7 +67,8 @@
       "default_primary_tier": "Main",
       "selector_prefixes": [
         "GatewayAuthorizationTests",
-        "GatewayRateLimitingTests"
+        "GatewayRateLimitingTests",
+        "OperationalHealthServiceTests"
       ]
     },
     {

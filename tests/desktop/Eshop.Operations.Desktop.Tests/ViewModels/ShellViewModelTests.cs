@@ -4,6 +4,7 @@ using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Api.Payments;
 using Eshop.Operations.Desktop.Api.Orders;
 using Eshop.Operations.Desktop.Api.Notifications;
+using Eshop.Operations.Desktop.Api.OperationalHealth;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.Models;
@@ -981,7 +982,10 @@ public sealed class ShellViewModelTests
             desktopOptions,
             apiGatewayOptions,
             observabilityOptions,
-            new StubExternalUriLauncher());
+            new StubExternalUriLauncher(),
+            new OperationalHealthViewModel(
+                new StubOperationalHealthApiClient(),
+                NullLogger<OperationalHealthViewModel>.Instance));
     }
 
     private sealed class StubExternalUriLauncher
@@ -1082,6 +1086,22 @@ public sealed class ShellViewModelTests
                 "Notification detail was not expected in this test.");
         }
     }
+
+    private sealed class StubOperationalHealthApiClient
+        : IOperationalHealthApiClient
+    {
+        public Task<OperationalHealthResponseDto>
+            GetOperationalHealthAsync(
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new OperationalHealthResponseDto(
+                    "Healthy",
+                    DateTimeOffset.UtcNow,
+                    []));
+        }
+    }
+
     private sealed class StubAuthenticationService
         : IAuthenticationService
     {
