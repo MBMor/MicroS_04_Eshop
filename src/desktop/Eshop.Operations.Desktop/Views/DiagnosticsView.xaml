@@ -127,6 +127,141 @@
 
                 <StackPanel>
 
+                    <Grid>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+
+                            <TextBlock FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Text="Operational health" />
+
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       Text="Check API Gateway connectivity to the operational backend services."
+                                       TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Margin="16,0,0,0"
+                                    Orientation="Horizontal">
+
+                            <Button Style="{StaticResource ToolbarButtonStyle}"
+                                    Command="{Binding OperationalHealth.RefreshHealthCommand}"
+                                    Content="Refresh health" />
+
+                            <Button Margin="8,0,0,0"
+                                    Style="{StaticResource ToolbarButtonStyle}"
+                                    Command="{Binding OperationalHealth.RefreshHealthCancelCommand}"
+                                    Content="Cancel" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                    <Grid Margin="0,16,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Style="{StaticResource FieldLabelTextStyle}"
+                                   Text="Overall status" />
+
+                        <TextBox Grid.Row="0"
+                                 Grid.Column="1"
+                                 Style="{StaticResource SelectableValueTextBoxStyle}"
+                                 Text="{Binding OperationalHealth.OverallStatus,
+                                                Mode=OneWay}" />
+
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource FieldLabelTextStyle}"
+                                   Text="Checked UTC" />
+
+                        <TextBox Grid.Row="1"
+                                 Grid.Column="1"
+                                 Margin="0,8,0,0"
+                                 Style="{StaticResource SelectableValueTextBoxStyle}"
+                                 Text="{Binding OperationalHealth.CheckedAtUtc,
+                                                Mode=OneWay,
+                                                StringFormat={}{0:yyyy-MM-dd HH:mm:ss},
+                                                TargetNullValue=—}" />
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource FieldLabelTextStyle}"
+                                   Text="Status" />
+
+                        <TextBox Grid.Row="2"
+                                 Grid.Column="1"
+                                 Margin="0,8,0,0"
+                                 Style="{StaticResource SelectableValueTextBoxStyle}"
+                                 Text="{Binding OperationalHealth.StatusText,
+                                                Mode=OneWay}" />
+
+                    </Grid>
+
+                    <Border Margin="0,12,0,0"
+                            Style="{StaticResource ErrorPanelBorderStyle}"
+                            Visibility="{Binding OperationalHealth.HasError,
+                                Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                        <TextBlock Text="{Binding OperationalHealth.ErrorMessage}"
+                                   TextWrapping="Wrap" />
+
+                    </Border>
+
+                    <DataGrid Margin="0,16,0,0"
+                              MinHeight="180"
+                              ItemsSource="{Binding OperationalHealth.Services}"
+                              Style="{StaticResource OperationalDataGridStyle}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              HeadersVisibility="Column">
+
+                        <DataGrid.Columns>
+
+                            <DataGridTextColumn Header="Service"
+                                                Binding="{Binding Service}"
+                                                Width="2*" />
+
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding Status}"
+                                                Width="*" />
+
+                            <DataGridTextColumn Header="Duration (ms)"
+                                                Binding="{Binding DurationMilliseconds}"
+                                                Width="*" />
+
+                        </DataGrid.Columns>
+
+                    </DataGrid>
+
+                </StackPanel>
+
+            </Border>
+
+            <Border Margin="0,28,0,0"
+                    Style="{StaticResource PanelBorderStyle}">
+
+                <StackPanel>
+
                     <TextBlock FontSize="16"
                                FontWeight="SemiBold"
                                Text="Observability" />
@@ -193,7 +328,7 @@
 					Style="{StaticResource MutedPanelBorderStyle}">
 
 				<TextBlock Style="{StaticResource MutedTextStyle}"
-						   Text="This screen displays local configuration and provides hand-off to external observability tooling. It does not perform network health checks or query telemetry itself."
+                           Text="This screen displays local configuration, performs bounded operational health checks through the API Gateway, and provides hand-off to external observability tooling. It does not query telemetry data directly."
 						   TextWrapping="Wrap" />
 
 			</Border>

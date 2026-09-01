@@ -1,7 +1,9 @@
 using Eshop.Operations.Desktop.Api;
+using Eshop.Operations.Desktop.Api.OperationalHealth;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.Services;
 using Eshop.Operations.Desktop.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -44,7 +46,8 @@ public sealed class DiagnosticsViewModelTests
                 desktopOptions,
                 apiGatewayOptions,
                 observabilityOptions,
-                launcher);
+                launcher,
+                CreateOperationalHealthViewModel());
 
         Assert.Equal(
             "QA",
@@ -121,7 +124,8 @@ public sealed class DiagnosticsViewModelTests
                 desktopOptions,
                 apiGatewayOptions,
                 observabilityOptions,
-                launcher);
+                launcher,
+                CreateOperationalHealthViewModel());
 
         viewModel
             .OpenAspireDashboardCommand
@@ -164,7 +168,8 @@ public sealed class DiagnosticsViewModelTests
                 desktopOptions,
                 apiGatewayOptions,
                 observabilityOptions,
-                launcher);
+                launcher,
+                CreateOperationalHealthViewModel());
 
         Assert.False(
             viewModel
@@ -189,6 +194,29 @@ public sealed class DiagnosticsViewModelTests
         {
             OpenedUri =
                 uri;
+        }
+    }
+
+    private static OperationalHealthViewModel
+        CreateOperationalHealthViewModel()
+    {
+        return new OperationalHealthViewModel(
+            new StubOperationalHealthApiClient(),
+            NullLogger<OperationalHealthViewModel>.Instance);
+    }
+
+    private sealed class StubOperationalHealthApiClient
+        : IOperationalHealthApiClient
+    {
+        public Task<OperationalHealthResponseDto>
+            GetOperationalHealthAsync(
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new OperationalHealthResponseDto(
+                    "Healthy",
+                    DateTimeOffset.UtcNow,
+                    []));
         }
     }
 }
