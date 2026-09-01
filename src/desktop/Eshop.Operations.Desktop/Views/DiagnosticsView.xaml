@@ -28,6 +28,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0"
@@ -79,31 +80,42 @@
                 <TextBlock Grid.Row="4"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
-                           Text=".NET runtime" />
+                           Text="Build" />
 
                 <TextBox Grid.Row="4"
                          Grid.Column="1"
                          Margin="0,10,0,0"
                          Style="{StaticResource SelectableValueTextBoxStyle}"
-                         Text="{Binding RuntimeDescription, Mode=OneWay}" />
+                         Text="{Binding BuildInformation, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="5"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
-                           Text="Operating system" />
+                           Text=".NET runtime" />
 
                 <TextBox Grid.Row="5"
                          Grid.Column="1"
                          Margin="0,10,0,0"
                          Style="{StaticResource SelectableValueTextBoxStyle}"
-                         Text="{Binding OperatingSystemDescription, Mode=OneWay}" />
+                         Text="{Binding RuntimeDescription, Mode=OneWay}" />
 
                 <TextBlock Grid.Row="6"
                            Margin="0,10,0,0"
                            Style="{StaticResource FieldLabelTextStyle}"
-                           Text="Process architecture" />
+                           Text="Operating system" />
 
                 <TextBox Grid.Row="6"
+                         Grid.Column="1"
+                         Margin="0,10,0,0"
+                         Style="{StaticResource SelectableValueTextBoxStyle}"
+                         Text="{Binding OperatingSystemDescription, Mode=OneWay}" />
+
+                <TextBlock Grid.Row="7"
+                           Margin="0,10,0,0"
+                           Style="{StaticResource FieldLabelTextStyle}"
+                           Text="Process architecture" />
+
+                <TextBox Grid.Row="7"
                          Grid.Column="1"
                          Margin="0,10,0,0"
                          Style="{StaticResource SelectableValueTextBoxStyle}"

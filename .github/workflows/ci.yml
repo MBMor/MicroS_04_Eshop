@@ -109,10 +109,12 @@ jobs:
         shell: bash
         run: |
           bash -n \
+            scripts/dev/*.sh \
             scripts/e2e/*.sh \
             scripts/e2e/lib/*.sh \
             scripts/e2e/tests/*.sh
           shellcheck --severity=error \
+            scripts/dev/*.sh \
             scripts/e2e/*.sh \
             scripts/e2e/lib/*.sh \
             scripts/e2e/tests/*.sh
@@ -468,6 +470,12 @@ jobs:
           dotnet restore
           tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
 
+      - name: Restore desktop publish target
+        run: >
+          dotnet restore
+          src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+          --runtime win-x64
+
       - name: Build desktop tests
         run: >
           dotnet build
@@ -482,6 +490,202 @@ jobs:
           tests/desktop/Eshop.Operations.Desktop.Tests/Eshop.Operations.Desktop.Tests.csproj
           --configuration Release
           --no-build
+
+      - name: Publish desktop application
+        run: >
+          dotnet publish
+          src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --no-restore
+          -p:PublishProfile=WindowsX64
+          -p:SourceRevisionId=${{ github.sha }}
+          --output artifacts/desktop/win-x64
+          -warnaserror
+
+      - name: Verify desktop publish artifact
+        shell: pwsh
+        run: |
+          $publishDirectory = "artifacts/desktop/win-x64"
+
+          $requiredFiles = @(
+            "Eshop.Operations.Desktop.exe",
+            "Eshop.Operations.Desktop.dll",
+            "appsettings.json"
+          )
+
+          foreach ($file in $requiredFiles) {
+            $path = Join-Path $publishDirectory $file
+
+            if (-not (Test-Path $path -PathType Leaf)) {
+              throw "Required desktop publish file is missing: $path"
+            }
+          }
+
+          Write-Host "Desktop publish artifact verified."
+
+      - name: Smoke test published desktop startup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $executable = Resolve-Path `
+            "artifacts/desktop/win-x64/Eshop.Operations.Desktop.exe"
+
+          $process = Start-Process `
+            -FilePath $executable `
+            -ArgumentList "--validate-startup" `
+            -PassThru `
+            -Wait
+
+          if ($process.ExitCode -ne 0) {
+            throw "Desktop startup validation failed with exit code $($process.ExitCode)."
+          }
+
+          Write-Host "Published desktop startup validation passed."
+
+      - name: Generate desktop artifact checksums
+        shell: pwsh
+        run: |
+          $publishDirectory = "artifacts/desktop/win-x64"
+          $checksumFile = Join-Path $publishDirectory "SHA256SUMS.txt"
+
+          Get-ChildItem `
+            -Path $publishDirectory `
+            -File |
+            Where-Object {
+              $_.Name -ne "SHA256SUMS.txt"
+            } |
+            Sort-Object Name |
+            ForEach-Object {
+              $hash = Get-FileHash `
+                -Path $_.FullName `
+                -Algorithm SHA256
+
+              "$($hash.Hash.ToLowerInvariant())  $($_.Name)"
+            } |
+            Set-Content `
+            -Path $checksumFile `
+            -Encoding ascii
+
+          if (-not (Test-Path $checksumFile -PathType Leaf)) {
+            throw "Desktop checksum manifest was not created."
+          }
+
+          if ((Get-Item $checksumFile).Length -eq 0) {
+            throw "Desktop checksum manifest is empty."
+          }
+
+          Write-Host "Desktop SHA-256 manifest generated."
+
+      - name: Verify desktop artifact integrity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $publishDirectory = "artifacts/desktop/win-x64"
+          $checksumFile = Join-Path $publishDirectory "SHA256SUMS.txt"
+          $executablePath = Join-Path $publishDirectory "Eshop.Operations.Desktop.exe"
+
+          if (-not (Test-Path $checksumFile -PathType Leaf)) {
+              throw "Desktop checksum manifest is missing."
+          }
+
+          if (-not (Test-Path $executablePath -PathType Leaf)) {
+              throw "Desktop executable is missing."
+          }
+
+          $manifestEntries = @{}
+
+          foreach ($line in Get-Content $checksumFile) {
+              if ([string]::IsNullOrWhiteSpace($line)) {
+                  continue
+              }
+
+              if ($line -notmatch '^([0-9a-f]{64})\s+(.+)$') {
+                  throw "Invalid SHA256SUMS entry: '$line'"
+              }
+
+              $expectedHash = $Matches[1]
+              $fileName = $Matches[2]
+
+              if ($manifestEntries.ContainsKey($fileName)) {
+                  throw "Duplicate checksum entry for '$fileName'."
+              }
+
+              $manifestEntries[$fileName] = $expectedHash
+          }
+
+          $publishedFiles =
+              Get-ChildItem `
+                  -Path $publishDirectory `
+                  -File |
+              Where-Object {
+                  $_.Name -ne "SHA256SUMS.txt"
+              }
+
+          foreach ($file in $publishedFiles) {
+              if (-not $manifestEntries.ContainsKey($file.Name)) {
+                  throw "Checksum entry is missing for '$($file.Name)'."
+              }
+
+              $actualHash =
+                  (Get-FileHash `
+                      -Path $file.FullName `
+                      -Algorithm SHA256).Hash.ToLowerInvariant()
+
+              $expectedHash =
+                  $manifestEntries[$file.Name]
+
+              if ($actualHash -ne $expectedHash) {
+                  throw "Checksum mismatch for '$($file.Name)'. Expected '$expectedHash', actual '$actualHash'."
+              }
+          }
+
+          foreach ($fileName in $manifestEntries.Keys) {
+              $path =
+                  Join-Path `
+                      $publishDirectory `
+                      $fileName
+
+              if (-not (Test-Path $path -PathType Leaf)) {
+                  throw "Checksum manifest references missing file '$fileName'."
+              }
+          }
+
+          if ($manifestEntries.Count -ne $publishedFiles.Count) {
+              throw "Checksum manifest does not match the published file set."
+          }
+
+          $fileVersionInfo =
+              [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+                  $executablePath)
+
+          $productVersion =
+              $fileVersionInfo.ProductVersion
+
+          if ([string]::IsNullOrWhiteSpace($productVersion)) {
+              throw "Desktop executable does not expose ProductVersion."
+          }
+
+          $expectedRevision =
+              "${{ github.sha }}"
+
+          if (-not $productVersion.Contains($expectedRevision)) {
+              throw "Desktop executable provenance mismatch. ProductVersion='$productVersion', expected revision='$expectedRevision'."
+          }
+
+          Write-Host "Desktop build provenance verified: $productVersion"
+          Write-Host "Desktop artifact checksums verified."
+
+      - name: Upload desktop application
+        uses: actions/upload-artifact@v7
+        with:
+          name: eshop-operations-desktop-win-x64
+          path: artifacts/desktop/win-x64/**
+          if-no-files-found: error
+          retention-days: 7
 
   frontend:
     name: Frontend

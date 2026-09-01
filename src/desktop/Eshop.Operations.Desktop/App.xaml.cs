@@ -26,6 +26,15 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        bool validateStartup =
+            Array.Exists(
+                e.Args,
+                static argument =>
+                    string.Equals(
+                        argument,
+                        "--validate-startup",
+                        StringComparison.Ordinal));
+
         try
         {
             _host = CreateHost(e.Args);
@@ -41,6 +50,23 @@ public partial class App : Application
             mainWindow.Closed += OnMainWindowClosed;
 
             MainWindow = mainWindow;
+
+            if (validateStartup)
+            {
+                LogStartupValidationSucceeded(
+                    logger);
+
+                await _host.StopAsync(
+                    TimeSpan.FromSeconds(5));
+
+                DisposeHost();
+
+                Shutdown(
+                    0);
+
+                return;
+            }
+
             mainWindow.Show();
         }
         catch (OptionsValidationException exception)
@@ -50,13 +76,16 @@ public partial class App : Application
                 LogInvalidConfiguration(logger, exception);
             }
 
-            MessageBox.Show(
-                string.Join(
-                    Environment.NewLine,
-                    exception.Failures),
-                "Invalid application configuration",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            if (!validateStartup)
+            {
+                MessageBox.Show(
+                    string.Join(
+                        Environment.NewLine,
+                        exception.Failures),
+                    "Invalid application configuration",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
 
             DisposeHost();
             Shutdown(-1);
@@ -68,11 +97,14 @@ public partial class App : Application
                 LogStartupFailed(logger, exception);
             }
 
-            MessageBox.Show(
-                "The application could not start. Check the application logs for details.",
-                "Startup failed",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            if (!validateStartup)
+            {
+                MessageBox.Show(
+                    "The application could not start. Check the application logs for details.",
+                    "Startup failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
 
             DisposeHost();
             Shutdown(-1);
@@ -374,4 +406,12 @@ public partial class App : Application
     private static partial void LogHostStopFailed(
         ILogger logger,
         Exception exception);
+
+    [LoggerMessage(
+        EventId = 1005,
+        Level = LogLevel.Information,
+        Message =
+            "Eshop Operations Console startup validation succeeded.")]
+    private static partial void LogStartupValidationSucceeded(
+        ILogger logger);
 }

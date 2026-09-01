@@ -1,6 +1,12 @@
-# Keycloak Local Realm
+# Keycloak Local Container Configuration
 
-This folder contains the reproducible local Keycloak realm configuration for the Eshop capstone project.
+This folder contains the local Keycloak container configuration for the Eshop capstone project.
+
+The versioned development realm snapshot is stored in:
+
+```text
+infrastructure/dev-data/keycloak/eshop-realm.json
+```
 
 The `eshop` realm is imported automatically when the Keycloak container starts and the realm does not already exist.
 
@@ -401,7 +407,7 @@ docker compose restart keycloak
 Because the `eshop` realm no longer exists, the startup import recreates it from:
 
 ```text
-infrastructure/keycloak/eshop-realm.json
+infrastructure/dev-data/keycloak/eshop-realm.json
 ```
 
 Avoid using:
