@@ -69,6 +69,13 @@
     "ESHOP-NOTIFICATION-001": [
       "NotificationsServiceIntegrationTests.GetNotificationsNewCustomerReturnsEmptyCollection", "NotificationsServiceIntegrationTests.GetNotificationsReturnsOnlyCurrentCustomerInDescendingOrder", "NotificationsServiceIntegrationTests.GetNotificationsUnreadOnlyReturnsOnlyUnreadNotifications", "NotificationsServiceIntegrationTests.GetNotificationsOrderFilterReturnsMatchingOrder", "NotificationsServiceIntegrationTests.GetNotificationsLimitIsAppliedAfterDescendingOrdering", "NotificationsServiceIntegrationTests.GetNotificationsInvalidLimitReturnsBadRequest", "NotificationsServiceIntegrationTests.GetNotificationsEmptyOrderIdReturnsBadRequest", "NotificationsServiceIntegrationTests.GetUnreadCountReturnsOnlyCurrentCustomersUnreadCount", "NotificationsServiceIntegrationTests.GetNotificationByIdOwnerReturnsPersistedNotification", "NotificationsServiceIntegrationTests.GetNotificationByIdOtherCustomerReturnsNotFound", "NotificationTests.CreateValidDataCreatesUnreadNotification", "NotificationTests.CreateEmptyIdThrows", "NotificationTests.CreateUnsupportedTypeThrows", "NotificationTests.CreateEmptyOptionalOrderIdThrows", "NotificationTests.CreateBlankTitleThrows", "NotificationTests.CreateTitleAboveMaximumLengthThrows", "NotificationTests.CreateMessageAboveMaximumLengthThrows", "NotificationTests.MarkAsReadUnreadNotificationMarksNotificationRead"
     ],
+    "ESHOP-NOTIFICATION-002": [
+      "NotificationsServiceIntegrationTests.OperationalCustomerUserReturnsForbidden",
+      "NotificationsServiceIntegrationTests.OperationalNotificationDetailIncludesAuditMetadata",
+      "NotificationsServiceIntegrationTests.OperationalNotificationsOrderFilterReturnsMatchingOrder",
+      "NotificationsServiceIntegrationTests.OperationalNotificationsPageIsBounded",
+      "NotificationsServiceIntegrationTests.OperationalSupportUserCanInspectNotificationsAcrossCustomers"
+    ],
     "ESHOP-ORDER-001": [
       "OrdersServiceIntegrationTests.CreateOrderValidBasketPersistsOrderHistoryAndOutbox", "ShoppingBasketTests.BasketItemLineTotalMultipliesPriceAndQuantity", "OrderTests.CreateValidItemsCreatesPendingOrderAndInitialHistory", "OrderTests.CreateItemsUsingDifferentCurrenciesThrows", "OrderTests.CreateItemBelongingToDifferentOrderThrows"
     ],
