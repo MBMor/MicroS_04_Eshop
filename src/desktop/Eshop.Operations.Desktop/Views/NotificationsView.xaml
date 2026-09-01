@@ -1,0 +1,287 @@
+<UserControl x:Class="Eshop.Operations.Desktop.Views.NotificationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter
+            x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding LoadNotificationsCommand}"
+                    Content="Refresh" />
+
+            <Button Grid.Column="1"
+                    Margin="8,0,0,0"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding LoadNotificationsCancelCommand}"
+                    Content="Cancel" />
+
+            <Button Grid.Column="2"
+                    Margin="8,0,0,0"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding LoadMoreNotificationsCommand}"
+                    IsEnabled="{Binding CanLoadMore}"
+                    Content="Load more" />
+
+            <TextBlock Grid.Column="3"
+                       Margin="16,0,0,0"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource MutedTextStyle}"
+                       Text="{Binding StatusText}"
+                       TextTrimming="CharacterEllipsis" />
+        </Grid>
+
+        <Grid Grid.Row="1"
+              Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0"
+                        Margin="0,0,12,0">
+                <TextBlock Margin="0,0,0,4"
+                           Text="Order ID" />
+                <TextBox Text="{Binding OrderIdText,
+                                        UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1"
+                        Margin="0,0,12,0">
+                <TextBlock Margin="0,0,0,4"
+                           Text="Customer ID" />
+                <TextBox Text="{Binding CustomerIdText,
+                                        UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2"
+                        Margin="0,0,12,0">
+                <TextBlock Margin="0,0,0,4"
+                           Text="Correlation ID" />
+                <TextBox Text="{Binding CorrelationIdText,
+                                        UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <Button Grid.Column="3"
+                    Margin="0,0,8,0"
+                    VerticalAlignment="Bottom"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding ApplyFiltersCommand}"
+                    Content="Apply" />
+
+            <Button Grid.Column="4"
+                    VerticalAlignment="Bottom"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding ClearFiltersCommand}"
+                    Content="Clear" />
+        </Grid>
+
+        <Border Grid.Row="2"
+                Margin="0,8,0,0"
+                Style="{StaticResource ErrorPanelBorderStyle}"
+                Visibility="{Binding HasError,
+                    Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       TextWrapping="Wrap" />
+        </Border>
+
+        <Grid Grid.Row="3"
+              Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="Refresh Notifications to load operational data."
+                           Visibility="{Binding IsInitialState,
+                               Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource MutedTextStyle}"
+                           Text="No notifications match the current filters."
+                           Visibility="{Binding IsEmpty,
+                               Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <DataGrid x:Name="NotificationsDataGrid"
+                          ItemsSource="{Binding Notifications}"
+                          Visibility="{Binding HasNotifications,
+                              Converter={StaticResource BooleanToVisibilityConverter}}"
+                          CurrentCellChanged="NotificationsDataGrid_CurrentCellChanged"
+                          Style="{StaticResource OperationalDataGridStyle}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Notification ID"
+                                            Binding="{Binding Id}"
+                                            Width="2*" />
+                        <DataGridTextColumn Header="Type"
+                                            Binding="{Binding Type}"
+                                            Width="*" />
+                        <DataGridTextColumn Header="Customer ID"
+                                            Binding="{Binding CustomerId}"
+                                            Width="1.5*" />
+                        <DataGridCheckBoxColumn Header="Read"
+                                                Binding="{Binding IsRead}"
+                                                Width="60" />
+                        <DataGridTextColumn Header="Order ID"
+                                            Binding="{Binding OrderId}"
+                                            Width="2*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+
+            <GridSplitter Grid.Column="1"
+                          Width="4"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch" />
+
+            <Border Grid.Column="2"
+                    Style="{StaticResource PanelBorderStyle}">
+                <Grid>
+                    <TextBlock HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Text="Select a notification to view details.">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource MutedTextStyle}">
+                                <Setter Property="Visibility"
+                                        Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedNotification}"
+                                                 Value="{x:Null}">
+                                        <Setter Property="Visibility"
+                                                Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel DataContext="{Binding SelectedNotification}">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding}"
+                                                     Value="{x:Null}">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Text="Notification detail" />
+
+                            <TextBlock Margin="0,14,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Notification ID" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding Id, Mode=OneWay}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Type" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding Type, Mode=OneWay}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Title" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding Title, Mode=OneWay}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Message" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding Message, Mode=OneWay}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Customer ID" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding CustomerId, Mode=OneWay}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Order ID" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding OrderId,
+                                                    Mode=OneWay,
+                                                    TargetNullValue=—}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Correlation ID" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding CorrelationId,
+                                                    Mode=OneWay,
+                                                    TargetNullValue=—}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Source event ID" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding SourceEventId,
+                                                    Mode=OneWay,
+                                                    TargetNullValue=—}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Created UTC" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding CreatedAtUtc,
+                                                    Mode=OneWay,
+                                                    StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+
+                            <TextBlock Margin="0,10,0,0"
+                                       Style="{StaticResource FieldLabelTextStyle}"
+                                       Text="Read UTC" />
+                            <TextBox Style="{StaticResource SelectableValueTextBoxStyle}"
+                                     Text="{Binding ReadAtUtc,
+                                                    Mode=OneWay,
+                                                    StringFormat={}{0:yyyy-MM-dd HH:mm:ss},
+                                                    TargetNullValue=—}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

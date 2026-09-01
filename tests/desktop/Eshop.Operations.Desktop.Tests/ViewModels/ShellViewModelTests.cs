@@ -3,6 +3,7 @@ using Eshop.Operations.Desktop.Api.Catalog;
 using Eshop.Operations.Desktop.Api.Inventory;
 using Eshop.Operations.Desktop.Api.Payments;
 using Eshop.Operations.Desktop.Api.Orders;
+using Eshop.Operations.Desktop.Api.Notifications;
 using Eshop.Operations.Desktop.Authentication;
 using Eshop.Operations.Desktop.Configuration;
 using Eshop.Operations.Desktop.Models;
@@ -673,7 +674,8 @@ public sealed class ShellViewModelTests
 
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null,
-        IOrdersApiClient? ordersApiClient = null)
+        IOrdersApiClient? ordersApiClient = null,
+        INotificationsApiClient? notificationsApiClient = null)
     {
         IOptions<DesktopOptions> options =
             Options.Create(
@@ -702,6 +704,11 @@ public sealed class ShellViewModelTests
                 new StubPaymentsApiClient(),
                 NullLogger<PaymentsViewModel>.Instance);
 
+        var notificationsViewModel =
+            new NotificationsViewModel(
+                notificationsApiClient ?? new StubNotificationsApiClient(),
+                NullLogger<NotificationsViewModel>.Instance);
+
         var investigationViewModel =
             new InvestigationViewModel();
 
@@ -722,6 +729,7 @@ public sealed class ShellViewModelTests
             inventoryViewModel,
             ordersViewModel,
             paymentsViewModel,
+            notificationsViewModel,
             investigationViewModel,
             diagnosticsViewModel,
             authenticationService,
@@ -824,6 +832,36 @@ public sealed class ShellViewModelTests
         }
     }
 
+
+    private sealed class StubNotificationsApiClient
+        : INotificationsApiClient
+    {
+        public Task<OperationalNotificationPageDto>
+            GetNotificationsAsync(
+                Guid? orderId,
+                string? customerId,
+                Guid? correlationId,
+                int offset,
+                int limit,
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                new OperationalNotificationPageDto(
+                    [],
+                    offset,
+                    limit,
+                    false));
+        }
+
+        public Task<OperationalNotificationDto>
+            GetNotificationAsync(
+                Guid notificationId,
+                CancellationToken cancellationToken)
+        {
+            throw new InvalidOperationException(
+                "Notification detail was not expected in this test.");
+        }
+    }
     private sealed class StubAuthenticationService
         : IAuthenticationService
     {
