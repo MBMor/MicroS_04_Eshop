@@ -27,14 +27,18 @@ public sealed class OperationalHealthApiClientTests
                   "status": "Healthy",
                   "durationMilliseconds": 12,
                   "failureKind": null,
-                  "httpStatusCode": 200
+                  "httpStatusCode": 200,
+                  "failedDependencies": []
                 },
                 {
                   "service": "Payments",
-                  "status": "Unavailable",
-                  "durationMilliseconds": 2001,
-                  "failureKind": "Timeout",
-                  "httpStatusCode": null
+                  "status": "Unhealthy",
+                  "durationMilliseconds": 41,
+                  "failureKind": "HttpStatus",
+                  "httpStatusCode": 503,
+                  "failedDependencies": [
+                    "postgresql"
+                  ]
                 }
               ]
             }
@@ -91,13 +95,20 @@ public sealed class OperationalHealthApiClientTests
                 service => service.Service == "Payments");
 
         Assert.Equal(
-            "Unavailable",
+            "Unhealthy",
             payments.Status);
         Assert.Equal(
-            "Timeout",
+            "HttpStatus",
             payments.FailureKind);
-        Assert.Null(
+        Assert.Equal(
+            503,
             payments.HttpStatusCode);
+        Assert.Equal(
+            ["postgresql"],
+            payments.FailedDependencies);
+        Assert.Equal(
+            "postgresql",
+            payments.FailedDependenciesText);
 
         OperationalServiceHealthDto orders =
             Assert.Single(
@@ -109,6 +120,11 @@ public sealed class OperationalHealthApiClientTests
             orders.HttpStatusCode);
         Assert.Null(
             orders.FailureKind);
+        Assert.Empty(
+            orders.FailedDependencies);
+        Assert.Equal(
+            "—",
+            orders.FailedDependenciesText);
     }
 
     [Fact]

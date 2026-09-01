@@ -131,7 +131,8 @@ public sealed class ShellViewModelTests
                 "Healthy",
                 12,
                 null,
-                200);
+                200,
+                []);
 
         viewModel
             .InvestigateServiceCommand
@@ -160,7 +161,8 @@ public sealed class ShellViewModelTests
                 "Healthy",
                 18,
                 null,
-                200);
+                200,
+                []);
 
         viewModel
             .InvestigateServiceCommand
@@ -195,7 +197,8 @@ public sealed class ShellViewModelTests
                 "Unavailable",
                 2004,
                 "Timeout",
-                null);
+                null,
+                []);
 
         viewModel
             .InvestigateServiceCommand
@@ -236,7 +239,8 @@ public sealed class ShellViewModelTests
                     "Healthy",
                     8,
                     null,
-                    200));
+                    200,
+                    []));
 
         Assert.Same(
             viewModel.Diagnostics,
@@ -277,7 +281,8 @@ public sealed class ShellViewModelTests
                     "Healthy",
                     12,
                     null,
-                    200));
+                    200,
+                    []));
 
         Assert.Same(
             viewModel.Diagnostics,
@@ -311,7 +316,8 @@ public sealed class ShellViewModelTests
                     "Unavailable",
                     2004,
                     "Connection",
-                    null));
+                    null,
+                    []));
 
         Assert.Same(
             viewModel.Diagnostics,

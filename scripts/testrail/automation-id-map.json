@@ -53,6 +53,7 @@
     ],
     "ESHOP-GW-003": [
       "OperationalHealthServiceTests.AllServicesHealthyProducesHealthyAggregate",
+      "OperationalHealthServiceTests.FailedServiceIncludesDownstreamDependencyDiagnostics",
       "OperationalHealthServiceTests.FailedServiceIsUnhealthyAndDegradesAggregate",
       "OperationalHealthServiceTests.ProbesRunConcurrently",
       "OperationalHealthServiceTests.SlowServiceIsBoundedByProbeTimeout",

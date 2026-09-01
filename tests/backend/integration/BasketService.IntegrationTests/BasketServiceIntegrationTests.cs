@@ -69,9 +69,34 @@ public sealed class BasketServiceIntegrationTests(
                 await unavailableResponse.Content.ReadAsStringAsync(
                     cancellationToken);
 
+            using JsonDocument unavailableHealth =
+                JsonDocument.Parse(
+                    responseBody);
+
             Assert.Equal(
                 "Unhealthy",
-                responseBody);
+                unavailableHealth.RootElement
+                    .GetProperty("status")
+                    .GetString());
+
+            JsonElement unavailableRedis =
+                Assert.Single(
+                    unavailableHealth.RootElement
+                        .GetProperty("checks")
+                        .EnumerateArray()
+                        .ToArray());
+
+            Assert.Equal(
+                "redis",
+                unavailableRedis
+                    .GetProperty("name")
+                    .GetString());
+
+            Assert.Equal(
+                "Unhealthy",
+                unavailableRedis
+                    .GetProperty("status")
+                    .GetString());
 
             Assert.DoesNotContain(
                 fixture.RedisConnectionString,
@@ -95,10 +120,39 @@ public sealed class BasketServiceIntegrationTests(
                 HttpStatusCode.OK,
                 cancellationToken);
 
+        string recoveredBody =
+            await recoveredResponse.Content
+                .ReadAsStringAsync(
+                    cancellationToken);
+
+        using JsonDocument recoveredHealth =
+            JsonDocument.Parse(
+                recoveredBody);
+
         Assert.Equal(
             "Healthy",
-            await recoveredResponse.Content.ReadAsStringAsync(
-                cancellationToken));
+            recoveredHealth.RootElement
+                .GetProperty("status")
+                .GetString());
+
+        JsonElement recoveredRedis =
+            Assert.Single(
+                recoveredHealth.RootElement
+                    .GetProperty("checks")
+                    .EnumerateArray()
+                    .ToArray());
+
+        Assert.Equal(
+            "redis",
+            recoveredRedis
+                .GetProperty("name")
+                .GetString());
+
+        Assert.Equal(
+            "Healthy",
+            recoveredRedis
+                .GetProperty("status")
+                .GetString());
     }
 
     [Fact]

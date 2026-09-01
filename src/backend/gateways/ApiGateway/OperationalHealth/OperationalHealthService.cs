@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ApiGateway.OperationalHealth;
 
@@ -67,7 +69,8 @@ public sealed class OperationalHealthService(
                 "Unknown",
                 0,
                 "Configuration",
-                null);
+                null,
+                []);
         }
 
         Uri healthUri =
@@ -101,6 +104,14 @@ public sealed class OperationalHealthService(
             bool isHealthy =
                 response.IsSuccessStatusCode;
 
+            IReadOnlyList<string>
+                failedDependencies =
+                    isHealthy
+                        ? []
+                        : await ReadFailedDependenciesAsync(
+                            response,
+                            timeout.Token);
+
             return new OperationalServiceHealth(
                 target.Service,
                 isHealthy
@@ -112,7 +123,8 @@ public sealed class OperationalHealthService(
                 isHealthy
                     ? null
                     : "HttpStatus",
-                (int)response.StatusCode);
+                (int)response.StatusCode,
+                failedDependencies);
         }
         catch (OperationCanceledException)
             when (!cancellationToken.IsCancellationRequested)
@@ -124,7 +136,8 @@ public sealed class OperationalHealthService(
                     .GetElapsedTime(started)
                     .TotalMilliseconds,
                 "Timeout",
-                null);
+                null,
+                []);
         }
         catch (HttpRequestException)
         {
@@ -135,7 +148,57 @@ public sealed class OperationalHealthService(
                     .GetElapsedTime(started)
                     .TotalMilliseconds,
                 "Connection",
-                null);
+                null,
+                []);
+        }
+    }
+
+    private static async Task<IReadOnlyList<string>>
+        ReadFailedDependenciesAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            DownstreamHealthResponse? health =
+                await response.Content
+                    .ReadFromJsonAsync<DownstreamHealthResponse>(
+                        cancellationToken: cancellationToken);
+
+            if (health?.Checks is null)
+            {
+                return [];
+            }
+
+            return health.Checks
+                .Where(
+                    check =>
+                        !string.Equals(
+                            check.Status,
+                            "Healthy",
+                            StringComparison.OrdinalIgnoreCase))
+                .Select(
+                    check =>
+                        check.Name)
+                .Where(
+                    name =>
+                        !string.IsNullOrWhiteSpace(
+                            name))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    name =>
+                        name,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+        catch (NotSupportedException)
+        {
+            return [];
         }
     }
 

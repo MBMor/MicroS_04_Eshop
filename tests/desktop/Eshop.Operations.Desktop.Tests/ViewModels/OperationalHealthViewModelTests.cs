@@ -17,12 +17,12 @@ public sealed class OperationalHealthViewModelTests
     {
         OperationalServiceHealthDto[] services =
         [
-            new("Catalog", "Healthy", 12, null, 200),
-            new("Basket", "Healthy", 8, null, 200),
-            new("Orders", "Healthy", 15, null, 200),
-            new("Inventory", "Healthy", 10, null, 200),
-            new("Payments", "Healthy", 11, null, 200),
-            new("Notifications", "Healthy", 9, null, 200)
+            new("Catalog", "Healthy", 12, null, 200, []),
+            new("Basket", "Healthy", 8, null, 200, []),
+            new("Orders", "Healthy", 15, null, 200, []),
+            new("Inventory", "Healthy", 10, null, 200, []),
+            new("Payments", "Healthy", 11, null, 200, []),
+            new("Notifications", "Healthy", 9, null, 200, [])
         ];
 
         OperationalHealthViewModel viewModel =
@@ -57,8 +57,8 @@ public sealed class OperationalHealthViewModelTests
                     "Degraded",
                     DateTimeOffset.UtcNow,
                     [
-                        new("Orders", "Healthy", 12, null, 200),
-                        new("Payments", "Unavailable", 2001, "Timeout", null)
+                        new("Orders", "Healthy", 12, null, 200, []),
+                        new("Payments", "Unavailable", 2001, "Timeout", null, [])
                     ]));
 
         await viewModel.RefreshHealthCommand.ExecuteAsync(null);

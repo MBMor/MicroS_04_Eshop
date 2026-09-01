@@ -5,4 +5,13 @@ public sealed record OperationalServiceHealthDto(
     string Status,
     long DurationMilliseconds,
     string? FailureKind,
-    int? HttpStatusCode);
+    int? HttpStatusCode,
+    IReadOnlyList<string> FailedDependencies)
+{
+    public string FailedDependenciesText =>
+        FailedDependencies.Count == 0
+            ? "—"
+            : string.Join(
+                ", ",
+                FailedDependencies);
+}

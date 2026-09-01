@@ -258,6 +258,10 @@
                                                                   TargetNullValue=—}"
                                                 Width="*" />
 
+                            <DataGridTextColumn Header="Dependency"
+                                                Binding="{Binding FailedDependenciesText}"
+                                                Width="*" />
+
                             <DataGridTextColumn Header="HTTP"
                                                 Binding="{Binding HttpStatusCode,
                                                                   TargetNullValue=—}"

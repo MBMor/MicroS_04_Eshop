@@ -5,4 +5,5 @@ public sealed record OperationalServiceHealth(
     string Status,
     long DurationMilliseconds,
     string? FailureKind,
-    int? HttpStatusCode);
+    int? HttpStatusCode,
+    IReadOnlyList<string> FailedDependencies);

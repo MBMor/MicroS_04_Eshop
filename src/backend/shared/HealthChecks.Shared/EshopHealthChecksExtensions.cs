@@ -1,5 +1,8 @@
+using System.Text.Json;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -10,6 +13,10 @@ namespace Eshop.HealthChecks;
 public static class EshopHealthChecksExtensions
 {
     private const string ReadinessTag = "ready";
+
+    private static readonly JsonSerializerOptions
+        HealthJsonOptions =
+            new(JsonSerializerDefaults.Web);
 
     public static IHealthChecksBuilder
         AddEshopPostgreSqlReadinessCheck(
@@ -102,8 +109,44 @@ public static class EshopHealthChecksExtensions
         return new HealthCheckOptions
         {
             Predicate = static registration =>
-                registration.Tags.Contains(ReadinessTag)
+                registration.Tags.Contains(
+                    ReadinessTag),
+
+            ResponseWriter =
+                WriteReadinessResponseAsync
         };
+    }
+
+    private static async Task
+        WriteReadinessResponseAsync(
+            HttpContext context,
+            HealthReport report)
+    {
+        EshopHealthCheckResponse[] checks =
+            report.Entries
+                .OrderBy(
+                    entry => entry.Key,
+                    StringComparer.Ordinal)
+                .Select(
+                    entry =>
+                        new EshopHealthCheckResponse(
+                            entry.Key,
+                            entry.Value.Status.ToString()))
+                .ToArray();
+
+        var response =
+            new EshopHealthResponse(
+                report.Status.ToString(),
+                checks);
+
+        context.Response.ContentType =
+            "application/json; charset=utf-8";
+
+        await JsonSerializer.SerializeAsync(
+            context.Response.Body,
+            response,
+            HealthJsonOptions,
+            context.RequestAborted);
     }
 
     private sealed class DelegateHealthCheck(
