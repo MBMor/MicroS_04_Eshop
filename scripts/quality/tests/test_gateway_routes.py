@@ -23,7 +23,7 @@ class GatewayRoutePolicyTests(unittest.TestCase):
 
     def test_repository_policy_covers_every_route(self) -> None:
         self.assertEqual(
-            {"routes": 21, "proxy": 16, "local": 5},
+            {"routes": 23, "proxy": 18, "local": 5},
             MODULE.validate(self.registry, self.appsettings),
         )
 

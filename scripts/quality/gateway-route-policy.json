@@ -253,6 +253,30 @@
       "authorization_policy": "CustomerOnly",
       "allowed_roles": ["customer"],
       "rate_limiter_policy": "CustomerApi"
+    },
+    {
+      "id": "notifications-operations-list-route",
+      "kind": "proxy",
+      "cluster_id": "notifications-cluster",
+      "path_template": "/api/v{version}/operations/notifications",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/api/v1/operations/notifications",
+      "authorization_policy": "SupportOrAdmin",
+      "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
+    },
+    {
+      "id": "notifications-operations-detail-route",
+      "kind": "proxy",
+      "cluster_id": "notifications-cluster",
+      "path_template": "/api/v{version}/operations/notifications/{**catch-all}",
+      "methods": ["GET"],
+      "sample_method": "GET",
+      "sample_path": "/api/v1/operations/notifications/00000000-0000-0000-0000-000000000001",
+      "authorization_policy": "SupportOrAdmin",
+      "allowed_roles": ["support", "admin"],
+      "rate_limiter_policy": "Operational"
     }
   ]
 }
