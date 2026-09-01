@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Eshop.Operations.Desktop.Api.OperationalHealth;
 using Eshop.Operations.Desktop.Configuration;
 using Microsoft.Extensions.Options;
 using Eshop.Operations.Desktop.Authentication;
@@ -561,6 +562,84 @@ public sealed partial class ShellViewModel : ObservableObject
         ClearTroubleshootingContextState();
         CurrentViewModel = Diagnostics;
         ResetNavigationStatus();
+    }
+
+    [RelayCommand]
+    private void InvestigateService(
+        OperationalServiceHealthDto? service)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to investigate service health.";
+
+            return;
+        }
+
+        if (service is null)
+        {
+            StatusText =
+                "Select a service to investigate.";
+
+            return;
+        }
+
+        if (!string.Equals(
+                service.Status,
+                "Healthy",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Diagnostics.OpenAspireDashboardCommand.Execute(
+                null);
+
+            StatusText =
+                $"Inspecting {service.Service} health in Aspire.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        switch (service.Service)
+        {
+            case "Catalog":
+                CurrentViewModel = Catalog;
+                break;
+
+            case "Orders":
+                CurrentViewModel = Orders;
+                break;
+
+            case "Inventory":
+                CurrentViewModel = Inventory;
+                break;
+
+            case "Payments":
+                CurrentViewModel = Payments;
+                break;
+
+            case "Notifications":
+                CurrentViewModel = Notifications;
+                break;
+
+            case "Basket":
+                Diagnostics.OpenAspireDashboardCommand.Execute(
+                    null);
+
+                StatusText =
+                    "Inspecting Basket in Aspire.";
+
+                return;
+
+            default:
+                StatusText =
+                    $"No troubleshooting target is configured for '{service.Service}'.";
+
+                return;
+        }
+
+        StatusText =
+            $"Inspecting {service.Service}.";
     }
 
     [RelayCommand]
