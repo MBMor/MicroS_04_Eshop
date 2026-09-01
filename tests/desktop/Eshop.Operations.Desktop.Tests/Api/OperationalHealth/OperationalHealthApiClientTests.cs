@@ -25,12 +25,16 @@ public sealed class OperationalHealthApiClientTests
                 {
                   "service": "Orders",
                   "status": "Healthy",
-                  "durationMilliseconds": 12
+                  "durationMilliseconds": 12,
+                  "failureKind": null,
+                  "httpStatusCode": 200
                 },
                 {
                   "service": "Payments",
                   "status": "Unavailable",
-                  "durationMilliseconds": 2001
+                  "durationMilliseconds": 2001,
+                  "failureKind": "Timeout",
+                  "httpStatusCode": null
                 }
               ]
             }
@@ -81,11 +85,30 @@ public sealed class OperationalHealthApiClientTests
         Assert.Equal(
             2,
             response.Services.Count);
-        Assert.Equal(
-            "Unavailable",
+        OperationalServiceHealthDto payments =
             Assert.Single(
                 response.Services,
-                service => service.Service == "Payments").Status);
+                service => service.Service == "Payments");
+
+        Assert.Equal(
+            "Unavailable",
+            payments.Status);
+        Assert.Equal(
+            "Timeout",
+            payments.FailureKind);
+        Assert.Null(
+            payments.HttpStatusCode);
+
+        OperationalServiceHealthDto orders =
+            Assert.Single(
+                response.Services,
+                service => service.Service == "Orders");
+
+        Assert.Equal(
+            200,
+            orders.HttpStatusCode);
+        Assert.Null(
+            orders.FailureKind);
     }
 
     [Fact]

@@ -31,7 +31,17 @@ public sealed class OperationalHealthServiceTests
             response.Services.Count);
         Assert.All(
             response.Services,
-            item => Assert.Equal("Healthy", item.Status));
+            item =>
+            {
+                Assert.Equal(
+                    "Healthy",
+                    item.Status);
+                Assert.Null(
+                    item.FailureKind);
+                Assert.Equal(
+                    200,
+                    item.HttpStatusCode);
+            });
     }
 
     [Fact]
@@ -56,11 +66,20 @@ public sealed class OperationalHealthServiceTests
         Assert.Equal(
             "Degraded",
             response.Status);
-        Assert.Equal(
-            "Unhealthy",
+        OperationalServiceHealth payments =
             Assert.Single(
                 response.Services,
-                item => item.Service == "Payments").Status);
+                item => item.Service == "Payments");
+
+        Assert.Equal(
+            "Unhealthy",
+            payments.Status);
+        Assert.Equal(
+            "HttpStatus",
+            payments.FailureKind);
+        Assert.Equal(
+            500,
+            payments.HttpStatusCode);
     }
 
     [Fact]
@@ -91,11 +110,19 @@ public sealed class OperationalHealthServiceTests
         Assert.Equal(
             "Degraded",
             response.Status);
-        Assert.Equal(
-            "Unavailable",
+        OperationalServiceHealth payments =
             Assert.Single(
                 response.Services,
-                item => item.Service == "Payments").Status);
+                item => item.Service == "Payments");
+
+        Assert.Equal(
+            "Unavailable",
+            payments.Status);
+        Assert.Equal(
+            "Connection",
+            payments.FailureKind);
+        Assert.Null(
+            payments.HttpStatusCode);
     }
 
     [Fact]
@@ -123,11 +150,19 @@ public sealed class OperationalHealthServiceTests
             await service.CheckAsync(
                 TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            "Unavailable",
+        OperationalServiceHealth payments =
             Assert.Single(
                 response.Services,
-                item => item.Service == "Payments").Status);
+                item => item.Service == "Payments");
+
+        Assert.Equal(
+            "Unavailable",
+            payments.Status);
+        Assert.Equal(
+            "Timeout",
+            payments.FailureKind);
+        Assert.Null(
+            payments.HttpStatusCode);
         Assert.Equal(
             "Degraded",
             response.Status);

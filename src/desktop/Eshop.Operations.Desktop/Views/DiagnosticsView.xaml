@@ -253,6 +253,16 @@
                                                 Binding="{Binding DurationMilliseconds}"
                                                 Width="*" />
 
+                            <DataGridTextColumn Header="Failure"
+                                                Binding="{Binding FailureKind,
+                                                                  TargetNullValue=—}"
+                                                Width="*" />
+
+                            <DataGridTextColumn Header="HTTP"
+                                                Binding="{Binding HttpStatusCode,
+                                                                  TargetNullValue=—}"
+                                                Width="80" />
+
                             <DataGridTemplateColumn Header=""
                                                     Width="Auto">
 

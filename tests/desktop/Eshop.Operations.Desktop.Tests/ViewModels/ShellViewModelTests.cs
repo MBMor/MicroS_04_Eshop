@@ -129,7 +129,9 @@ public sealed class ShellViewModelTests
             new OperationalServiceHealthDto(
                 "Orders",
                 "Healthy",
-                12);
+                12,
+                null,
+                200);
 
         viewModel
             .InvestigateServiceCommand
@@ -156,7 +158,9 @@ public sealed class ShellViewModelTests
             new OperationalServiceHealthDto(
                 "Payments",
                 "Healthy",
-                18);
+                18,
+                null,
+                200);
 
         viewModel
             .InvestigateServiceCommand
@@ -189,7 +193,9 @@ public sealed class ShellViewModelTests
             new OperationalServiceHealthDto(
                 "Payments",
                 "Unavailable",
-                2004);
+                2004,
+                "Timeout",
+                null);
 
         viewModel
             .InvestigateServiceCommand
@@ -228,7 +234,9 @@ public sealed class ShellViewModelTests
                 new OperationalServiceHealthDto(
                     "Basket",
                     "Healthy",
-                    8));
+                    8,
+                    null,
+                    200));
 
         Assert.Same(
             viewModel.Diagnostics,
@@ -267,7 +275,9 @@ public sealed class ShellViewModelTests
                 new OperationalServiceHealthDto(
                     "Orders",
                     "Healthy",
-                    12));
+                    12,
+                    null,
+                    200));
 
         Assert.Same(
             viewModel.Diagnostics,
@@ -299,7 +309,9 @@ public sealed class ShellViewModelTests
                 new OperationalServiceHealthDto(
                     "Payments",
                     "Unavailable",
-                    2004));
+                    2004,
+                    "Connection",
+                    null));
 
         Assert.Same(
             viewModel.Diagnostics,

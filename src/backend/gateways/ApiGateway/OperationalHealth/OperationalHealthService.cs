@@ -65,7 +65,9 @@ public sealed class OperationalHealthService(
             return new OperationalServiceHealth(
                 target.Service,
                 "Unknown",
-                0);
+                0,
+                "Configuration",
+                null);
         }
 
         Uri healthUri =
@@ -96,14 +98,21 @@ public sealed class OperationalHealthService(
                     HttpCompletionOption.ResponseHeadersRead,
                     timeout.Token);
 
+            bool isHealthy =
+                response.IsSuccessStatusCode;
+
             return new OperationalServiceHealth(
                 target.Service,
-                response.IsSuccessStatusCode
+                isHealthy
                     ? "Healthy"
                     : "Unhealthy",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                isHealthy
+                    ? null
+                    : "HttpStatus",
+                (int)response.StatusCode);
         }
         catch (OperationCanceledException)
             when (!cancellationToken.IsCancellationRequested)
@@ -113,7 +122,9 @@ public sealed class OperationalHealthService(
                 "Unavailable",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                "Timeout",
+                null);
         }
         catch (HttpRequestException)
         {
@@ -122,7 +133,9 @@ public sealed class OperationalHealthService(
                 "Unavailable",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                "Connection",
+                null);
         }
     }
 
