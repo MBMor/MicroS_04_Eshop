@@ -192,6 +192,10 @@ public sealed partial class ShellViewModel : ObservableObject
                 Notifications.ClearContextFocus(context.CorrelationId);
                 break;
 
+            case TroubleshootingContextKind.NotificationToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
+
             case TroubleshootingContextKind.LookupToOrder:
                 Orders.ClearContextFocus(context.CorrelationId);
                 break;
@@ -285,6 +289,37 @@ public sealed partial class ShellViewModel : ObservableObject
         Guid orderId,
         CancellationToken cancellationToken)
     {
+        await OpenOrderWithContextAsync(
+            orderId,
+            TroubleshootingContextKind.PaymentToOrder,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private Task OpenOrderFromNotificationAsync(
+        Guid? orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!orderId.HasValue
+            || orderId.Value == Guid.Empty)
+        {
+            StatusText =
+                "This notification is not associated with an order.";
+
+            return Task.CompletedTask;
+        }
+
+        return OpenOrderWithContextAsync(
+            orderId.Value,
+            TroubleshootingContextKind.NotificationToOrder,
+            cancellationToken);
+    }
+
+    private async Task OpenOrderWithContextAsync(
+        Guid orderId,
+        TroubleshootingContextKind contextKind,
+        CancellationToken cancellationToken)
+    {
         if (!Authentication.CanAccessOperations)
         {
             StatusText =
@@ -305,7 +340,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         ActiveTroubleshootingContext =
             new TroubleshootingContext(
-                TroubleshootingContextKind.PaymentToOrder,
+                contextKind,
                 orderId);
 
         CurrentViewModel =

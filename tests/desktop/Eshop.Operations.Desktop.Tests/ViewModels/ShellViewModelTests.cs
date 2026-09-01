@@ -737,6 +737,161 @@ public sealed class ShellViewModelTests
             "Sign in with a support or admin account to access Notifications.",
             viewModel.StatusText);
     }
+
+    [Fact]
+    public async Task
+        OpenOrderFromNotificationCommandOpensExactOrderForSupportUser()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "support-123",
+                    "sam.support",
+                    "sam.support@example.com",
+                    ["support"]));
+
+        Guid orderId =
+            Guid.NewGuid();
+
+        OperationalOrderDetailDto detail =
+            new(
+                orderId,
+                "customer-123",
+                "customer@example.com",
+                "Confirmed",
+                1499.50m,
+                "CZK",
+                "test-success",
+                DateTimeOffset.UtcNow,
+                null,
+                [],
+                []);
+
+        var ordersApiClient =
+            new StubOrdersApiClient(
+                (requestedOrderId, _) =>
+                {
+                    Assert.Equal(orderId, requestedOrderId);
+                    return Task.FromResult(detail);
+                });
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                authentication,
+                ordersApiClient);
+
+        await viewModel
+            .OpenOrderFromNotificationCommand
+            .ExecuteAsync(orderId);
+
+        Assert.Same(
+            viewModel.Orders,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            orderId,
+            viewModel.Orders.DetailOrderId);
+
+        Assert.Same(
+            detail,
+            viewModel.Orders.SelectedOrderDetail);
+
+        Assert.Equal(
+            TroubleshootingContextKind.NotificationToOrder,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+
+        Assert.Equal(
+            orderId,
+            viewModel.ActiveTroubleshootingContext?.CorrelationId);
+
+        Assert.Equal(
+            $"Notification → Order {orderId.ToString("D")[..8]}…",
+            viewModel.TroubleshootingContextText);
+    }
+
+    [Fact]
+    public async Task
+        OpenOrderFromNotificationCommandIsBlockedWithoutOperationalRole()
+    {
+        Guid orderId =
+            Guid.NewGuid();
+
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        await viewModel
+            .OpenOrderFromNotificationCommand
+            .ExecuteAsync(orderId);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to access Orders.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public async Task
+        ClearTroubleshootingContextClearsNotificationOrderDetail()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "support-123",
+                    "sam.support",
+                    "sam.support@example.com",
+                    ["support"]));
+
+        Guid orderId =
+            Guid.NewGuid();
+
+        OperationalOrderDetailDto detail =
+            new(
+                orderId,
+                "customer-123",
+                "customer@example.com",
+                "Confirmed",
+                1499.50m,
+                "CZK",
+                "test-success",
+                DateTimeOffset.UtcNow,
+                null,
+                [],
+                []);
+
+        var ordersApiClient =
+            new StubOrdersApiClient(
+                (_, _) => Task.FromResult(detail));
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                authentication,
+                ordersApiClient);
+
+        await viewModel
+            .OpenOrderFromNotificationCommand
+            .ExecuteAsync(orderId);
+
+        Assert.Equal(
+            orderId,
+            viewModel.Orders.DetailOrderId);
+
+        viewModel
+            .ClearTroubleshootingContextCommand
+            .Execute(null);
+
+        Assert.False(
+            viewModel.HasTroubleshootingContext);
+
+        Assert.Null(
+            viewModel.Orders.DetailOrderId);
+
+        Assert.Null(
+            viewModel.Orders.SelectedOrderDetail);
+    }
+
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null,
         IOrdersApiClient? ordersApiClient = null,
