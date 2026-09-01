@@ -672,6 +672,71 @@ public sealed class ShellViewModelTests
             viewModel.TroubleshootingContextText);
     }
 
+
+    [Fact]
+    public async Task
+        OpenNotificationsForOrderCommandFocusesNotificationsForSupportUser()
+    {
+        var authentication =
+            new AuthenticationState(
+                new AuthenticatedUser(
+                    "support-123",
+                    "sam.support",
+                    "sam.support@example.com",
+                    ["support"]));
+
+        Guid orderId =
+            Guid.NewGuid();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                authentication);
+
+        await viewModel
+            .OpenNotificationsForOrderCommand
+            .ExecuteAsync(
+                orderId);
+
+        Assert.Same(
+            viewModel.Notifications,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            orderId.ToString("D"),
+            viewModel.Notifications.OrderIdText);
+
+        Assert.Equal(
+            TroubleshootingContextKind.OrderToNotifications,
+            viewModel.ActiveTroubleshootingContext?.Kind);
+
+        Assert.Equal(
+            orderId,
+            viewModel.ActiveTroubleshootingContext?.CorrelationId);
+    }
+
+    [Fact]
+    public async Task
+        OpenNotificationsForOrderCommandIsBlockedWithoutOperationalRole()
+    {
+        Guid orderId =
+            Guid.NewGuid();
+
+        ShellViewModel viewModel =
+            CreateViewModel();
+
+        await viewModel
+            .OpenNotificationsForOrderCommand
+            .ExecuteAsync(
+                orderId);
+
+        Assert.Same(
+            viewModel.Catalog,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to access Notifications.",
+            viewModel.StatusText);
+    }
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null,
         IOrdersApiClient? ordersApiClient = null,

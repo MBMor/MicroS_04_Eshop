@@ -185,6 +185,88 @@ public sealed partial class NotificationsViewModel
             nameof(HasActiveFilters));
     }
 
+
+    public async Task FocusOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (orderId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Order id must not be empty.",
+                nameof(orderId));
+        }
+
+        OrderIdText =
+            orderId.ToString("D");
+
+        CustomerIdText =
+            string.Empty;
+
+        CorrelationIdText =
+            string.Empty;
+
+        await LoadNotificationsAsync(
+            cancellationToken);
+
+        OperationalNotificationDto[] matchingNotifications =
+            Notifications
+                .Where(
+                    notification =>
+                        notification.OrderId == orderId)
+                .ToArray();
+
+        SelectedNotification =
+            matchingNotifications.Length == 1
+                ? matchingNotifications[0]
+                : null;
+    }
+
+    public void ClearContextFocus(
+        Guid orderId)
+    {
+        if (orderId == Guid.Empty)
+        {
+            return;
+        }
+
+        string expectedOrderId =
+            orderId.ToString("D");
+
+        if (!string.Equals(
+                OrderIdText,
+                expectedOrderId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        OrderIdText =
+            string.Empty;
+
+        SelectedNotification =
+            null;
+
+        Notifications.Clear();
+
+        HasLoaded =
+            false;
+
+        HasMore =
+            false;
+
+        _nextOffset =
+            0;
+
+        ErrorMessage =
+            null;
+
+        StatusText =
+            "Notifications not loaded.";
+
+        NotifyCollectionStateChanged();
+    }
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task LoadNotificationsAsync(
         CancellationToken cancellationToken)

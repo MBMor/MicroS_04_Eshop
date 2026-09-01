@@ -119,7 +119,21 @@
                                             <Grid>
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                 <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Text="Order detail" />
-                                                <Button Grid.Column="1" Margin="12,0,0,0" Style="{StaticResource CompactToolbarButtonStyle}" Command="{Binding DataContext.OpenPaymentsForOrderCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" CommandParameter="{Binding Id}" Content="Open payments" />
+                                                <StackPanel Grid.Column="1"
+                                                            Margin="12,0,0,0"
+                                                            Orientation="Horizontal">
+                                                    <Button Style="{StaticResource CompactToolbarButtonStyle}"
+                                                            Command="{Binding DataContext.OpenPaymentsForOrderCommand,
+                                                                              RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                            CommandParameter="{Binding Id}"
+                                                            Content="Payments" />
+                                                    <Button Margin="6,0,0,0"
+                                                            Style="{StaticResource CompactToolbarButtonStyle}"
+                                                            Command="{Binding DataContext.OpenNotificationsForOrderCommand,
+                                                                              RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                                            CommandParameter="{Binding Id}"
+                                                            Content="Notifications" />
+                                                </StackPanel>
                                             </Grid>
                                             <TextBox Margin="0,8,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding Id, Mode=OneWay}" />
                                             <TextBox Margin="0,4,0,0" Style="{StaticResource SelectableValueTextBoxStyle}" Text="{Binding CustomerEmail, Mode=OneWay}" />

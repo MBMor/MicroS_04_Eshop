@@ -237,6 +237,187 @@ public sealed class NotificationsViewModelTests
             viewModel.CanLoadMore);
     }
 
+    [Fact]
+    public async Task
+        FocusOrderAsyncLoadsNotificationsUsingOrderFilter()
+    {
+        Guid orderId =
+            Guid.NewGuid();
+
+        OperationalNotificationDto notification =
+            CreateNotification() with
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId
+            };
+
+        Guid? capturedOrderId =
+            null;
+
+        NotificationsViewModel viewModel =
+            CreateViewModel(
+                new StubNotificationsApiClient(
+                    (
+                        requestedOrderId,
+                        customerId,
+                        correlationId,
+                        offset,
+                        limit,
+                        _) =>
+                    {
+                        capturedOrderId =
+                            requestedOrderId;
+
+                        Assert.Null(
+                            customerId);
+
+                        Assert.Null(
+                            correlationId);
+
+                        Assert.Equal(
+                            0,
+                            offset);
+
+                        Assert.Equal(
+                            25,
+                            limit);
+
+                        return Task.FromResult(
+                            new OperationalNotificationPageDto(
+                                [notification],
+                                offset,
+                                limit,
+                                false));
+                    }));
+
+        await viewModel.FocusOrderAsync(
+            orderId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            orderId,
+            capturedOrderId);
+
+        Assert.Equal(
+            orderId.ToString("D"),
+            viewModel.OrderIdText);
+
+        Assert.Single(
+            viewModel.Notifications);
+
+        Assert.Same(
+            notification,
+            viewModel.SelectedNotification);
+    }
+
+    [Fact]
+    public async Task
+        FocusOrderAsyncDoesNotAutoSelectWhenOrderHasMultipleNotifications()
+    {
+        Guid orderId =
+            Guid.NewGuid();
+
+        OperationalNotificationDto first =
+            CreateNotification() with
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId
+            };
+
+        OperationalNotificationDto second =
+            CreateNotification() with
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId
+            };
+
+        NotificationsViewModel viewModel =
+            CreateViewModel(
+                new StubNotificationsApiClient(
+                    (
+                        _,
+                        _,
+                        _,
+                        offset,
+                        limit,
+                        _) =>
+                        Task.FromResult(
+                            new OperationalNotificationPageDto(
+                                [first, second],
+                                offset,
+                                limit,
+                                false))));
+
+        await viewModel.FocusOrderAsync(
+            orderId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            2,
+            viewModel.Notifications.Count);
+
+        Assert.Null(
+            viewModel.SelectedNotification);
+    }
+
+    [Fact]
+    public async Task
+        ClearContextFocusRemovesContextualNotificationDataset()
+    {
+        Guid orderId =
+            Guid.NewGuid();
+
+        OperationalNotificationDto notification =
+            CreateNotification() with
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId
+            };
+
+        NotificationsViewModel viewModel =
+            CreateViewModel(
+                new StubNotificationsApiClient(
+                    (
+                        _,
+                        _,
+                        _,
+                        offset,
+                        limit,
+                        _) =>
+                        Task.FromResult(
+                            new OperationalNotificationPageDto(
+                                [notification],
+                                offset,
+                                limit,
+                                false))));
+
+        await viewModel.FocusOrderAsync(
+            orderId,
+            TestContext.Current.CancellationToken);
+
+        Assert.Single(
+            viewModel.Notifications);
+
+        viewModel.ClearContextFocus(
+            orderId);
+
+        Assert.Equal(
+            string.Empty,
+            viewModel.OrderIdText);
+
+        Assert.Empty(
+            viewModel.Notifications);
+
+        Assert.Null(
+            viewModel.SelectedNotification);
+
+        Assert.False(
+            viewModel.HasLoaded);
+
+        Assert.Equal(
+            "Notifications not loaded.",
+            viewModel.StatusText);
+    }
     private static NotificationsViewModel
         CreateViewModel(
             INotificationsApiClient? apiClient = null)

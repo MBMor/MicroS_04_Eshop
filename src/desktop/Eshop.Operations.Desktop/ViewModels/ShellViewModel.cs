@@ -188,6 +188,10 @@ public sealed partial class ShellViewModel : ObservableObject
                 Orders.ClearContextFocus(context.CorrelationId);
                 break;
 
+            case TroubleshootingContextKind.OrderToNotifications:
+                Notifications.ClearContextFocus(context.CorrelationId);
+                break;
+
             case TroubleshootingContextKind.LookupToOrder:
                 Orders.ClearContextFocus(context.CorrelationId);
                 break;
@@ -344,6 +348,10 @@ public sealed partial class ShellViewModel : ObservableObject
                 await OpenPaymentsForOrderAsync(identifier, cancellationToken);
                 break;
 
+            case OperationalLookupKind.NotificationsForOrder:
+                await OpenNotificationsForOrderAsync(identifier, cancellationToken);
+                break;
+
             case OperationalLookupKind.InventoryForProduct:
                 await OpenInventoryForProductAsync(identifier, cancellationToken);
                 break;
@@ -422,6 +430,44 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentViewModel =
             Payments;
         ResetNavigationStatus();
+    }
+    [RelayCommand]
+    private async Task OpenNotificationsForOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Notifications.";
+
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Notifications.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.OrderToNotifications,
+                orderId);
+
+        CurrentViewModel =
+            Notifications;
+
+        StatusText =
+            $"Inspecting notifications for order {orderId:D}.";
+
+        await Notifications.FocusOrderAsync(
+            orderId,
+            cancellationToken);
     }
 
     [RelayCommand]
