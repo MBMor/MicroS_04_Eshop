@@ -18,6 +18,7 @@ public sealed partial class ShellViewModel : ObservableObject
         InventoryViewModel inventory,
         OrdersViewModel orders,
         PaymentsViewModel payments,
+        NotificationsViewModel notifications,
         InvestigationViewModel investigation,
         DiagnosticsViewModel diagnostics,
         IAuthenticationService authenticationService,
@@ -28,6 +29,7 @@ public sealed partial class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(orders);
         ArgumentNullException.ThrowIfNull(payments);
+        ArgumentNullException.ThrowIfNull(notifications);
         ArgumentNullException.ThrowIfNull(investigation);
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(authenticationService);
@@ -40,6 +42,7 @@ public sealed partial class ShellViewModel : ObservableObject
         Inventory = inventory;
         Orders = orders;
         Payments = payments;
+        Notifications = notifications;
         Investigation = investigation;
         Diagnostics = diagnostics;
 
@@ -61,6 +64,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public InventoryViewModel Inventory { get; }
     public OrdersViewModel Orders { get; }
     public PaymentsViewModel Payments { get; }
+    public NotificationsViewModel Notifications { get; }
 
     public bool IsCatalogActive =>
         ReferenceEquals(
@@ -87,10 +91,16 @@ public sealed partial class ShellViewModel : ObservableObject
             CurrentViewModel,
             Payments);
 
+    public bool IsNotificationsActive =>
+        ReferenceEquals(
+            CurrentViewModel,
+            Notifications);
+
     private bool IsProtectedOperationActive =>
         IsInventoryActive
         || IsOrdersActive
         || IsPaymentsActive
+        || IsNotificationsActive
         || IsInvestigationActive;
 
     public bool IsDiagnosticsActive =>
@@ -115,6 +125,7 @@ public sealed partial class ShellViewModel : ObservableObject
             InventoryViewModel => "Inventory",
             OrdersViewModel => "Orders",
             PaymentsViewModel => "Payments",
+            NotificationsViewModel => "Notifications",
             InvestigationViewModel => "Investigate",
             DiagnosticsViewModel => "Diagnostics",
             _ => "Operations"
@@ -127,6 +138,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsInventoryActive))]
     [NotifyPropertyChangedFor(nameof(IsOrdersActive))]
     [NotifyPropertyChangedFor(nameof(IsPaymentsActive))]
+    [NotifyPropertyChangedFor(nameof(IsNotificationsActive))]
     [NotifyPropertyChangedFor(nameof(IsDiagnosticsActive))]
     public partial object CurrentViewModel { get; private set; }
 
@@ -173,6 +185,14 @@ public sealed partial class ShellViewModel : ObservableObject
                 break;
 
             case TroubleshootingContextKind.PaymentToOrder:
+                Orders.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.OrderToNotifications:
+                Notifications.ClearContextFocus(context.CorrelationId);
+                break;
+
+            case TroubleshootingContextKind.NotificationToOrder:
                 Orders.ClearContextFocus(context.CorrelationId);
                 break;
 
@@ -269,6 +289,37 @@ public sealed partial class ShellViewModel : ObservableObject
         Guid orderId,
         CancellationToken cancellationToken)
     {
+        await OpenOrderWithContextAsync(
+            orderId,
+            TroubleshootingContextKind.PaymentToOrder,
+            cancellationToken);
+    }
+
+    [RelayCommand]
+    private Task OpenOrderFromNotificationAsync(
+        Guid? orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!orderId.HasValue
+            || orderId.Value == Guid.Empty)
+        {
+            StatusText =
+                "This notification is not associated with an order.";
+
+            return Task.CompletedTask;
+        }
+
+        return OpenOrderWithContextAsync(
+            orderId.Value,
+            TroubleshootingContextKind.NotificationToOrder,
+            cancellationToken);
+    }
+
+    private async Task OpenOrderWithContextAsync(
+        Guid orderId,
+        TroubleshootingContextKind contextKind,
+        CancellationToken cancellationToken)
+    {
         if (!Authentication.CanAccessOperations)
         {
             StatusText =
@@ -289,7 +340,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
         ActiveTroubleshootingContext =
             new TroubleshootingContext(
-                TroubleshootingContextKind.PaymentToOrder,
+                contextKind,
                 orderId);
 
         CurrentViewModel =
@@ -330,6 +381,10 @@ public sealed partial class ShellViewModel : ObservableObject
 
             case OperationalLookupKind.PaymentsForOrder:
                 await OpenPaymentsForOrderAsync(identifier, cancellationToken);
+                break;
+
+            case OperationalLookupKind.NotificationsForOrder:
+                await OpenNotificationsForOrderAsync(identifier, cancellationToken);
                 break;
 
             case OperationalLookupKind.InventoryForProduct:
@@ -411,6 +466,44 @@ public sealed partial class ShellViewModel : ObservableObject
             Payments;
         ResetNavigationStatus();
     }
+    [RelayCommand]
+    private async Task OpenNotificationsForOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken)
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Notifications.";
+
+            return;
+        }
+
+        if (orderId == Guid.Empty)
+        {
+            StatusText =
+                "A valid order id is required to inspect Notifications.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        ActiveTroubleshootingContext =
+            new TroubleshootingContext(
+                TroubleshootingContextKind.OrderToNotifications,
+                orderId);
+
+        CurrentViewModel =
+            Notifications;
+
+        StatusText =
+            $"Inspecting notifications for order {orderId:D}.";
+
+        await Notifications.FocusOrderAsync(
+            orderId,
+            cancellationToken);
+    }
 
     [RelayCommand]
     private async Task OpenInventoryForProductAsync(
@@ -441,6 +534,25 @@ public sealed partial class ShellViewModel : ObservableObject
         CurrentViewModel = Inventory;
         StatusText = $"Inspecting inventory for product {productId:D}.";
         await Inventory.FocusProductAsync(productId, cancellationToken);
+    }
+
+    [RelayCommand]
+    private void ShowNotifications()
+    {
+        if (!Authentication.CanAccessOperations)
+        {
+            StatusText =
+                "Sign in with a support or admin account to access Notifications.";
+
+            return;
+        }
+
+        ClearTroubleshootingContextState();
+
+        CurrentViewModel =
+            Notifications;
+
+        ResetNavigationStatus();
     }
 
     [RelayCommand]

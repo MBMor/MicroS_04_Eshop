@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Asp.Versioning;
+using Eshop.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NotificationsService.Application;
 using NotificationsService.Contracts;
@@ -10,6 +12,7 @@ namespace NotificationsService.Controllers;
 
 [ApiVersion("1.0")]
 [ApiController]
+[Authorize(Policy = EshopPolicies.CustomerOnly)]
 [Produces("application/json")]
 [Route("api/v{version:apiVersion}/notifications")]
 public sealed class NotificationsController(

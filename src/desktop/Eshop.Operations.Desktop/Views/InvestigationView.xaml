@@ -53,6 +53,7 @@
                     <TextBlock FontWeight="SemiBold" Text="Supported lookups" />
                     <TextBlock Margin="0,8,0,0" Text="Order → exact operational Order detail" />
                     <TextBlock Margin="0,4,0,0" Text="Payments for order → Payments filtered by Order ID" />
+                    <TextBlock Margin="0,4,0,0" Text="Notifications for order → Notifications filtered by Order ID" />
                     <TextBlock Margin="0,4,0,0" Text="Inventory for product → Inventory filtered by Product ID" />
                     <TextBlock Margin="0,12,0,0"
                                Style="{StaticResource MutedTextStyle}"

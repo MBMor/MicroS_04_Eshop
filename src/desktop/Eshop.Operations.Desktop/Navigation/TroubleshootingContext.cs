@@ -5,7 +5,9 @@ public enum TroubleshootingContextKind
     OrderToPayments,
     ProductToInventory,
     PaymentToOrder,
-    LookupToOrder
+    LookupToOrder,
+    OrderToNotifications,
+    NotificationToOrder
 }
 
 public sealed record TroubleshootingContext(
@@ -23,6 +25,10 @@ public sealed record TroubleshootingContext(
                 $"Payments → Order {ShortCorrelationId}",
             TroubleshootingContextKind.LookupToOrder =>
                 $"Lookup → Order {ShortCorrelationId}",
+            TroubleshootingContextKind.OrderToNotifications =>
+                $"Order {ShortCorrelationId} → Notifications",
+            TroubleshootingContextKind.NotificationToOrder =>
+                $"Notification → Order {ShortCorrelationId}",
             _ => ShortCorrelationId
         };
 

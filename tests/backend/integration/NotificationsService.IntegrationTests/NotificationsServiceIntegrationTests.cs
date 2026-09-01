@@ -15,6 +15,9 @@ public sealed class NotificationsServiceIntegrationTests(
     NotificationsServiceFixture fixture)
     : IClassFixture<NotificationsServiceFixture>
 {
+    private const string OperationalNotificationsEndpoint =
+        "/api/v1/operations/notifications";
+
     private const string NotificationsEndpoint =
         "/api/v1/notifications";
 
@@ -73,6 +76,154 @@ public sealed class NotificationsServiceIntegrationTests(
             response.StatusCode);
     }
 
+    [Fact]
+    public async Task
+        OperationalSupportUserCanInspectNotificationsAcrossCustomers()
+    {
+        string firstCustomerId = CreateSubject("operational-first");
+        string secondCustomerId = CreateSubject("operational-second");
+        DateTimeOffset baseline = DateTimeOffset.UtcNow.AddMinutes(-10);
+
+        Notification first = await SeedNotificationAsync(firstCustomerId, baseline);
+        Notification second = await SeedNotificationAsync(
+            secondCustomerId,
+            baseline.AddMinutes(1));
+
+        using HttpRequestMessage request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            OperationalNotificationsEndpoint,
+            CreateSubject("support"),
+            EshopRoles.Support);
+
+        using HttpResponseMessage response = await _client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        OperationalNotificationPageResponse page =
+            await ReadRequiredAsync<OperationalNotificationPageResponse>(response);
+
+        Assert.Contains(page.Items, item => item.Id == first.Id);
+        Assert.Contains(page.Items, item => item.Id == second.Id);
+        Assert.Contains(page.Items, item => item.CustomerId == firstCustomerId);
+        Assert.Contains(page.Items, item => item.CustomerId == secondCustomerId);
+    }
+
+    [Fact]
+    public async Task
+        OperationalCustomerUserReturnsForbidden()
+    {
+        using HttpRequestMessage request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            OperationalNotificationsEndpoint,
+            CreateSubject("customer-operational"),
+            EshopRoles.Customer);
+
+        using HttpResponseMessage response = await _client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task
+        OperationalNotificationsPageIsBounded()
+    {
+        string customerId = CreateSubject("operational-page");
+        DateTimeOffset baseline = DateTimeOffset.UtcNow.AddMinutes(-10);
+
+        await SeedNotificationAsync(customerId, baseline);
+        await SeedNotificationAsync(customerId, baseline.AddMinutes(1));
+
+        using HttpRequestMessage request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            $"{OperationalNotificationsEndpoint}?offset=0&limit=1",
+            CreateSubject("support-page"),
+            EshopRoles.Support);
+
+        using HttpResponseMessage response = await _client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        OperationalNotificationPageResponse page =
+            await ReadRequiredAsync<OperationalNotificationPageResponse>(response);
+
+        Assert.Single(page.Items);
+        Assert.Equal(0, page.Offset);
+        Assert.Equal(1, page.Limit);
+        Assert.True(page.HasMore);
+    }
+
+    [Fact]
+    public async Task
+        OperationalNotificationsOrderFilterReturnsMatchingOrder()
+    {
+        string customerId = CreateSubject("operational-order");
+        Guid matchingOrderId = Guid.NewGuid();
+
+        Notification matching = await SeedNotificationAsync(
+            customerId,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            orderId: matchingOrderId);
+
+        await SeedNotificationAsync(
+            customerId,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            orderId: Guid.NewGuid());
+
+        using HttpRequestMessage request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            $"{OperationalNotificationsEndpoint}?orderId={matchingOrderId:D}",
+            CreateSubject("support-order"),
+            EshopRoles.Support);
+
+        using HttpResponseMessage response = await _client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        OperationalNotificationPageResponse page =
+            await ReadRequiredAsync<OperationalNotificationPageResponse>(response);
+
+        OperationalNotificationResponse result = Assert.Single(page.Items);
+        Assert.Equal(matching.Id, result.Id);
+        Assert.Equal(matchingOrderId, result.OrderId);
+    }
+
+    [Fact]
+    public async Task
+        OperationalNotificationDetailIncludesAuditMetadata()
+    {
+        string customerId = CreateSubject("operational-detail");
+        Notification notification = await SeedNotificationAsync(
+            customerId,
+            DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        using HttpRequestMessage request = CreateAuthenticatedRequest(
+            HttpMethod.Get,
+            $"{OperationalNotificationsEndpoint}/{notification.Id:D}",
+            CreateSubject("admin-detail"),
+            EshopRoles.Admin);
+
+        using HttpResponseMessage response = await _client.SendAsync(
+            request,
+            Xunit.TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        OperationalNotificationResponse result =
+            await ReadRequiredAsync<OperationalNotificationResponse>(response);
+
+        Assert.Equal(notification.Id, result.Id);
+        Assert.Equal(notification.CustomerId, result.CustomerId);
+        Assert.Equal(notification.SourceEventId, result.SourceEventId);
+        Assert.Equal(notification.CorrelationId, result.CorrelationId);
+    }
     [Fact]
     public async Task
         GetNotificationsNewCustomerReturnsEmptyCollection()

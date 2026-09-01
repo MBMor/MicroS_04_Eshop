@@ -16,6 +16,7 @@ public sealed partial class InvestigationViewModel : ObservableObject
     [
         new("Order", OperationalLookupKind.Order),
         new("Payments for order", OperationalLookupKind.PaymentsForOrder),
+        new("Notifications for order", OperationalLookupKind.NotificationsForOrder),
         new("Inventory for product", OperationalLookupKind.InventoryForProduct)
     ];
 
