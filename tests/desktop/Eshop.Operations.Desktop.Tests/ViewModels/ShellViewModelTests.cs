@@ -116,6 +116,222 @@ public sealed class ShellViewModelTests
     }
 
     [Fact]
+    public void InvestigateServiceCommandNavigatesToHealthyOrders()
+    {
+        AuthenticationState authentication =
+            CreateSupportAuthentication();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                authentication);
+
+        var service =
+            new OperationalServiceHealthDto(
+                "Orders",
+                "Healthy",
+                12,
+                null,
+                200,
+                []);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                service);
+
+        Assert.Same(
+            viewModel.Orders,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Inspecting Orders.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void InvestigateServiceCommandNavigatesToHealthyPayments()
+    {
+        ShellViewModel viewModel =
+            CreateViewModel(
+                CreateSupportAuthentication());
+
+        var service =
+            new OperationalServiceHealthDto(
+                "Payments",
+                "Healthy",
+                18,
+                null,
+                200,
+                []);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                service);
+
+        Assert.Same(
+            viewModel.Payments,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            "Inspecting Payments.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void InvestigateServiceCommandOpensAspireForUnhealthyService()
+    {
+        var launcher =
+            new StubExternalUriLauncher();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                CreateSupportAuthentication(),
+                externalUriLauncher: launcher);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        var service =
+            new OperationalServiceHealthDto(
+                "Payments",
+                "Unavailable",
+                2004,
+                "Timeout",
+                null,
+                []);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                service);
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            new Uri("http://localhost:18888"),
+            launcher.OpenedUri);
+
+        Assert.Equal(
+            "Inspecting Payments health in Aspire.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void InvestigateServiceCommandOpensAspireForHealthyBasket()
+    {
+        var launcher =
+            new StubExternalUriLauncher();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                CreateSupportAuthentication(),
+                externalUriLauncher: launcher);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                new OperationalServiceHealthDto(
+                    "Basket",
+                    "Healthy",
+                    8,
+                    null,
+                    200,
+                    []));
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Equal(
+            new Uri("http://localhost:18888"),
+            launcher.OpenedUri);
+
+        Assert.Equal(
+            "Inspecting Basket in Aspire.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void InvestigateServiceCommandIsBlockedWithoutOperationalRole()
+    {
+        var launcher =
+            new StubExternalUriLauncher();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                new AuthenticationState(
+                    new AuthenticatedUser(
+                        "customer-123",
+                        "sam.customer",
+                        "sam.customer@example.com",
+                        ["customer"])),
+                externalUriLauncher: launcher);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                new OperationalServiceHealthDto(
+                    "Orders",
+                    "Healthy",
+                    12,
+                    null,
+                    200,
+                    []));
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Null(
+            launcher.OpenedUri);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to investigate service health.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void InvestigateServiceCommandIsBlockedForAnonymousUser()
+    {
+        var launcher =
+            new StubExternalUriLauncher();
+
+        ShellViewModel viewModel =
+            CreateViewModel(
+                externalUriLauncher: launcher);
+
+        viewModel.ShowDiagnosticsCommand.Execute(null);
+
+        viewModel
+            .InvestigateServiceCommand
+            .Execute(
+                new OperationalServiceHealthDto(
+                    "Payments",
+                    "Unavailable",
+                    2004,
+                    "Connection",
+                    null,
+                    []));
+
+        Assert.Same(
+            viewModel.Diagnostics,
+            viewModel.CurrentViewModel);
+
+        Assert.Null(
+            launcher.OpenedUri);
+
+        Assert.Equal(
+            "Sign in with a support or admin account to investigate service health.",
+            viewModel.StatusText);
+    }
+
+    [Fact]
     public void ShowCatalogCommandNavigatesBackToCatalog()
     {
         ShellViewModel viewModel =
@@ -896,7 +1112,8 @@ public sealed class ShellViewModelTests
     private static ShellViewModel CreateViewModel(
         AuthenticationState? authentication = null,
         IOrdersApiClient? ordersApiClient = null,
-        INotificationsApiClient? notificationsApiClient = null)
+        INotificationsApiClient? notificationsApiClient = null,
+        IExternalUriLauncher? externalUriLauncher = null)
     {
         IOptions<DesktopOptions> options =
             Options.Create(
@@ -939,7 +1156,8 @@ public sealed class ShellViewModelTests
                 NullLogger<OrdersViewModel>.Instance);
 
         DiagnosticsViewModel diagnosticsViewModel =
-            CreateDiagnosticsViewModel();
+            CreateDiagnosticsViewModel(
+                externalUriLauncher);
 
         var authenticationService =
             new StubAuthenticationService();
@@ -957,7 +1175,8 @@ public sealed class ShellViewModelTests
             authentication);
     }
 
-    private static DiagnosticsViewModel CreateDiagnosticsViewModel()
+    private static DiagnosticsViewModel CreateDiagnosticsViewModel(
+        IExternalUriLauncher? externalUriLauncher = null)
     {
         IOptions<DesktopOptions> desktopOptions =
             Options.Create(
@@ -976,13 +1195,16 @@ public sealed class ShellViewModelTests
 
         IOptions<ObservabilityOptions> observabilityOptions =
             Options.Create(
-                new ObservabilityOptions());
+                new ObservabilityOptions
+                {
+                    DashboardUrl = "http://localhost:18888"
+                });
 
         return new DiagnosticsViewModel(
             desktopOptions,
             apiGatewayOptions,
             observabilityOptions,
-            new StubExternalUriLauncher(),
+            externalUriLauncher ?? new StubExternalUriLauncher(),
             new OperationalHealthViewModel(
                 new StubOperationalHealthApiClient(),
                 NullLogger<OperationalHealthViewModel>.Instance));
@@ -991,10 +1213,27 @@ public sealed class ShellViewModelTests
     private sealed class StubExternalUriLauncher
         : IExternalUriLauncher
     {
+        public Uri? OpenedUri
+        {
+            get;
+            private set;
+        }
+
         public void Open(
             Uri uri)
         {
+            OpenedUri = uri;
         }
+    }
+
+    private static AuthenticationState CreateSupportAuthentication()
+    {
+        return new AuthenticationState(
+            new AuthenticatedUser(
+                "support-123",
+                "sam.support",
+                "sam.support@example.com",
+                ["support"]));
     }
 
     private sealed class StubCatalogApiClient

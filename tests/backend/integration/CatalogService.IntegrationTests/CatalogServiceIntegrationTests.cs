@@ -79,9 +79,40 @@ public sealed class CatalogServiceIntegrationTests(
                 await unavailableResponse.Content.ReadAsStringAsync(
                     cancellationToken);
 
+            using JsonDocument unhealthyDocument =
+                JsonDocument.Parse(
+                    responseBody);
+
+            JsonElement unhealthyRoot =
+                unhealthyDocument.RootElement;
+
             Assert.Equal(
                 "Unhealthy",
-                responseBody);
+                unhealthyRoot
+                    .GetProperty("status")
+                    .GetString());
+
+            JsonElement checks =
+                unhealthyRoot.GetProperty(
+                    "checks");
+
+            JsonElement postgresqlCheck =
+                checks
+                    .EnumerateArray()
+                    .Single(
+                        check =>
+                            string.Equals(
+                                check
+                                    .GetProperty("name")
+                                    .GetString(),
+                                "postgresql",
+                                StringComparison.OrdinalIgnoreCase));
+
+            Assert.Equal(
+                "Unhealthy",
+                postgresqlCheck
+                    .GetProperty("status")
+                    .GetString());
 
             Assert.DoesNotContain(
                 fixture.PostgresConnectionString,
@@ -105,10 +136,19 @@ public sealed class CatalogServiceIntegrationTests(
                 HttpStatusCode.OK,
                 cancellationToken);
 
+        string recoveredBody =
+            await recoveredResponse.Content.ReadAsStringAsync(
+                cancellationToken);
+
+        using JsonDocument recoveredDocument =
+            JsonDocument.Parse(
+                recoveredBody);
+
         Assert.Equal(
             "Healthy",
-            await recoveredResponse.Content.ReadAsStringAsync(
-                cancellationToken));
+            recoveredDocument.RootElement
+                .GetProperty("status")
+                .GetString());
     }
 
     public static IEnumerable<object?[]>

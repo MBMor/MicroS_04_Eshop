@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ApiGateway.OperationalHealth;
 
@@ -65,7 +67,10 @@ public sealed class OperationalHealthService(
             return new OperationalServiceHealth(
                 target.Service,
                 "Unknown",
-                0);
+                0,
+                "Configuration",
+                null,
+                []);
         }
 
         Uri healthUri =
@@ -96,14 +101,30 @@ public sealed class OperationalHealthService(
                     HttpCompletionOption.ResponseHeadersRead,
                     timeout.Token);
 
+            bool isHealthy =
+                response.IsSuccessStatusCode;
+
+            IReadOnlyList<string>
+                failedDependencies =
+                    isHealthy
+                        ? []
+                        : await ReadFailedDependenciesAsync(
+                            response,
+                            timeout.Token);
+
             return new OperationalServiceHealth(
                 target.Service,
-                response.IsSuccessStatusCode
+                isHealthy
                     ? "Healthy"
                     : "Unhealthy",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                isHealthy
+                    ? null
+                    : "HttpStatus",
+                (int)response.StatusCode,
+                failedDependencies);
         }
         catch (OperationCanceledException)
             when (!cancellationToken.IsCancellationRequested)
@@ -113,7 +134,10 @@ public sealed class OperationalHealthService(
                 "Unavailable",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                "Timeout",
+                null,
+                []);
         }
         catch (HttpRequestException)
         {
@@ -122,7 +146,59 @@ public sealed class OperationalHealthService(
                 "Unavailable",
                 (long)Stopwatch
                     .GetElapsedTime(started)
-                    .TotalMilliseconds);
+                    .TotalMilliseconds,
+                "Connection",
+                null,
+                []);
+        }
+    }
+
+    private static async Task<IReadOnlyList<string>>
+        ReadFailedDependenciesAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+    {
+        try
+        {
+            DownstreamHealthResponse? health =
+                await response.Content
+                    .ReadFromJsonAsync<DownstreamHealthResponse>(
+                        cancellationToken: cancellationToken);
+
+            if (health?.Checks is null)
+            {
+                return [];
+            }
+
+            return health.Checks
+                .Where(
+                    check =>
+                        !string.Equals(
+                            check.Status,
+                            "Healthy",
+                            StringComparison.OrdinalIgnoreCase))
+                .Select(
+                    check =>
+                        check.Name)
+                .Where(
+                    name =>
+                        !string.IsNullOrWhiteSpace(
+                            name))
+                .Distinct(
+                    StringComparer.OrdinalIgnoreCase)
+                .OrderBy(
+                    name =>
+                        name,
+                    StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+        catch (NotSupportedException)
+        {
+            return [];
         }
     }
 

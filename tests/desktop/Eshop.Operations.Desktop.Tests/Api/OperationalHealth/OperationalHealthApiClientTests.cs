@@ -25,12 +25,20 @@ public sealed class OperationalHealthApiClientTests
                 {
                   "service": "Orders",
                   "status": "Healthy",
-                  "durationMilliseconds": 12
+                  "durationMilliseconds": 12,
+                  "failureKind": null,
+                  "httpStatusCode": 200,
+                  "failedDependencies": []
                 },
                 {
                   "service": "Payments",
-                  "status": "Unavailable",
-                  "durationMilliseconds": 2001
+                  "status": "Unhealthy",
+                  "durationMilliseconds": 41,
+                  "failureKind": "HttpStatus",
+                  "httpStatusCode": 503,
+                  "failedDependencies": [
+                    "postgresql"
+                  ]
                 }
               ]
             }
@@ -81,11 +89,42 @@ public sealed class OperationalHealthApiClientTests
         Assert.Equal(
             2,
             response.Services.Count);
-        Assert.Equal(
-            "Unavailable",
+        OperationalServiceHealthDto payments =
             Assert.Single(
                 response.Services,
-                service => service.Service == "Payments").Status);
+                service => service.Service == "Payments");
+
+        Assert.Equal(
+            "Unhealthy",
+            payments.Status);
+        Assert.Equal(
+            "HttpStatus",
+            payments.FailureKind);
+        Assert.Equal(
+            503,
+            payments.HttpStatusCode);
+        Assert.Equal(
+            ["postgresql"],
+            payments.FailedDependencies);
+        Assert.Equal(
+            "postgresql",
+            payments.FailedDependenciesText);
+
+        OperationalServiceHealthDto orders =
+            Assert.Single(
+                response.Services,
+                service => service.Service == "Orders");
+
+        Assert.Equal(
+            200,
+            orders.HttpStatusCode);
+        Assert.Null(
+            orders.FailureKind);
+        Assert.Empty(
+            orders.FailedDependencies);
+        Assert.Equal(
+            "—",
+            orders.FailedDependenciesText);
     }
 
     [Fact]

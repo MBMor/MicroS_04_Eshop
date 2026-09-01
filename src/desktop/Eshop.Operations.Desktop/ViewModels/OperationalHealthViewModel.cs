@@ -24,6 +24,14 @@ public sealed partial class OperationalHealthViewModel(
         get;
     } = [];
 
+    [ObservableProperty]
+    public partial OperationalServiceHealthDto?
+        SelectedService
+    {
+        get;
+        set;
+    }
+
     public bool HasLoaded =>
         CheckedAtUtc is not null;
 

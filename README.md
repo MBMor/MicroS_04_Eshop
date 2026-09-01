@@ -83,11 +83,25 @@ The system focuses on:
 - .NET Aspire Dashboard
 - GitHub Actions
 
+### Desktop Operations Console
+
+- .NET 10
+- WPF
+- C#
+- CommunityToolkit.Mvvm
+- Generic Host
+- Microsoft dependency injection and configuration
+- HttpClientFactory
+- OpenID Connect Authorization Code + PKCE
+- xUnit
+- Windows `win-x64` self-contained publishing
+
 ## Architecture
 
 ```mermaid
 flowchart LR
     Browser[React frontend]
+    Operations[Eshop Operations Console]
     Keycloak[Keycloak]
 
     Gateway[API Gateway<br/>YARP]
@@ -112,6 +126,9 @@ flowchart LR
 
     Browser -->|OIDC + PKCE| Keycloak
     Browser -->|Bearer token| Gateway
+    Operations -->|OIDC + PKCE| Keycloak
+    Operations -->|Bearer token| Gateway
+    Operations -. business IDs / open dashboard .-> Aspire
 
     Gateway --> Catalog
     Gateway --> Basket
@@ -147,6 +164,7 @@ flowchart LR
 | Component | Responsibility | Local URL |
 |---|---|---|
 | React frontend | Product catalog, basket, checkout, orders and authentication UI | `http://localhost:5173` |
+| Eshop Operations Console | Windows support/admin operational client | Windows desktop application |
 | API Gateway | Public API entry point, routing, authentication, authorization and rate limiting | `http://localhost:5080` |
 | Catalog Service | Product catalog management and queries | `http://localhost:5081` |
 | Basket Service | Customer basket stored in Redis | `http://localhost:5082` |
@@ -240,6 +258,48 @@ Notifications Service consumes business events and stores notifications for the 
 
 Notification ownership is derived from trusted backend event data and notifications are exposed only to the authenticated customer.
 
+## Eshop Operations Console
+
+The repository also contains a Windows WPF application for support and administrative operations:
+
+`src/desktop/Eshop.Operations.Desktop`
+
+The Operations Console complements the customer-facing React frontend.
+
+It provides:
+
+- anonymous Catalog inspection
+- native OIDC sign-in using Authorization Code + PKCE
+- support/admin protected operational navigation
+- Orders inspection with bounded paging and lazy-loaded details
+- Inventory inspection and stock-adjustment history
+- admin-only stock adjustments with optimistic concurrency and idempotency
+- Payments inspection
+- Notifications inspection by Order ID, Customer ID, or Correlation ID
+- cross-service troubleshooting navigation
+- direct investigation by known business identifier
+- runtime Diagnostics
+- hand-off to the Aspire Dashboard for distributed trace inspection
+- copy-friendly operational details and DataGrid cells
+
+Operational navigation includes:
+
+`Order -> Payments`
+
+`Order -> Notifications`
+
+`Order item -> Inventory`
+
+`Payment -> Order`
+
+`Notification -> Order`
+
+The desktop application does not bypass service boundaries and does not call backend services directly. Business API traffic goes through the API Gateway.
+
+Detailed documentation:
+
+`docs/operations/operations-console.md`
+
 ## API Gateway
 
 The API Gateway is implemented with YARP.
@@ -271,8 +331,14 @@ Responsibilities include:
 | `/api/v1/notifications/{...}` | `customer` |
 | `/api/v1/inventory-items` | `support` or `admin` |
 | `/api/v1/inventory-items/{...}` | `support` or `admin` |
+| `/api/v1/inventory-items/{id}/stock-adjustments` `POST` | `admin` |
 | `/api/v1/payments` | `support` or `admin` |
 | `/api/v1/payments/{...}` | `support` or `admin` |
+| `/api/v1/operations/orders` | `support` or `admin` |
+| `/api/v1/operations/orders/{...}` | `support` or `admin` |
+| `/api/v1/operations/notifications` | `support` or `admin` |
+| `/api/v1/operations/notifications/{...}` | `support` or `admin` |
+| `/api/v1/operations/health` | `support` or `admin` |
 
 Protected downstream services validate bearer tokens independently. Direct access to a service port therefore does not bypass authentication or authorization.
 
@@ -1006,6 +1072,27 @@ The backend job:
 - produces `.trx` result files
 - uploads backend test-result artifacts
 
+## Desktop CI Job
+
+The desktop job runs on Windows.
+
+It:
+
+- restores desktop test and publish dependencies
+- builds desktop tests with warnings treated as errors
+- runs the xUnit desktop test suite
+- publishes a self-contained `win-x64` application
+- validates the published application startup
+- verifies required publish files
+- generates SHA-256 checksums
+- verifies artifact checksums
+- verifies build provenance against the Git commit
+- uploads the Windows desktop application artifact
+
+Published artifact:
+
+`eshop-operations-desktop-win-x64`
+
 ## Frontend CI Job
 
 The frontend job:
@@ -1076,6 +1163,9 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 │   └── workflows
 │       └── ci.yml
 ├── docs
+│   ├── architecture
+│   ├── operations
+│   └── testing
 ├── infrastructure
 │   ├── keycloak
 │   └── postgres
@@ -1097,11 +1187,14 @@ The E2E shell scripts support Linux and Git Bash on Windows.
 │   │   ├── shared
 │   │   └── tools
 │   │       └── RabbitMq.TopologyInitializer
+│   ├── desktop
+│   │   └── Eshop.Operations.Desktop
 │   └── frontend
 ├── tests
 │   ├── backend
 │   │   ├── integration
 │   │   └── unit
+│   ├── desktop
 │   ├── e2e
 │   │   ├── specs
 │   │   │   ├── checkout-failure-paths.spec.ts
@@ -1295,6 +1388,32 @@ dotnet run \
   --project src/backend/gateways/ApiGateway/ApiGateway.csproj
 ```
 
+## Running the Operations Console
+
+The WPF Operations Console requires Windows.
+
+Start the local infrastructure and backend services first.
+
+Then run:
+
+```bash
+dotnet run \
+  --project src/desktop/Eshop.Operations.Desktop/Eshop.Operations.Desktop.csproj
+```
+
+The application validates its configuration during startup.
+The desktop communicates with application APIs only through the configured API Gateway.
+Operational sections require a support or admin Keycloak user.
+Catalog remains available anonymously.
+For observability troubleshooting, configure the Aspire Dashboard URL and use:
+
+`Diagnostics -> Observability -> Open Aspire dashboard`
+
+See:
+
+`docs/operations/operations-console.md`
+`docs/operations/observability-troubleshooting.md`
+
 ## Running the Frontend
 
 Using Docker:
@@ -1449,8 +1568,15 @@ The fake payment implementation must not be replaced by a real payment provider 
 | Document | Purpose |
 |---|---|
 | `README.md` | Project overview, architecture, testing and local setup |
+| `docs/operations/operations-console.md` | WPF Operations Console architecture, workflows and usage |
+| `docs/operations/observability-troubleshooting.md` | Aspire/OpenTelemetry distributed troubleshooting runbook |
 | `docs/identity.md` | Authentication, authorization and Keycloak runbook |
 | `infrastructure/keycloak/README.md` | Local Keycloak realm operation |
+| `docs/testing/test-strategy.md` | Test strategy |
+| `docs/testing/quality-risk-register.md` | Quality risks |
+| `docs/testing/traceability-matrix.md` | Requirement/risk/test traceability |
+| `docs/testing/testrail-ci-integration.md` | Automated TestRail reporting |
+| `docs/testing/quality-gate-policy.md` | CI quality gates |
 | `src/frontend/.env.example` | Frontend runtime configuration |
 | `.env.example` | Infrastructure defaults |
 
